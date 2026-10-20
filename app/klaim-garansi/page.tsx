@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 
+import { RequireAuth } from "@/features/auth/components/require-auth"
 import { WarrantyClaims } from "@/features/warranty/components/warranty-claims"
 
 export const metadata: Metadata = {
@@ -9,5 +10,9 @@ export const metadata: Metadata = {
 }
 
 export default function WarrantyClaimsPage() {
-  return <WarrantyClaims />
+  return (
+    <RequireAuth>
+      <WarrantyClaims />
+    </RequireAuth>
+  )
 }

@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { Suspense } from "react"
 
 import { ForgotPasswordForm } from "@/features/auth/components/auth-forms"
 import { AuthShell } from "@/components/layout/auth-shell"
@@ -11,7 +12,9 @@ export const metadata: Metadata = {
 export default function ForgotPasswordPage() {
   return (
     <AuthShell>
-      <ForgotPasswordForm />
+      <Suspense>
+        <ForgotPasswordForm />
+      </Suspense>
     </AuthShell>
   )
 }

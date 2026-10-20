@@ -7,22 +7,29 @@ export const config = {
    * API base URL - defaults to relative path for same-origin API
    * Set NEXT_PUBLIC_API_URL in .env for different backend
    */
-  apiUrl: process.env.NEXT_PUBLIC_API_URL || '/api',
+  apiUrl: process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/v1",
 
   /**
    * App metadata
    */
   app: {
-    name: 'Ngampus',
-    url: process.env.NEXT_PUBLIC_APP_URL || 'https://ngampus.id',
+    name: "Ngampus",
+    url: process.env.NEXT_PUBLIC_APP_URL || "https://ngampus.id",
   },
+
+  /**
+   * Cloudflare Turnstile site key (widget hidden when unset)
+   */
+  turnstileSiteKey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "",
 
   /**
    * Payment gateway
    */
   payment: {
     // Set to 'production' to use real payment gateway
-    mode: (process.env.NEXT_PUBLIC_PAYMENT_MODE as 'preview' | 'production') || 'preview',
+    mode:
+      (process.env.NEXT_PUBLIC_PAYMENT_MODE as "preview" | "production") ||
+      "preview",
   },
 
   /**
@@ -30,9 +37,9 @@ export const config = {
    */
   features: {
     // Enable real authentication (vs demo session)
-    realAuth: process.env.NEXT_PUBLIC_ENABLE_AUTH === 'true',
+    realAuth: process.env.NEXT_PUBLIC_ENABLE_AUTH === "true",
     // Enable real order history (vs mock data)
-    realOrders: process.env.NEXT_PUBLIC_ENABLE_ORDERS === 'true',
+    realOrders: process.env.NEXT_PUBLIC_ENABLE_ORDERS === "true",
   },
 
   /**
@@ -62,6 +69,6 @@ export const config = {
       },
     },
   },
-} as const;
+} as const
 
-export type Config = typeof config;
+export type Config = typeof config

@@ -3,10 +3,46 @@
 import { Eye, EyeOff } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { authApi } from "@/lib/api"
+import { useAuthStore } from "@/lib/stores/auth"
+
+import { safeNext } from "./require-auth"
+import { Turnstile } from "./turnstile"
+
+type FieldErrors = Record<string, string[]> | undefined
+
+function FieldError({ errors, name }: { errors: FieldErrors; name: string }) {
+  const message = errors?.[name]?.[0]
+  if (!message) return null
+  return (
+    <p className="px-4 text-sm tracking-[-0.02em] text-destructive">
+      {message}
+    </p>
+  )
+}
+
+function Note({
+  text,
+  tone = "muted",
+}: {
+  text: string
+  tone?: "muted" | "error"
+}) {
+  if (!text) return null
+  return (
+    <p
+      role={tone === "error" ? "alert" : "status"}
+      className={`text-center text-sm tracking-[-0.02em] ${tone === "error" ? "text-destructive" : "text-subtle"}`}
+    >
+      {text}
+    </p>
+  )
+}
 
 const fieldClass =
   "h-14 rounded-full border-line px-4 text-base tracking-[-0.02em] shadow-none placeholder:text-subtle focus-visible:border-primary focus-visible:ring-0 md:text-base"
@@ -17,12 +53,16 @@ function Field({
   type = "text",
   placeholder,
   autoComplete,
+  errors,
+  errorKey,
 }: {
   id: string
   label: string
   type?: string
   placeholder: string
   autoComplete?: string
+  errors?: FieldErrors
+  errorKey?: string
 }) {
   return (
     <div className="flex flex-col gap-2">
@@ -36,8 +76,10 @@ function Field({
         required
         placeholder={placeholder}
         autoComplete={autoComplete}
+        aria-invalid={Boolean(errors?.[errorKey ?? id])}
         className={fieldClass}
       />
+      <FieldError errors={errors} name={errorKey ?? id} />
     </div>
   )
 }
@@ -47,11 +89,15 @@ function PasswordField({
   label,
   placeholder,
   autoComplete,
+  errors,
+  errorKey,
 }: {
   id: string
   label: string
   placeholder: string
   autoComplete?: string
+  errors?: FieldErrors
+  errorKey?: string
 }) {
   const [visible, setVisible] = useState(false)
 
@@ -83,6 +129,7 @@ function PasswordField({
           )}
         </button>
       </div>
+      <FieldError errors={errors} name={errorKey ?? id} />
     </div>
   )
 }
@@ -112,20 +159,69 @@ function Heading({
   )
 }
 
+function useSubmitting() {
+  const [submitting, setSubmitting] = useState(false)
+  return [submitting, setSubmitting] as const
+}
+
+function SubmitButton({
+  submitting,
+  label,
+}: {
+  submitting: boolean
+  label: string
+}) {
+  return (
+    <Button
+      type="submit"
+      disabled={submitting}
+      className="h-[52px] w-full rounded-3xl text-base"
+    >
+      {submitting ? "Memproses..." : label}
+    </Button>
+  )
+}
+
 export function RegisterForm() {
+  const register = useAuthStore((s) => s.register)
+  const router = useRouter()
+  const next = safeNext(useSearchParams().get("next"))
   const [note, setNote] = useState("")
+  const [errors, setErrors] = useState<FieldErrors>()
+  const [turnstileToken, setTurnstileToken] = useState<string>()
+  const [resetCaptcha, setResetCaptcha] = useState(0)
+  const [submitting, setSubmitting] = useSubmitting()
 
   return (
     <form
       className="flex flex-col gap-6"
-      onSubmit={(event) => {
+      onSubmit={async (event) => {
         event.preventDefault()
         const data = new FormData(event.currentTarget)
-        if (data.get("password") !== data.get("confirm-password")) {
-          setNote("Konfirmasi password belum sama.")
+        const password = String(data.get("password"))
+        const confirmPassword = String(data.get("confirm-password"))
+        if (password !== confirmPassword) {
+          setErrors({ confirmPassword: ["Konfirmasi password belum sama."] })
           return
         }
-        setNote("Pendaftaran belum tersedia. Akun belum dibuat.")
+        setSubmitting(true)
+        setNote("")
+        setErrors(undefined)
+        const result = await register({
+          name: String(data.get("name")),
+          email: String(data.get("email")),
+          password,
+          confirmPassword,
+          turnstileToken,
+        })
+        setSubmitting(false)
+        if (result.success) {
+          router.replace(next)
+          return
+        }
+        setErrors(result.fieldErrors)
+        setNote(result.error)
+        setResetCaptcha((n) => n + 1)
       }}
     >
       <Heading
@@ -138,6 +234,7 @@ export function RegisterForm() {
           label="Nama Lengkap"
           placeholder="Nama lengkap"
           autoComplete="name"
+          errors={errors}
         />
         <Field
           id="email"
@@ -145,6 +242,7 @@ export function RegisterForm() {
           type="email"
           placeholder="kamu@gmail.com"
           autoComplete="email"
+          errors={errors}
         />
       </div>
       <PasswordField
@@ -152,25 +250,30 @@ export function RegisterForm() {
         label="Password"
         placeholder="Password"
         autoComplete="new-password"
+        errors={errors}
       />
       <PasswordField
         id="confirm-password"
         label="Konfirmasi Password"
         placeholder="Konfirmasi password"
         autoComplete="new-password"
+        errors={errors}
+        errorKey="confirmPassword"
       />
+      <Turnstile onToken={setTurnstileToken} resetKey={resetCaptcha} />
       <div className="flex flex-col gap-3">
-        <Button type="submit" className="h-[52px] w-full rounded-3xl text-base">
-          Daftar Sekarang
-        </Button>
-        {note && (
-          <p className="text-center text-sm tracking-[-0.02em] text-subtle">
-            {note}
-          </p>
-        )}
+        <SubmitButton submitting={submitting} label="Daftar Sekarang" />
+        <Note text={note} tone="error" />
         <p className="text-center text-sm tracking-[-0.02em]">
           Sudah memiliki akun?{" "}
-          <Link href="/masuk" className="font-medium text-primary">
+          <Link
+            href={
+              next === "/"
+                ? "/masuk"
+                : `/masuk?next=${encodeURIComponent(next)}`
+            }
+            className="font-medium text-primary"
+          >
             Masuk
           </Link>
         </p>
@@ -180,14 +283,34 @@ export function RegisterForm() {
 }
 
 export function LoginForm() {
+  const login = useAuthStore((s) => s.login)
+  const router = useRouter()
+  const next = safeNext(useSearchParams().get("next"))
   const [note, setNote] = useState("")
+  const [errors, setErrors] = useState<FieldErrors>()
+  const [submitting, setSubmitting] = useSubmitting()
 
   return (
     <form
       className="flex flex-col gap-6"
-      onSubmit={(event) => {
+      onSubmit={async (event) => {
         event.preventDefault()
-        setNote("Masuk belum tersedia. Akun belum bisa dipakai.")
+        const data = new FormData(event.currentTarget)
+        setSubmitting(true)
+        setNote("")
+        setErrors(undefined)
+        const result = await login(
+          String(data.get("email")),
+          String(data.get("password")),
+          data.get("remember") === "on"
+        )
+        setSubmitting(false)
+        if (result.success) {
+          router.replace(next)
+          return
+        }
+        setErrors(result.fieldErrors)
+        setNote(result.error)
       }}
     >
       <Heading
@@ -200,12 +323,14 @@ export function LoginForm() {
         type="email"
         placeholder="kamu@gmail.com"
         autoComplete="email"
+        errors={errors}
       />
       <PasswordField
         id="password"
         label="Password"
         placeholder="Password"
         autoComplete="current-password"
+        errors={errors}
       />
       <label className="flex items-center gap-2 text-sm tracking-[-0.02em]">
         <input
@@ -217,14 +342,8 @@ export function LoginForm() {
         Ingat Saya
       </label>
       <div className="flex flex-col gap-3">
-        <Button type="submit" className="h-[52px] w-full rounded-3xl text-base">
-          Masuk Sekarang
-        </Button>
-        {note && (
-          <p className="text-center text-sm tracking-[-0.02em] text-subtle">
-            {note}
-          </p>
-        )}
+        <SubmitButton submitting={submitting} label="Masuk Sekarang" />
+        <Note text={note} tone="error" />
         <Link
           href="/lupa-password"
           className="text-center text-sm tracking-[-0.02em]"
@@ -233,7 +352,14 @@ export function LoginForm() {
         </Link>
         <p className="text-center text-sm tracking-[-0.02em]">
           Belum memiliki akun?{" "}
-          <Link href="/daftar" className="font-medium text-primary">
+          <Link
+            href={
+              next === "/"
+                ? "/daftar"
+                : `/daftar?next=${encodeURIComponent(next)}`
+            }
+            className="font-medium text-primary"
+          >
             Daftar
           </Link>
         </p>
@@ -244,34 +370,125 @@ export function LoginForm() {
 
 export function ForgotPasswordForm() {
   const [note, setNote] = useState("")
+  const [tone, setTone] = useState<"muted" | "error">("muted")
+  const [errors, setErrors] = useState<FieldErrors>()
+  const [turnstileToken, setTurnstileToken] = useState<string>()
+  const [resetCaptcha, setResetCaptcha] = useState(0)
+  const [submitting, setSubmitting] = useSubmitting()
 
   return (
     <form
       className="flex flex-col gap-6"
-      onSubmit={(event) => {
+      onSubmit={async (event) => {
         event.preventDefault()
-        setNote("Pengiriman link reset belum tersedia.")
+        const email = String(new FormData(event.currentTarget).get("email"))
+        setSubmitting(true)
+        setErrors(undefined)
+        const res = await authApi.requestPasswordReset(email, turnstileToken)
+        setSubmitting(false)
+        setResetCaptcha((n) => n + 1)
+        if (res.success) {
+          setTone("muted")
+          setNote(
+            "Jika email terdaftar, link reset password sudah dikirim. Cek inbox atau folder spam."
+          )
+          return
+        }
+        setTone("error")
+        setErrors(res.error.details?.fieldErrors as FieldErrors)
+        setNote(res.error.message)
       }}
     >
       <Heading
         title="Lupa Password?"
-        description="Masukkan email atau nomor WhatsApp yang terdaftar."
+        description="Masukkan email yang terdaftar untuk menerima link reset."
       />
       <Field
-        id="contact"
-        label="Email atau No. Whatsapp"
+        id="email"
+        label="Email"
+        type="email"
         placeholder="kamu@gmail.com"
-        autoComplete="username"
+        autoComplete="email"
+        errors={errors}
+      />
+      <Turnstile onToken={setTurnstileToken} resetKey={resetCaptcha} />
+      <div className="flex flex-col gap-3">
+        <SubmitButton submitting={submitting} label="Kirim Link Reset" />
+        <Note text={note} tone={tone} />
+        <Link href="/masuk" className="text-center text-sm tracking-[-0.02em]">
+          Kembali ke halaman masuk
+        </Link>
+      </div>
+    </form>
+  )
+}
+
+export function ResetPasswordForm() {
+  const token = useSearchParams().get("token") ?? ""
+  const router = useRouter()
+  const [note, setNote] = useState(
+    token
+      ? ""
+      : "Link reset tidak valid. Minta link baru dari halaman lupa password."
+  )
+  const [errors, setErrors] = useState<FieldErrors>()
+  const [submitting, setSubmitting] = useSubmitting()
+
+  return (
+    <form
+      className="flex flex-col gap-6"
+      onSubmit={async (event) => {
+        event.preventDefault()
+        const data = new FormData(event.currentTarget)
+        const newPassword = String(data.get("password"))
+        if (newPassword !== data.get("confirm-password")) {
+          setErrors({ confirmPassword: ["Konfirmasi password belum sama."] })
+          return
+        }
+        setSubmitting(true)
+        setErrors(undefined)
+        const res = await authApi.resetPassword(token, newPassword)
+        setSubmitting(false)
+        if (res.success) {
+          router.replace("/masuk?reset=1")
+          return
+        }
+        setErrors(res.error.details?.fieldErrors as FieldErrors)
+        setNote(res.error.message)
+      }}
+    >
+      <Heading
+        title="Buat Password Baru"
+        description="Masukkan password baru untuk akun Ngampus.id kamu."
+      />
+      <PasswordField
+        id="password"
+        label="Password Baru"
+        placeholder="Minimal 8 karakter"
+        autoComplete="new-password"
+        errors={errors}
+        errorKey="newPassword"
+      />
+      <PasswordField
+        id="confirm-password"
+        label="Konfirmasi Password"
+        placeholder="Konfirmasi password"
+        autoComplete="new-password"
+        errors={errors}
+        errorKey="confirmPassword"
       />
       <div className="flex flex-col gap-3">
-        <Button type="submit" className="h-[52px] w-full rounded-3xl text-base">
-          Kirim Link Reset
-        </Button>
-        {note && (
-          <p className="text-center text-sm tracking-[-0.02em] text-subtle">
-            {note}
-          </p>
-        )}
+        <SubmitButton
+          submitting={submitting || !token}
+          label="Simpan Password"
+        />
+        <Note text={note} tone="error" />
+        <Link
+          href="/lupa-password"
+          className="text-center text-sm tracking-[-0.02em]"
+        >
+          Minta link baru
+        </Link>
       </div>
     </form>
   )
