@@ -1,21 +1,15 @@
 import { ArrowLeft, ArrowRight } from "lucide-react"
 import Link from "next/link"
-import Image from "next/image"
 
 import { Breadcrumb } from "@/components/layout/breadcrumb"
 import { SectionHeading } from "@/components/shared/section-heading"
 import {
-  blogCategories,
-  blogPosts,
   formatPostMeta,
-  postsPerPage,
-  type BlogCategory,
-} from "@/features/blog/data/blog"
-import {
-  blogHref,
-  isBlogCategory,
-  postsInCategory,
-} from "@/features/blog/services/posts"
+  getBlogCategories,
+  getBlogPosts,
+} from "@/features/blog/api"
+import { BlogCover } from "@/features/blog/components/blog-cover"
+import { blogHref } from "@/features/blog/services/posts"
 import { cn } from "@/lib/utils"
 
 type BlogPageProps = {
@@ -31,17 +25,29 @@ function firstParam(value: string | string[] | undefined) {
 
 export async function BlogListing({ searchParams }: BlogPageProps) {
   const params = await searchParams
+  const categories = await getBlogCategories()
   const categoryParam = firstParam(params.kategori)
-  const category: BlogCategory =
-    categoryParam && isBlogCategory(categoryParam) ? categoryParam : "semua"
+  const category =
+    categoryParam && categories.some((c) => c.slug === categoryParam)
+      ? categoryParam
+      : "semua"
   const requestedPage = Number(firstParam(params.halaman))
-  const posts = postsInCategory(category)
-  const pageCount = Math.max(1, Math.ceil(posts.length / postsPerPage))
   const page =
     Number.isFinite(requestedPage) && requestedPage > 0
-      ? Math.min(Math.floor(requestedPage), pageCount)
+      ? Math.floor(requestedPage)
       : 1
-  const visible = posts.slice((page - 1) * postsPerPage, page * postsPerPage)
+  const { posts: visible, meta } = await getBlogPosts({
+    category: category === "semua" ? undefined : category,
+    page,
+  }).catch(() => ({
+    posts: [],
+    meta: { page, perPage: 3, total: 0, totalPages: 0 },
+  }))
+  const pageCount = Math.max(1, meta.totalPages)
+  const chips = [
+    { slug: "semua", name: "Semua", postCount: null as number | null },
+    ...categories,
+  ]
 
   return (
     <>
@@ -57,15 +63,12 @@ export async function BlogListing({ searchParams }: BlogPageProps) {
         />
         <div className="flex w-full flex-col items-center gap-4">
           <div className="flex flex-wrap justify-center gap-2">
-            {blogCategories.map((item) => {
-              const selected = item.id === category
-              const count = blogPosts.filter(
-                (post) => post.category === item.id
-              ).length
+            {chips.map((item) => {
+              const selected = item.slug === category
               return (
                 <Link
-                  key={item.id}
-                  href={blogHref(item.id)}
+                  key={item.slug}
+                  href={blogHref(item.slug)}
                   aria-current={selected ? "page" : undefined}
                   className={cn(
                     "inline-flex h-10 items-center rounded-full px-4 text-sm font-medium tracking-[-0.02em]",
@@ -74,15 +77,15 @@ export async function BlogListing({ searchParams }: BlogPageProps) {
                       : "border border-line bg-white text-black"
                   )}
                 >
-                  {item.id === "semua"
-                    ? item.label
-                    : `${item.label} (${count})`}
+                  {item.postCount === null
+                    ? item.name
+                    : `${item.name} (${item.postCount})`}
                 </Link>
               )
             })}
           </div>
           <p className="text-sm tracking-[-0.02em] text-subtle">
-            Halaman {page} · {posts.length} artikel
+            Halaman {page} · {meta.total} artikel
           </p>
         </div>
         {visible.length === 0 ? (
@@ -97,27 +100,17 @@ export async function BlogListing({ searchParams }: BlogPageProps) {
                 href={`/blog/${post.slug}`}
                 className="flex flex-col gap-4"
               >
-                {post.thumbnail ? (
-                  <Image
-                    src={post.thumbnail}
-                    alt=""
-                    width={5760}
-                    height={3240}
-                    sizes="(max-width: 767px) 100vw, (max-width: 1023px) 50vw, 400px"
-                    className="aspect-video h-auto w-full rounded-2xl"
-                  />
-                ) : (
-                  <div
-                    className="h-48 w-full rounded-2xl bg-surface"
-                    aria-hidden
-                  />
-                )}
+                <BlogCover
+                  src={post.coverUrl}
+                  alt=""
+                  sizes="(max-width: 767px) 100vw, (max-width: 1023px) 50vw, 400px"
+                />
                 <div className="flex flex-col gap-1 px-1">
                   <h3 className="text-lg font-semibold tracking-[-0.02em] text-black">
                     {post.title}
                   </h3>
                   <p className="text-sm font-normal tracking-[-0.02em] text-black/50">
-                    {formatPostMeta(post.date)}
+                    {formatPostMeta(post.publishedAt)}
                   </p>
                 </div>
               </Link>
