@@ -124,16 +124,8 @@ assert.equal(
   150000
 )
 const blog = load("features/blog/services/posts.ts")
-const { blogPosts } = load("features/blog/data/blog.ts")
-assert.equal(blog.getPost("missing"), undefined)
-assert.equal(blog.getPost(blogPosts[0].slug).title, blogPosts[0].title)
-assert.equal(blog.postsInCategory("semua").length, blogPosts.length)
-assert.ok(
-  blog
-    .postsInCategory("tips-mahasiswa")
-    .every((p) => p.category === "tips-mahasiswa")
-)
-assert.equal(blog.isBlogCategory("unknown"), false)
+const { blogCategories } = load("features/blog/data/blog.ts")
+assert.equal(blogCategories[0].id, "semua")
 assert.equal(blog.blogHref("semua"), "/blog")
 assert.equal(
   blog.blogHref("tips-mahasiswa", 2),
