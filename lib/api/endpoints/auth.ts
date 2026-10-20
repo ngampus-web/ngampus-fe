@@ -1,56 +1,73 @@
 /**
- * Authentication API endpoints
+ * Authentication API endpoints — docs/API-CONTRACT.md §2
  */
 
-import { apiClient } from '../client';
+import { apiClient } from "../client"
 import type {
+  ApiResponse,
+  AuthApp,
+  AuthResponse,
   LoginRequest,
   RegisterRequest,
-  AuthResponse,
   User,
-  ApiResponse,
-} from '@/types/api';
+} from "@/types/api"
+
+const noRefresh = { skipRefresh: true }
 
 export const authApi = {
-  /**
-   * Login with email and password
-   */
-  async login(credentials: LoginRequest): Promise<ApiResponse<AuthResponse>> {
-    return apiClient.post<AuthResponse>('/auth/login', credentials);
+  login(body: LoginRequest): Promise<ApiResponse<AuthResponse>> {
+    return apiClient.post<AuthResponse>(
+      "/auth/login",
+      { app: "web", ...body },
+      noRefresh
+    )
   },
 
-  /**
-   * Register new user
-   */
-  async register(data: RegisterRequest): Promise<ApiResponse<AuthResponse>> {
-    return apiClient.post<AuthResponse>('/auth/register', data);
+  register(body: RegisterRequest): Promise<ApiResponse<AuthResponse>> {
+    return apiClient.post<AuthResponse>("/auth/register", body, noRefresh)
   },
 
-  /**
-   * Get current authenticated user
-   */
-  async getMe(): Promise<ApiResponse<User>> {
-    return apiClient.get<User>('/auth/me');
+  refresh(app: AuthApp = "web"): Promise<ApiResponse<AuthResponse>> {
+    return apiClient.post<AuthResponse>("/auth/refresh", { app }, noRefresh)
   },
 
-  /**
-   * Logout current user
-   */
-  async logout(): Promise<ApiResponse<void>> {
-    return apiClient.post<void>('/auth/logout');
+  logout(app: AuthApp = "web"): Promise<ApiResponse<null>> {
+    return apiClient.post<null>("/auth/logout", { app }, noRefresh)
   },
 
-  /**
-   * Request password reset
-   */
-  async requestPasswordReset(email: string): Promise<ApiResponse<void>> {
-    return apiClient.post<void>('/auth/forgot-password', { email });
+  getMe(): Promise<ApiResponse<User>> {
+    return apiClient.get<User>("/auth/me")
   },
 
-  /**
-   * Reset password with token
-   */
-  async resetPassword(token: string, password: string): Promise<ApiResponse<void>> {
-    return apiClient.post<void>('/auth/reset-password', { token, password });
+  updateMe(body: { name?: string; phone?: string | null }) {
+    return apiClient.patch<User>("/auth/me", body)
   },
-};
+
+  changePassword(body: { currentPassword: string; newPassword: string }) {
+    return apiClient.post<null>("/auth/change-password", body)
+  },
+
+  requestPasswordReset(email: string, turnstileToken?: string) {
+    return apiClient.post<null>(
+      "/auth/forgot-password",
+      { email, turnstileToken },
+      noRefresh
+    )
+  },
+
+  resetPassword(token: string, newPassword: string) {
+    return apiClient.post<null>(
+      "/auth/reset-password",
+      { token, newPassword },
+      noRefresh
+    )
+  },
+
+  verifyEmail(token: string) {
+    return apiClient.post<null>("/auth/verify-email", { token }, noRefresh)
+  },
+
+  resendVerification() {
+    return apiClient.post<null>("/auth/resend-verification")
+  },
+}

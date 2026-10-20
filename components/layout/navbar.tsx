@@ -8,6 +8,10 @@ import {
   type LucideIcon,
 } from "lucide-react"
 
+import {
+  AuthActions,
+  MobileAuthActions,
+} from "@/components/layout/auth-actions"
 import { Logo } from "@/components/layout/logo"
 import { Button } from "@/components/ui/button"
 import {
@@ -122,21 +126,7 @@ export function Navbar() {
             </NavigationMenuList>
           </NavigationMenu>
 
-          <div className="flex items-center gap-3">
-            <Button
-              asChild
-              variant="outline"
-              className="h-[42px] rounded-3xl px-5 text-lg font-medium tracking-[-0.02em]"
-            >
-              <Link href="/daftar">Daftar</Link>
-            </Button>
-            <Button
-              asChild
-              className="h-[42px] rounded-3xl px-5 text-lg font-medium tracking-[-0.02em]"
-            >
-              <Link href="/masuk">Masuk</Link>
-            </Button>
-          </div>
+          <AuthActions />
         </div>
 
         <MobileNav />
@@ -203,23 +193,7 @@ function MobileNav() {
           </Accordion>
         </nav>
         <div className="flex flex-col gap-3 border-t p-5">
-          <SheetClose asChild>
-            <Button
-              asChild
-              variant="outline"
-              className="h-12 w-full rounded-3xl text-lg font-medium"
-            >
-              <Link href="/daftar">Daftar</Link>
-            </Button>
-          </SheetClose>
-          <SheetClose asChild>
-            <Button
-              asChild
-              className="h-12 w-full rounded-3xl text-lg font-medium"
-            >
-              <Link href="/masuk">Masuk</Link>
-            </Button>
-          </SheetClose>
+          <MobileAuthActions />
         </div>
       </SheetContent>
     </Sheet>

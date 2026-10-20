@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 
+import { RequireAuth } from "@/features/auth/components/require-auth"
 import { OrderHistory } from "@/features/orders/components/order-history"
 
 export const metadata: Metadata = {
@@ -8,5 +9,9 @@ export const metadata: Metadata = {
 }
 
 export default function OrderHistoryPage() {
-  return <OrderHistory />
+  return (
+    <RequireAuth>
+      <OrderHistory />
+    </RequireAuth>
+  )
 }

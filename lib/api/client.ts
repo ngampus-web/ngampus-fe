@@ -1,135 +1,139 @@
 /**
- * Type-safe API client with error handling and request/response interceptors
+ * API client for ngampus-be.
+ * - Unwraps the `{ data, meta }` envelope and `{ error }` bodies.
+ * - Sends cookies (refresh token) and the in-memory access token.
+ * - On 401, refreshes the session once and retries the request.
  */
 
-import { config } from '@/lib/config';
-import type { ApiError, ApiResponse } from '@/types/api';
+import { config } from "@/lib/config"
+import type { ApiError, ApiResponse, PaginationMeta } from "@/types/api"
+
+type TokenProvider = {
+  getToken: () => string | null
+  /** Returns a new access token, or null when the session is gone. */
+  refresh: () => Promise<string | null>
+}
+
+type RequestOptions = RequestInit & {
+  /** Skip the 401 → refresh → retry cycle (auth endpoints). */
+  skipRefresh?: boolean
+}
 
 export class ApiClient {
-  private baseUrl: string;
-  private defaultHeaders: HeadersInit;
+  private baseUrl: string
+  private tokens: TokenProvider | null = null
 
   constructor(baseUrl?: string) {
-    this.baseUrl = baseUrl || config.apiUrl;
-    this.defaultHeaders = {
-      'Content-Type': 'application/json',
-    };
+    this.baseUrl = baseUrl || config.apiUrl
   }
 
-  /**
-   * Set authorization token for authenticated requests
-   */
-  setAuthToken(token: string | null) {
-    if (token) {
-      this.defaultHeaders = {
-        ...this.defaultHeaders,
-        Authorization: `Bearer ${token}`,
-      };
-    } else {
-      const { Authorization, ...rest } = this.defaultHeaders as Record<string, string>;
-      this.defaultHeaders = rest;
-    }
+  setTokenProvider(provider: TokenProvider | null) {
+    this.tokens = provider
   }
 
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestOptions = {},
+    retried = false
   ): Promise<ApiResponse<T>> {
-    const url = `${this.baseUrl}${endpoint}`;
-    const headers = { ...this.defaultHeaders, ...options.headers };
+    const { skipRefresh, ...init } = options
+    const headers = new Headers(init.headers)
+    if (init.body && !(init.body instanceof FormData)) {
+      headers.set("Content-Type", "application/json")
+    }
+    const token = this.tokens?.getToken()
+    if (token) headers.set("Authorization", `Bearer ${token}`)
 
+    let response: Response
     try {
-      const response = await fetch(url, {
-        ...options,
+      response = await fetch(`${this.baseUrl}${endpoint}`, {
+        ...init,
         headers,
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        const error: ApiError = {
-          message: data.message || 'Request failed',
-          code: data.code || 'UNKNOWN_ERROR',
-          status: response.status,
-          details: data.details,
-        };
-        return { success: false, error };
-      }
-
-      return { success: true, data };
+        credentials: "include",
+      })
     } catch (error) {
-      const apiError: ApiError = {
-        message: error instanceof Error ? error.message : 'Network error',
-        code: 'NETWORK_ERROR',
-        status: 0,
-      };
-      return { success: false, error: apiError };
+      return {
+        success: false,
+        error: {
+          message:
+            error instanceof Error && error.message !== "Failed to fetch"
+              ? error.message
+              : "Tidak dapat terhubung ke server. Periksa koneksi kamu.",
+          code: "NETWORK_ERROR",
+          status: 0,
+        },
+      }
+    }
+
+    if (
+      response.status === 401 &&
+      !skipRefresh &&
+      !retried &&
+      this.tokens &&
+      (await this.tokens.refresh())
+    ) {
+      return this.request<T>(endpoint, options, true)
+    }
+
+    const body = await response.json().catch(() => null)
+
+    if (!response.ok) {
+      const error: ApiError = {
+        message: body?.error?.message || "Terjadi kesalahan, coba lagi.",
+        code: body?.error?.code || "UNKNOWN_ERROR",
+        status: response.status,
+        details: body?.error?.details,
+      }
+      return { success: false, error }
+    }
+
+    return {
+      success: true,
+      data: body?.data as T,
+      meta: body?.meta as PaginationMeta | undefined,
     }
   }
 
-  async get<T>(endpoint: string, options?: RequestInit): Promise<ApiResponse<T>> {
-    return this.request<T>(endpoint, { ...options, method: 'GET' });
+  get<T>(endpoint: string, options?: RequestOptions) {
+    return this.request<T>(endpoint, { ...options, method: "GET" })
   }
 
-  async post<T>(
-    endpoint: string,
-    body?: unknown,
-    options?: RequestInit
-  ): Promise<ApiResponse<T>> {
+  post<T>(endpoint: string, body?: unknown, options?: RequestOptions) {
     return this.request<T>(endpoint, {
       ...options,
-      method: 'POST',
-      body: body ? JSON.stringify(body) : undefined,
-    });
+      method: "POST",
+      body: body === undefined ? undefined : JSON.stringify(body),
+    })
   }
 
-  async put<T>(
-    endpoint: string,
-    body?: unknown,
-    options?: RequestInit
-  ): Promise<ApiResponse<T>> {
+  put<T>(endpoint: string, body?: unknown, options?: RequestOptions) {
     return this.request<T>(endpoint, {
       ...options,
-      method: 'PUT',
-      body: body ? JSON.stringify(body) : undefined,
-    });
+      method: "PUT",
+      body: body === undefined ? undefined : JSON.stringify(body),
+    })
   }
 
-  async patch<T>(
-    endpoint: string,
-    body?: unknown,
-    options?: RequestInit
-  ): Promise<ApiResponse<T>> {
+  patch<T>(endpoint: string, body?: unknown, options?: RequestOptions) {
     return this.request<T>(endpoint, {
       ...options,
-      method: 'PATCH',
-      body: body ? JSON.stringify(body) : undefined,
-    });
+      method: "PATCH",
+      body: body === undefined ? undefined : JSON.stringify(body),
+    })
   }
 
-  async delete<T>(endpoint: string, options?: RequestInit): Promise<ApiResponse<T>> {
-    return this.request<T>(endpoint, { ...options, method: 'DELETE' });
+  delete<T>(endpoint: string, options?: RequestOptions) {
+    return this.request<T>(endpoint, { ...options, method: "DELETE" })
   }
 
-  /**
-   * Upload file with multipart/form-data
-   */
-  async upload<T>(
-    endpoint: string,
-    formData: FormData,
-    options?: RequestInit
-  ): Promise<ApiResponse<T>> {
-    const { 'Content-Type': _, ...headersWithoutContentType } = this
-      .defaultHeaders as Record<string, string>;
-
+  /** multipart/form-data upload */
+  upload<T>(endpoint: string, formData: FormData, options?: RequestOptions) {
     return this.request<T>(endpoint, {
       ...options,
-      method: 'POST',
+      method: "POST",
       body: formData,
-      headers: headersWithoutContentType,
-    });
+    })
   }
 }
 
-// Global singleton instance
-export const apiClient = new ApiClient();
+export const apiClient = new ApiClient()

@@ -1,123 +1,105 @@
 /**
- * Auth state management with localStorage persistence
+ * Auth state. The access token lives in memory only; the session survives
+ * reloads through the httpOnly refresh cookie (`initAuth`).
  */
 
-'use client';
+"use client"
 
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { authApi, apiClient } from '@/lib/api';
-import type { User } from '@/types/api';
+import { create } from "zustand"
+import { apiClient, authApi } from "@/lib/api"
+import type { RegisterRequest, User } from "@/types/api"
+
+type Status = "idle" | "loading" | "authenticated" | "guest"
+type Result =
+  | { success: true }
+  | { success: false; error: string; fieldErrors?: Record<string, string[]> }
 
 interface AuthState {
-  user: User | null;
-  token: string | null;
-  isLoading: boolean;
-  isAuthenticated: boolean;
-
-  // Actions
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  register: (
-    name: string,
-    email: string,
-    password: string,
-    phone?: string
-  ) => Promise<{ success: boolean; error?: string }>;
-  logout: () => void;
-  setUser: (user: User) => void;
-  initAuth: () => Promise<void>;
+  user: User | null
+  token: string | null
+  status: Status
+  login: (email: string, password: string, remember: boolean) => Promise<Result>
+  register: (body: RegisterRequest) => Promise<Result>
+  logout: () => Promise<void>
+  setUser: (user: User) => void
+  initAuth: () => Promise<void>
 }
 
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set, get) => ({
-      user: null,
-      token: null,
-      isLoading: false,
-      isAuthenticated: false,
+let refreshing: Promise<string | null> | null = null
 
-      login: async (email: string, password: string) => {
-        set({ isLoading: true });
-
-        const response = await authApi.login({ email, password });
-
-        if (response.success) {
-          const { token, user } = response.data;
-          apiClient.setAuthToken(token);
+export const useAuthStore = create<AuthState>()((set, get) => {
+  /** Single-flight refresh shared by initAuth and the API client. */
+  const refresh = () => {
+    refreshing ??= authApi
+      .refresh()
+      .then((res) => {
+        if (res.success) {
           set({
-            user,
-            token,
-            isAuthenticated: true,
-            isLoading: false,
-          });
-          return { success: true };
+            user: res.data.user,
+            token: res.data.accessToken,
+            status: "authenticated",
+          })
+          return res.data.accessToken
         }
+        set({ user: null, token: null, status: "guest" })
+        return null
+      })
+      .finally(() => {
+        refreshing = null
+      })
+    return refreshing
+  }
 
-        set({ isLoading: false });
-        return {
-          success: false,
-          error: response.error.message,
-        };
-      },
+  apiClient.setTokenProvider({ getToken: () => get().token, refresh })
 
-      register: async (name: string, email: string, password: string, phone?: string) => {
-        set({ isLoading: true });
+  const fail = (error: {
+    message: string
+    details?: Record<string, unknown>
+  }): Result => ({
+    success: false,
+    error: error.message,
+    fieldErrors: error.details?.fieldErrors as
+      Record<string, string[]> | undefined,
+  })
 
-        const response = await authApi.register({ name, email, password, phone });
+  return {
+    user: null,
+    token: null,
+    status: "idle",
 
-        if (response.success) {
-          const { token, user } = response.data;
-          apiClient.setAuthToken(token);
-          set({
-            user,
-            token,
-            isAuthenticated: true,
-            isLoading: false,
-          });
-          return { success: true };
-        }
+    login: async (email, password, remember) => {
+      const res = await authApi.login({ email, password, remember })
+      if (!res.success) return fail(res.error)
+      set({
+        user: res.data.user,
+        token: res.data.accessToken,
+        status: "authenticated",
+      })
+      return { success: true }
+    },
 
-        set({ isLoading: false });
-        return {
-          success: false,
-          error: response.error.message,
-        };
-      },
+    register: async (body) => {
+      const res = await authApi.register(body)
+      if (!res.success) return fail(res.error)
+      set({
+        user: res.data.user,
+        token: res.data.accessToken,
+        status: "authenticated",
+      })
+      return { success: true }
+    },
 
-      logout: () => {
-        apiClient.setAuthToken(null);
-        set({
-          user: null,
-          token: null,
-          isAuthenticated: false,
-        });
-      },
+    logout: async () => {
+      await authApi.logout()
+      set({ user: null, token: null, status: "guest" })
+    },
 
-      setUser: (user: User) => {
-        set({ user, isAuthenticated: true });
-      },
+    setUser: (user) => set({ user }),
 
-      initAuth: async () => {
-        const { token } = get();
-        if (!token) return;
-
-        apiClient.setAuthToken(token);
-        const response = await authApi.getMe();
-
-        if (response.success) {
-          set({ user: response.data, isAuthenticated: true });
-        } else {
-          // Token invalid, clear auth
-          get().logout();
-        }
-      },
-    }),
-    {
-      name: 'ngampus-auth',
-      partialize: (state) => ({
-        user: state.user,
-        token: state.token,
-      }),
-    }
-  )
-);
+    initAuth: async () => {
+      if (get().status !== "idle") return
+      set({ status: "loading" })
+      await refresh()
+    },
+  }
+})
