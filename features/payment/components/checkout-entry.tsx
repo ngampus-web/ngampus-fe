@@ -3,9 +3,14 @@ import { usePathname, useRouter } from "next/navigation"
 import { loginHref } from "@/features/auth/components/require-auth"
 import { useAuthStore } from "@/lib/stores/auth"
 import type { OrderDraft } from "../types"
+import { apiGateway } from "../services/api-gateway"
 import { previewGateway } from "../services/preview-gateway"
 
-/** Checkout requires an account: guests go to /masuk?next=<current page>. */
+/**
+ * Checkout requires an account: guests go to /masuk?next=<current page>.
+ * Marketplace orders are created on the API (priced from `offerId`);
+ * document services still use the preview gateway until their API lands.
+ */
 export function useCheckoutPayment() {
   const router = useRouter()
   const pathname = usePathname()
@@ -14,7 +19,10 @@ export function useCheckoutPayment() {
       router.push(loginHref(pathname))
       return
     }
-    const order = await previewGateway.createOrder(draft)
+    const order =
+      draft.details.kind === "marketplace" && draft.details.offerId
+        ? await apiGateway.createMarketplaceOrder(draft)
+        : await previewGateway.createOrder(draft)
     router.push(`/pembayaran/${order.id}`)
   }
 }

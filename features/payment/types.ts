@@ -33,7 +33,8 @@ export type OrderDraft = {
 
 export type PaymentOrder = OrderDraft & {
   id: string
-  mode: "preview"
+  /** `live`: order from the API (id = order code); `preview`: browser-only demo. */
+  mode: "preview" | "live"
   createdAt: string
   expiresAt: string
   status: PaymentStatus
