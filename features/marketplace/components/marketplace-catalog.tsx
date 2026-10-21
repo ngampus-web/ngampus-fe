@@ -3,18 +3,21 @@
 import { BadgeCheck, Layers, Timer, Star } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
-import { useMemo, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 import { Breadcrumb } from "@/components/layout/breadcrumb"
 import { PromoCarousel } from "@/components/shared/promo-carousel"
 import { Button } from "@/components/ui/button"
 import {
-  marketplaceApps,
-  marketplaceCategories,
+  type CategoryItem,
+  productLogo,
+  type ProductSummary,
+  searchMarketplaceProducts,
+} from "@/features/marketplace/api"
+import {
   marketplaceBenefits,
   marketplaceOrderSteps,
   marketplaceWarrantyBanner,
-  type MarketplaceCategory,
 } from "@/features/marketplace/data/marketplace"
 import { cn } from "@/lib/utils"
 
@@ -33,21 +36,51 @@ const promoSlides = [
   },
 ]
 
-export function MarketplaceCatalog() {
-  const [query, setQuery] = useState("")
-  const [category, setCategory] = useState<MarketplaceCategory>("semua")
+const rupiah = (n: number) => `Rp ${n.toLocaleString("id-ID")}`
 
-  const apps = useMemo(() => {
-    const term = query.trim().toLowerCase()
-    return marketplaceApps.filter((app) => {
-      const matchesCategory = category === "semua" || app.category === category
-      const matchesQuery =
-        term.length === 0 ||
-        app.name.toLowerCase().includes(term) ||
-        app.description.toLowerCase().includes(term)
-      return matchesCategory && matchesQuery
-    })
+/** Search and category filtering run on the API; first page comes from the server. */
+export function MarketplaceCatalog({
+  initialProducts,
+  categories,
+}: {
+  initialProducts: ProductSummary[]
+  categories: CategoryItem[]
+}) {
+  const [query, setQuery] = useState("")
+  const [category, setCategory] = useState("semua")
+  const [apps, setApps] = useState(initialProducts)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+  const first = useRef(true)
+
+  useEffect(() => {
+    if (first.current) {
+      first.current = false
+      return
+    }
+    let cancelled = false
+    const timer = setTimeout(async () => {
+      setLoading(true)
+      setError("")
+      try {
+        const next = await searchMarketplaceProducts({
+          category: category === "semua" ? undefined : category,
+          q: query.trim() || undefined,
+        })
+        if (!cancelled) setApps(next)
+      } catch {
+        if (!cancelled) setError("Gagal memuat produk. Coba lagi.")
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }, 300)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
   }, [category, query])
+
+  const chips = [{ slug: "semua", name: "Semua" }, ...categories]
 
   return (
     <>
@@ -69,14 +102,14 @@ export function MarketplaceCatalog() {
           className="h-12 w-full rounded-full border border-line bg-white px-5 text-sm tracking-[-0.02em] outline-none placeholder:text-subtle focus-visible:border-primary"
         />
         <div className="flex flex-wrap gap-2">
-          {marketplaceCategories.map((item) => {
-            const selected = item.id === category
+          {chips.map((item) => {
+            const selected = item.slug === category
             return (
               <button
-                key={item.id}
+                key={item.slug}
                 type="button"
                 aria-pressed={selected}
-                onClick={() => setCategory(item.id)}
+                onClick={() => setCategory(item.slug)}
                 className={cn(
                   "h-9 rounded-full px-4 text-sm tracking-[-0.02em]",
                   selected
@@ -84,32 +117,43 @@ export function MarketplaceCatalog() {
                     : "border border-line bg-white text-black"
                 )}
               >
-                {item.label}
+                {item.name}
               </button>
             )
           })}
         </div>
-        {apps.length === 0 ? (
+        {error ? (
+          <p
+            role="alert"
+            className="py-16 text-center text-sm tracking-[-0.02em] text-subtle"
+          >
+            {error}
+          </p>
+        ) : apps.length === 0 && !loading ? (
           <p className="py-16 text-center text-sm tracking-[-0.02em] text-subtle">
             Tidak ada aplikasi untuk pencarian ini.
           </p>
         ) : (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div
+            aria-busy={loading}
+            className={cn(
+              "grid gap-6 transition-opacity sm:grid-cols-2 lg:grid-cols-3",
+              loading && "opacity-60"
+            )}
+          >
             {apps.map((app) => (
               <article
-                key={app.name}
+                key={app.slug}
                 className="flex flex-col gap-4 rounded-2xl border border-line bg-white p-5"
               >
                 <div className="flex items-center gap-3">
                   <Image
-                    src={app.logo}
+                    src={productLogo(app)}
                     alt=""
                     width={56}
                     height={56}
-                    className={cn(
-                      "size-14 rounded-xl object-cover",
-                      app.logoBordered && "border border-line"
-                    )}
+                    unoptimized={/^https?:\/\//.test(productLogo(app))}
+                    className="size-14 rounded-xl object-cover"
                   />
                   <div className="flex min-w-0 flex-col gap-1">
                     <h2 className="text-base font-semibold tracking-[-0.02em]">
@@ -120,20 +164,27 @@ export function MarketplaceCatalog() {
                         className="size-4 fill-primary text-primary"
                         aria-hidden
                       />
-                      <span className="text-black">5.0</span>
-                      <span>· Telah Terjual 599</span>
+                      <span className="text-black">
+                        {app.rating.toFixed(1)}
+                      </span>
+                      <span>
+                        · Telah Terjual {app.soldCount.toLocaleString("id-ID")}
+                      </span>
                     </p>
                   </div>
                 </div>
                 <div className="flex flex-col gap-2">
                   <p className="text-sm tracking-[-0.02em] text-subtle line-through">
-                    {app.comparePrice}
+                    {rupiah(app.startingOfficialPrice)}
                   </p>
                   <p className="text-2xl font-semibold tracking-[-0.02em]">
-                    {app.price}
+                    {rupiah(app.startingPrice)}
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {["Stok Tersedia", "Garansi"].map((badge) => (
+                    {[
+                      app.isInStock ? "Stok Tersedia" : "Stok Habis",
+                      "Garansi",
+                    ].map((badge) => (
                       <span
                         key={badge}
                         className="rounded-full border border-line px-3 py-2 text-sm tracking-[-0.02em]"
@@ -144,7 +195,7 @@ export function MarketplaceCatalog() {
                   </div>
                 </div>
                 <Button asChild className="h-11 w-full rounded-3xl text-sm">
-                  <Link href={`/marketplace/${app.slug}`}>{app.cta}</Link>
+                  <Link href={`/marketplace/${app.slug}`}>Beli Sekarang</Link>
                 </Button>
               </article>
             ))}

@@ -7,6 +7,8 @@ export type PaymentDetails =
   | {
       kind: "marketplace"
       slug: string
+      /** Selected product offer (server prices the order from it). */
+      offerId?: string
       title: string
       plan: string
       duration: string
