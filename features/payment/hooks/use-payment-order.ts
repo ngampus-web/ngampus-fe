@@ -30,7 +30,7 @@ function usePreviewOrder(id: string, enabled: boolean) {
 }
 
 /** API orders, polled every 15s while pending or processing. */
-function useLiveOrder(code: string, enabled: boolean) {
+function useLiveOrder(code: string, enabled: boolean, pollMs: number) {
   const [order, setOrder] = useState<PaymentOrder | null | undefined>(undefined)
   const [error, setError] = useState("")
 
@@ -62,17 +62,18 @@ function useLiveOrder(code: string, enabled: boolean) {
   const active = order?.status === "pending" || order?.status === "processing"
   useEffect(() => {
     if (!enabled || !active) return
-    const timer = setInterval(() => void refresh(), POLL_MS)
+    const timer = setInterval(() => void refresh(), pollMs)
     return () => clearInterval(timer)
-  }, [enabled, active, refresh])
+  }, [enabled, active, refresh, pollMs])
 
   return { order, error, refresh, setOrder }
 }
 
-export function usePaymentOrder(id: string) {
+/** `pollMs`: 15s on the status page, 5s while the QR is shown. */
+export function usePaymentOrder(id: string, { pollMs = POLL_MS } = {}) {
   const live = isOrderCode(id)
   const preview = usePreviewOrder(id, !live)
-  const api = useLiveOrder(id, live)
+  const api = useLiveOrder(id, live, pollMs)
   return live
     ? api
     : { order: preview, error: "", refresh: async () => {}, setOrder: () => {} }
