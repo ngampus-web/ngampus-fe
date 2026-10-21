@@ -1,5 +1,9 @@
 import type { Metadata } from "next"
 
+import {
+  getMarketplaceCategories,
+  getMarketplaceProducts,
+} from "@/features/marketplace/api"
 import { MarketplaceCatalog } from "@/features/marketplace/components/marketplace-catalog"
 
 export const metadata: Metadata = {
@@ -8,6 +12,12 @@ export const metadata: Metadata = {
     "Beli akses ChatGPT, Claude, Gemini, Canva, CapCut, dan Spotify.",
 }
 
-export default function MarketplacePage() {
-  return <MarketplaceCatalog />
+export default async function MarketplacePage() {
+  const [categories, products] = await Promise.all([
+    getMarketplaceCategories(),
+    getMarketplaceProducts(),
+  ])
+  return (
+    <MarketplaceCatalog initialProducts={products} categories={categories} />
+  )
 }

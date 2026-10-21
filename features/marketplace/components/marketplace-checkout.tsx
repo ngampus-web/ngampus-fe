@@ -125,13 +125,20 @@ export function MarketplaceCheckout({
                     className="size-4 fill-primary text-primary"
                     aria-hidden
                   />
-                  <span className="text-black">5.0</span>
-                  <span>· Telah Terjual 599</span>
+                  <span className="text-black">
+                    {product.rating.toFixed(1)}
+                  </span>
+                  <span>
+                    · Telah Terjual {product.soldCount.toLocaleString("id-ID")}
+                  </span>
                 </p>
               </div>
             </div>
             <div className="flex shrink-0 gap-2">
-              {["Stok Tersedia", "Garansi"].map((badge) => (
+              {[
+                product.isInStock ? "Stok Tersedia" : "Stok Habis",
+                "Garansi",
+              ].map((badge) => (
                 <span
                   key={badge}
                   className="rounded-full border border-line px-3 py-1.5 text-xs tracking-[-0.02em]"
@@ -179,6 +186,7 @@ export function MarketplaceCheckout({
                 details: {
                   kind: "marketplace",
                   slug: product.slug,
+                  offerId: selectedOffer?.id,
                   title: product.name,
                   customerName: name.trim(),
                   plan: packageName,
@@ -340,10 +348,14 @@ export function MarketplaceCheckout({
             </dl>
             <Button
               type="submit"
-              disabled={payBusy}
+              disabled={payBusy || !product.isInStock}
               className="h-12 w-full rounded-3xl text-base"
             >
-              {payBusy ? "Menyiapkan pesanan…" : "Bayar Sekarang"}
+              {!product.isInStock
+                ? "Stok Habis"
+                : payBusy
+                  ? "Menyiapkan pesanan…"
+                  : "Bayar Sekarang"}
             </Button>
             <p className="text-center text-xs leading-5 text-subtle">
               Pratinjau alur pembayaran. Belum ada transaksi nyata.

@@ -4,6 +4,8 @@ export type CheckoutSection = {
 }
 
 export type CheckoutOffer = {
+  /** API offer id; the order is priced on the server from it. */
+  id?: string
   plan: string
   warranty: string
   duration: string
@@ -15,6 +17,9 @@ export type MarketplaceCheckout = {
   slug: string
   name: string
   logo: string
+  rating: number
+  soldCount: number
+  isInStock: boolean
   monthly: number
   compare: number
   packages: string[]
