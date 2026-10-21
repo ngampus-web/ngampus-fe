@@ -146,12 +146,21 @@ export interface OrderDetail extends OrderSummary {
   paidAt: string | null
   completedAt: string | null
   timeline: { status: OrderStatus; at: string; note: string | null }[]
-  /** Filled by payment-duitku. */
-  payment: unknown
+  payment: PaymentSession | null
   /** Document/paraphrase details land with their changes. */
   details:
     | MarketplaceOrderDetails
     | ({ kind: Exclude<OrderKind, "marketplace"> } & Record<string, unknown>)
+}
+
+export interface PaymentSession {
+  method: string
+  reference: string | null
+  amount: number
+  qrString: string | null
+  paymentUrl: string | null
+  expiresAt: string
+  status: "pending" | "paid" | "expired" | "failed" | "cancelled"
 }
 
 export interface OrderListMeta extends PaginationMeta {

@@ -18,6 +18,7 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { usePaymentOrder } from "../hooks/use-payment-order"
+import { QrisPanel } from "./qris-panel"
 import {
   effectiveStatus,
   formatFileSize,
@@ -39,8 +40,19 @@ export function PaymentFlow({
   orderId: string
   gateway?: boolean
 }) {
-  const { order, error: loadError, setOrder } = usePaymentOrder(orderId)
+  const {
+    order,
+    error: loadError,
+    setOrder,
+    refresh,
+  } = usePaymentOrder(orderId, { pollMs: gateway ? 5_000 : 15_000 })
   const router = useRouter()
+  // Leave the QR page once the order is no longer awaiting payment.
+  const leaveQr =
+    gateway && order?.mode === "live" && order.status !== "pending"
+  useEffect(() => {
+    if (leaveQr) router.replace(`/pembayaran/${orderId}`)
+  }, [leaveQr, router, orderId])
   const [now, setNow] = useState(() => Date.now())
   const [error, setError] = useState("")
   const [copied, setCopied] = useState(false)
@@ -105,9 +117,7 @@ export function PaymentFlow({
   }).format(new Date(order.createdAt))
   async function openPayment() {
     if (live) {
-      setError(
-        "Pembayaran QRIS segera tersedia. Pesananmu sudah tersimpan dan bisa dibayar setelah integrasi pembayaran aktif."
-      )
+      router.push(`/pembayaran/${orderId}/qris`)
       return
     }
     setBusy(true)
@@ -342,7 +352,14 @@ export function PaymentFlow({
                 </div>
               </div>
             )}
-            {status === "pending" && gateway && (
+            {status === "pending" && gateway && live && (
+              <QrisPanel
+                code={orderId}
+                remaining={remaining}
+                onChanged={() => void refresh()}
+              />
+            )}
+            {status === "pending" && gateway && !live && (
               <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-line bg-surface p-6 text-center">
                 <div className="rounded-2xl border border-line bg-white p-7">
                   <QrCode className="size-24 text-subtle/40" strokeWidth={1} />

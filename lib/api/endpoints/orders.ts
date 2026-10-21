@@ -7,6 +7,7 @@ import type {
   OrderDetail,
   OrderStatus,
   OrderSummary,
+  PaymentSession,
   PriceBreakdown,
 } from "@/types/api"
 
@@ -45,6 +46,21 @@ export const ordersApi = {
     return apiClient.post<OrderDetail>(
       `/orders/${encodeURIComponent(code)}/cancel`
     )
+  },
+
+  /** Creates (once) or returns the QRIS session. */
+  pay(code: string) {
+    return apiClient.post<PaymentSession>(
+      `/orders/${encodeURIComponent(code)}/pay`
+    )
+  },
+
+  /** Development only (local payment provider). */
+  simulatePayment(code: string, result: "paid" | "failed") {
+    return apiClient.post<{ result: string }>("/payments/local/simulate", {
+      code,
+      result,
+    })
   },
 
   quote(body: { kind: "marketplace"; offerId: string; promoCode?: string }) {
