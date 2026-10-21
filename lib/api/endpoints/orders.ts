@@ -1,62 +1,53 @@
 /**
- * Orders API endpoints
+ * Orders API — docs/API-CONTRACT.md §6–§7. All endpoints require login.
  */
 
-import { apiClient } from '../client';
+import { apiClient } from "../client"
 import type {
-  Order,
-  CreateOrderRequest,
-  CreateOrderResponse,
-  PaginatedResponse,
-  PaginationParams,
-  ApiResponse,
-} from '@/types/api';
+  OrderDetail,
+  OrderStatus,
+  OrderSummary,
+  PriceBreakdown,
+} from "@/types/api"
+
+export interface OrdersQuery {
+  kind?: "marketplace" | "document"
+  status?: OrderStatus
+  q?: string
+  page?: number
+  perPage?: number
+}
 
 export const ordersApi = {
-  /**
-   * Get user's order history
-   */
-  async getOrders(params?: PaginationParams): Promise<ApiResponse<PaginatedResponse<Order>>> {
-    const searchParams = new URLSearchParams();
-    if (params?.page) searchParams.set('page', params.page.toString());
-    if (params?.perPage) searchParams.set('perPage', params.perPage.toString());
-
-    const query = searchParams.toString();
-    return apiClient.get<PaginatedResponse<Order>>(`/orders${query ? `?${query}` : ''}`);
+  list(query: OrdersQuery = {}) {
+    const params = new URLSearchParams()
+    for (const [key, value] of Object.entries(query)) {
+      if (value !== undefined && value !== "") params.set(key, String(value))
+    }
+    const qs = params.toString()
+    return apiClient.get<OrderSummary[]>(`/orders${qs ? `?${qs}` : ""}`)
   },
 
-  /**
-   * Get order by ID
-   */
-  async getOrder(orderId: string): Promise<ApiResponse<Order>> {
-    return apiClient.get<Order>(`/orders/${orderId}`);
+  get(code: string) {
+    return apiClient.get<OrderDetail>(`/orders/${encodeURIComponent(code)}`)
   },
 
-  /**
-   * Create new order
-   */
-  async createOrder(data: CreateOrderRequest): Promise<ApiResponse<CreateOrderResponse>> {
-    return apiClient.post<CreateOrderResponse>('/orders', data);
+  createMarketplace(body: {
+    offerId: string
+    customerName: string
+    whatsapp: string
+    promoCode?: string
+  }) {
+    return apiClient.post<OrderDetail>("/orders/marketplace", body)
   },
 
-  /**
-   * Cancel order (only if status is 'pending')
-   */
-  async cancelOrder(orderId: string): Promise<ApiResponse<Order>> {
-    return apiClient.post<Order>(`/orders/${orderId}/cancel`);
+  cancel(code: string) {
+    return apiClient.post<OrderDetail>(
+      `/orders/${encodeURIComponent(code)}/cancel`
+    )
   },
 
-  /**
-   * Search orders by keyword
-   */
-  async searchOrders(
-    query: string,
-    params?: PaginationParams
-  ): Promise<ApiResponse<PaginatedResponse<Order>>> {
-    const searchParams = new URLSearchParams({ query });
-    if (params?.page) searchParams.set('page', params.page.toString());
-    if (params?.perPage) searchParams.set('perPage', params.perPage.toString());
-
-    return apiClient.get<PaginatedResponse<Order>>(`/orders/search?${searchParams.toString()}`);
+  quote(body: { kind: "marketplace"; offerId: string; promoCode?: string }) {
+    return apiClient.post<PriceBreakdown>("/pricing/quote", body)
   },
-};
+}

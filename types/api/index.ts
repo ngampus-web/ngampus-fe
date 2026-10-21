@@ -83,42 +83,79 @@ export interface User {
 }
 
 /**
- * Orders
+ * Orders — docs/API-CONTRACT.md §6–§7
  */
-export interface Order {
-  id: string
-  userId: string
-  type: "marketplace" | "plagiarism" | "paraphrase"
-  status:
-    "pending" | "paid" | "processing" | "completed" | "failed" | "cancelled"
-  totalAmount: number
-  items: OrderItem[]
-  paymentMethod?: string
-  paymentProof?: string
+export type OrderKind = "marketplace" | "turnitin" | "ai_check" | "paraphrase"
+export type OrderStatus =
+  | "pending"
+  | "processing"
+  | "completed"
+  | "expired"
+  | "cancelled"
+  | "failed"
+  | "refunded"
+
+export interface PriceBreakdown {
+  subtotal: number
+  discount: number
+  serviceFee: number
+  total: number
+  lines: { label: string; amount: number }[]
+  formulaVersion: string
+}
+
+export interface OrderSummary {
+  code: string
+  kind: OrderKind
+  status: OrderStatus
+  title: string
+  total: number
   createdAt: string
-  updatedAt: string
-  completedAt?: string
+  fileName?: string
+  fileSizeBytes?: number
+  filters?: string[]
 }
 
-export interface OrderItem {
-  id: string
-  productId: string
+export interface MarketplaceOrderDetails {
+  kind: "marketplace"
+  productSlug: string
   productName: string
-  quantity: number
-  price: number
-  metadata?: Record<string, unknown>
+  planName: string
+  accountType: "private" | "sharing" | null
+  durationLabel: string
+  warrantyLabel: string
+  unitPrice: number
+  officialPrice: number
+  warrantyExpiresAt: string | null
+  delivery: {
+    credentials: string
+    instructions: string | null
+    sentAt: string
+    channels: string[]
+  } | null
 }
 
-export interface CreateOrderRequest {
-  type: Order["type"]
-  items: Omit<OrderItem, "id">[]
-  metadata?: Record<string, unknown>
+export interface OrderDetail extends OrderSummary {
+  customerName: string
+  whatsapp: string
+  subtotal: number
+  discount: number
+  serviceFee: number
+  lines: PriceBreakdown["lines"]
+  expiresAt: string
+  paidAt: string | null
+  completedAt: string | null
+  timeline: { status: OrderStatus; at: string; note: string | null }[]
+  /** Filled by payment-duitku. */
+  payment: unknown
+  /** Document/paraphrase details land with their changes. */
+  details:
+    | MarketplaceOrderDetails
+    | ({ kind: Exclude<OrderKind, "marketplace"> } & Record<string, unknown>)
 }
 
-export interface CreateOrderResponse {
-  order: Order
-  paymentUrl?: string
-  qrisUrl?: string
+export interface OrderListMeta extends PaginationMeta {
+  counts: { total: number; completed: number; unpaid: number }
 }
 
 /**

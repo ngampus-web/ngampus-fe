@@ -25,6 +25,7 @@ import {
   rupiah,
   statusLabels,
 } from "../services/order-rules"
+import { apiGateway } from "../services/api-gateway"
 import { previewGateway, simulateStatus } from "../services/preview-gateway"
 import { turnaroundOptions } from "@/features/paraphrase/options"
 import { PriceBreakdown } from "@/features/paraphrase/components/price-breakdown"
@@ -38,7 +39,7 @@ export function PaymentFlow({
   orderId: string
   gateway?: boolean
 }) {
-  const order = usePaymentOrder(orderId)
+  const { order, error: loadError, setOrder } = usePaymentOrder(orderId)
   const router = useRouter()
   const [now, setNow] = useState(() => Date.now())
   const [error, setError] = useState("")
@@ -49,6 +50,15 @@ export function PaymentFlow({
     return () => clearInterval(timer)
   }, [])
 
+  if (order === undefined && loadError)
+    return (
+      <div
+        role="alert"
+        className="mx-auto max-w-3xl px-5 py-24 text-center text-subtle"
+      >
+        {loadError}
+      </div>
+    )
   if (order === undefined)
     return (
       <div
@@ -64,8 +74,8 @@ export function PaymentFlow({
         <FileText className="size-10 text-primary" />
         <h1 className="text-2xl font-semibold">Pesanan tidak ditemukan</h1>
         <p className="text-sm leading-6 text-subtle">
-          Pesanan pratinjau hanya tersimpan di tab browser saat ini. Sesi
-          mungkin berakhir atau tautan tidak valid.
+          Tautan tidak valid, pesanan milik akun lain, atau sesi pratinjau sudah
+          berakhir.
         </p>
         <Button asChild size="pill">
           <Link href="/marketplace">Kembali ke Marketplace</Link>
@@ -76,6 +86,7 @@ export function PaymentFlow({
       </section>
     )
 
+  const live = order.mode === "live"
   const details = order.details
   const isMarket = details.kind === "marketplace"
   const status = effectiveStatus(order, now)
@@ -93,6 +104,12 @@ export function PaymentFlow({
     timeZone: "Asia/Jakarta",
   }).format(new Date(order.createdAt))
   async function openPayment() {
+    if (live) {
+      setError(
+        "Pembayaran QRIS segera tersedia. Pesananmu sudah tersimpan dan bisa dibayar setelah integrasi pembayaran aktif."
+      )
+      return
+    }
     setBusy(true)
     setError("")
     try {
@@ -106,7 +123,24 @@ export function PaymentFlow({
       setBusy(false)
     }
   }
+  async function cancelLive() {
+    setBusy(true)
+    setError("")
+    try {
+      setOrder(await apiGateway.cancel(orderId))
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Pesanan tidak dapat dibatalkan."
+      )
+    } finally {
+      setBusy(false)
+    }
+  }
   function transition(next: PaymentStatus) {
+    if (live) {
+      if (next === "cancelled") void cancelLive()
+      return
+    }
     setError("")
     try {
       simulateStatus(orderId, next)
@@ -452,8 +486,9 @@ export function PaymentFlow({
             </div>
           </dl>
           <p className="text-xs leading-5 text-subtle">
-            Total pratinjau. Biaya gateway, jika ada, akan dihitung dan
-            ditampilkan oleh backend sebelum pembayaran.
+            {live
+              ? "Total dihitung oleh server dari paket yang kamu pilih."
+              : "Total pratinjau. Biaya gateway, jika ada, akan dihitung dan ditampilkan oleh backend sebelum pembayaran."}
           </p>
           {status === "pending" && !gateway && (
             <>
@@ -479,45 +514,48 @@ export function PaymentFlow({
               <Link href={orderBackHref(order)}>Buat pesanan baru</Link>
             </Button>
           )}
-          {((status === "pending" && gateway) || status === "processing") && (
-            <div className="flex flex-col gap-3 border-t border-dashed border-line pt-4">
-              <p className="text-xs font-semibold text-subtle">
-                KONTROL PRATINJAU
-              </p>
-              <Button
-                size="pill"
-                onClick={() =>
-                  transition(status === "pending" ? "processing" : "completed")
-                }
-              >
-                {status === "pending"
-                  ? "Simulasikan pembayaran berhasil"
-                  : "Simulasikan pesanan selesai"}
-              </Button>
-              {status === "pending" && (
-                <>
-                  <Button
-                    variant="outline"
-                    size="pill"
-                    onClick={() => transition("failed")}
-                  >
-                    Simulasikan gagal
-                  </Button>
-                  <button
-                    type="button"
-                    className="text-xs text-subtle underline"
-                    onClick={() => transition("expired")}
-                  >
-                    Simulasikan kedaluwarsa
-                  </button>
-                </>
-              )}
-              <p className="text-xs leading-5 text-subtle">
-                Pada transaksi nyata, status diperbarui oleh server setelah
-                verifikasi.
-              </p>
-            </div>
-          )}
+          {!live &&
+            ((status === "pending" && gateway) || status === "processing") && (
+              <div className="flex flex-col gap-3 border-t border-dashed border-line pt-4">
+                <p className="text-xs font-semibold text-subtle">
+                  KONTROL PRATINJAU
+                </p>
+                <Button
+                  size="pill"
+                  onClick={() =>
+                    transition(
+                      status === "pending" ? "processing" : "completed"
+                    )
+                  }
+                >
+                  {status === "pending"
+                    ? "Simulasikan pembayaran berhasil"
+                    : "Simulasikan pesanan selesai"}
+                </Button>
+                {status === "pending" && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="pill"
+                      onClick={() => transition("failed")}
+                    >
+                      Simulasikan gagal
+                    </Button>
+                    <button
+                      type="button"
+                      className="text-xs text-subtle underline"
+                      onClick={() => transition("expired")}
+                    >
+                      Simulasikan kedaluwarsa
+                    </button>
+                  </>
+                )}
+                <p className="text-xs leading-5 text-subtle">
+                  Pada transaksi nyata, status diperbarui oleh server setelah
+                  verifikasi.
+                </p>
+              </div>
+            )}
         </aside>
       </div>
     </section>
