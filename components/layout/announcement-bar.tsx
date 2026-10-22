@@ -9,7 +9,7 @@ export function AnnouncementBar() {
       <div className="mx-auto flex min-h-17 max-w-[1280px] flex-col items-start justify-between gap-3 px-5 py-3 sm:flex-row sm:items-center md:px-10">
         <p className="text-sm tracking-[-0.02em] sm:text-base">
           Gabung Saluran WhatsApp untuk update layanan, promo, dan info terbaru
-          dari ngampus.id!
+          dari ngampus.co.id!
         </p>
         <Link
           href={whatsappChannelUrl}

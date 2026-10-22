@@ -111,6 +111,35 @@ const draft = {
   },
 }
 assert.throws(() => paymentRules.validateDraft({ ...draft, amount: -1 }))
+assert.equal(
+  paymentRules.validateMarketplaceEmail(" buyer@example.com "),
+  "buyer@example.com"
+)
+for (const value of [
+  undefined,
+  "",
+  "buyer",
+  "buyer@",
+  "buyer@example.com other",
+]) {
+  assert.throws(() => paymentRules.validateMarketplaceEmail(value))
+}
+assert.doesNotThrow(() =>
+  paymentRules.validateDraft({
+    ...draft,
+    details: {
+      ...draft.details,
+      customerName: "",
+      customerEmail: "buyer@example.com",
+    },
+  })
+)
+assert.throws(() =>
+  paymentRules.validateDraft({
+    ...draft,
+    details: { ...draft.details, customerEmail: "invalid" },
+  })
+)
 assert.equal(paymentRules.parseOrder("invalid json"), null)
 let paymentEvents = 0
 const { subscribeOrders } = load("features/payment/services/preview-gateway.ts")
