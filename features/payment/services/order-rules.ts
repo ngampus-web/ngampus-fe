@@ -22,6 +22,13 @@ export function normalizePhone(input: string) {
   return phone
 }
 
+export function validateMarketplaceEmail(value: string | undefined) {
+  const email = value?.trim() ?? ""
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+    throw new Error("Masukkan alamat email yang valid.")
+  return email
+}
+
 export function validateDraft(draft: OrderDraft) {
   normalizePhone(draft.phone)
   if (!Number.isSafeInteger(draft.amount) || draft.amount <= 0)
@@ -30,8 +37,13 @@ export function validateDraft(draft: OrderDraft) {
   if (!d || !d.title?.trim() || !d.slug?.trim())
     throw new Error("Detail pesanan tidak lengkap.")
   if (d.kind === "marketplace") {
-    if (!d.customerName?.trim() || !d.plan?.trim() || !d.duration?.trim())
-      throw new Error("Lengkapi nama, paket, dan durasi produk.")
+    if (d.customerEmail !== undefined) validateMarketplaceEmail(d.customerEmail)
+    if (
+      !(d.customerEmail || d.customerName?.trim()) ||
+      !d.plan?.trim() ||
+      !d.duration?.trim()
+    )
+      throw new Error("Lengkapi data pembeli, paket, dan durasi produk.")
   } else if (d.kind === "document") {
     if (!["turnitin", "cek-ai", "parafrase-manual"].includes(d.slug))
       throw new Error("Layanan dokumen tidak valid.")

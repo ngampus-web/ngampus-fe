@@ -15,6 +15,8 @@ export type PaymentDetails =
       accountType?: string
       warranty?: string
       customerName: string
+      /** Optional for historical orders created before email checkout. */
+      customerEmail?: string
     }
   | {
       kind: "document"

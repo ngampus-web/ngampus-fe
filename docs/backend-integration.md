@@ -495,3 +495,13 @@ function isValidUser(data: unknown): data is User {
   );
 }
 ```
+
+### Marketplace buyer email
+
+The marketplace form collects `customerEmail` instead of a typed buyer name.
+`POST /orders/marketplace` sends `customerEmail` along with the existing
+`customerName` from the authenticated profile, `offerId`, and `whatsapp`.
+The backend must validate and persist `customerEmail`, and return it in order
+creation and detail responses. This frontend change alone does not add that
+backend support. Historical orders without `customerEmail` retain their buyer
+name in the payment summary.
