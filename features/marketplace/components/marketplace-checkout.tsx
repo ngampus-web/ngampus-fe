@@ -1,6 +1,6 @@
 "use client"
 
-import { Check, Phone, Star, UserRound } from "lucide-react"
+import { Check, Mail, Phone, Star } from "lucide-react"
 import Image from "next/image"
 import { useRef, useState } from "react"
 
@@ -12,6 +12,8 @@ import {
 } from "@/features/marketplace/data/marketplace"
 import { type MarketplaceCheckout } from "@/features/marketplace/types"
 import type { OrderDraft } from "@/features/payment/types"
+import { isPreorderPlan } from "../services/preorder"
+import { useAuthStore } from "@/lib/stores/auth"
 import { cn } from "@/lib/utils"
 
 function rupiah(value: number) {
@@ -22,10 +24,12 @@ function Choice({
   selected,
   label,
   detail,
+  preorder,
   onSelect,
 }: {
   selected: boolean
   label: string
+  preorder?: boolean
   detail?: string
   onSelect: () => void
 }) {
@@ -49,6 +53,11 @@ function Choice({
       </span>
       <span>
         <span className="block">{label}</span>
+        {preorder && (
+          <span className="block text-xs font-semibold text-primary">
+            Pre-order
+          </span>
+        )}
         {detail && <span className="block text-xs text-subtle">{detail}</span>}
       </span>
     </button>
@@ -65,7 +74,7 @@ export function MarketplaceCheckout({
   const inFlight = useRef(false)
   const [payBusy, setPayBusy] = useState(false)
   const offers = product.offers
-  const [name, setName] = useState("")
+  const [email, setEmail] = useState("")
   const [whatsapp, setWhatsapp] = useState("")
   const [packageName, setPackageName] = useState(product.packages[0])
   const [accountType, setAccountType] = useState(checkoutTypes[0])
@@ -136,7 +145,11 @@ export function MarketplaceCheckout({
             </div>
             <div className="flex shrink-0 gap-2">
               {[
-                product.isInStock ? "Stok Tersedia" : "Stok Habis",
+                isPreorderPlan(product.slug, packageName)
+                  ? "Pre-order"
+                  : product.isInStock
+                    ? "Stok Tersedia"
+                    : "Stok Habis",
                 "Garansi",
               ].map((badge) => (
                 <span
@@ -188,7 +201,8 @@ export function MarketplaceCheckout({
                   slug: product.slug,
                   offerId: selectedOffer?.id,
                   title: product.name,
-                  customerName: name.trim(),
+                  customerName: useAuthStore.getState().user?.name ?? "",
+                  customerEmail: email.trim(),
                   plan: packageName,
                   duration: selectedOffer?.duration ?? duration.label,
                   warranty: selectedOffer?.warranty,
@@ -215,18 +229,20 @@ export function MarketplaceCheckout({
               Masukkan Data Pembeli
             </h2>
             <label className="flex flex-col gap-2 text-sm tracking-[-0.02em]">
-              Nama Lengkap
+              Email
               <span className="relative">
-                <UserRound
+                <Mail
                   className="absolute top-1/2 left-4 size-4 -translate-y-1/2 text-subtle"
                   aria-hidden
                 />
                 <input
                   required
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  placeholder="Nama lengkap"
-                  autoComplete="name"
+                  type="email"
+                  name="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="nama@email.com"
+                  autoComplete="email"
                   className="h-12 w-full rounded-full border border-line pr-4 pl-11 text-sm tracking-[-0.02em] outline-none placeholder:text-subtle focus-visible:border-primary"
                 />
               </span>
@@ -266,6 +282,7 @@ export function MarketplaceCheckout({
                     key={item}
                     selected={item === packageName}
                     label={item}
+                    preorder={isPreorderPlan(product.slug, item)}
                     onSelect={() => selectPlan(item)}
                   />
                 ))}

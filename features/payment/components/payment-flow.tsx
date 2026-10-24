@@ -270,7 +270,9 @@ export function PaymentFlow({
             <dl className="grid grid-cols-1 gap-5 text-sm sm:grid-cols-2">
               {(isMarket
                 ? [
-                    ["Nama pembeli", details.customerName],
+                    details.customerEmail
+                      ? ["Email pembeli", details.customerEmail]
+                      : ["Nama pembeli", details.customerName],
                     ["Paket", details.plan],
                     ["Durasi", details.duration],
                     ["Garansi", details.warranty ?? "Sesuai ketentuan produk"],
