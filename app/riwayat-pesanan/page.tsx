@@ -5,7 +5,7 @@ import { OrderHistory } from "@/features/orders/components/order-history"
 
 export const metadata: Metadata = {
   title: "Riwayat Pesanan",
-  description: "Cari pesanan dengan nomor WhatsApp atau kode order.",
+  description: "Riwayat pesanan cek plagiarisme dan akun marketplace kamu.",
 }
 
 export default function OrderHistoryPage() {
