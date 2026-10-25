@@ -1,96 +1,101 @@
 "use client"
 
-import { Check, Plus, Upload, X } from "lucide-react"
-import { useId, useState, type FormEvent } from "react"
+import { Loader2, Plus } from "lucide-react"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { useEffect, useState } from "react"
 
 import { Breadcrumb } from "@/components/layout/breadcrumb"
 import { Button } from "@/components/ui/button"
-import {
-  warrantyClaimCategories,
-  warrantyClaimFilters,
-  warrantyClaimForm,
-  warrantyClaimStatusLabel,
-  warrantyClaimsPage,
-} from "@/features/warranty/data/warranty-claims"
-import {
-  warrantyClaimOrders,
-  warrantyClaims,
-} from "@/features/warranty/data/demo-claims"
-import {
-  type WarrantyClaim,
-  type WarrantyClaimStatus,
-} from "@/features/warranty/types"
+import { warrantyClaimsPage } from "@/features/warranty/data/warranty-claims"
+import { warrantyApi } from "@/lib/api/endpoints/warranty"
 import { cn } from "@/lib/utils"
+import type { ClaimSummary } from "@/types/api"
 
-const statusClass: Record<WarrantyClaimStatus, string> = {
-  "dalam-proses": "text-amber-700",
-  selesai: "text-emerald-700",
-  ditolak: "text-red-600",
+import {
+  categoryLabel,
+  type ClaimFilter,
+  claimFilters,
+  claimStatus,
+  formatClaimTime,
+  toneClass,
+} from "../services/claims"
+import { ClaimDetailModal } from "./claim-detail-modal"
+import { ClaimForm } from "./claim-form"
+
+const PER_PAGE = 10
+
+interface ListState {
+  /** Request this state answers; differs from the current one while loading. */
+  key: string
+  items: ClaimSummary[]
+  hasMore: boolean
+  error?: string
 }
 
-const cornerStatus: Record<WarrantyClaimStatus, string> = {
-  "dalam-proses": "Menunggu Review",
-  selesai: "Proses Selesai",
-  ditolak: "Ditolak",
-}
-
-function localStamp() {
-  const date = new Date()
-  const pad = (value: number) => String(value).padStart(2, "0")
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
-}
-
-function formatClaimTime(value: string) {
-  const [date, time = ""] = value.split(" ")
-  const [year, month, day] = date.split("-")
-  const [hour = "00", minute = "00"] = time.split(":")
-  if (!year || !month || !day) return value
-  return `${day}/${month}/${year.slice(-2)} · ${hour}:${minute}`
-}
-
+/** Pusat Klaim Garansi: the signed-in user's claims from the API. */
 export function WarrantyClaims() {
-  const formId = useId()
-  const [filter, setFilter] =
-    useState<(typeof warrantyClaimFilters)[number]["id"]>("semua")
-  const [claims, setClaims] = useState(warrantyClaims)
-  const [open, setOpen] = useState(false)
-  const [orderId, setOrderId] = useState("")
-  const [category, setCategory] = useState("")
-  const [detail, setDetail] = useState("")
-  const [fileName, setFileName] = useState("")
-  const [note, setNote] = useState("")
-  const [selected, setSelected] = useState<WarrantyClaim | null>(null)
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  // `?klaim=CLM-…` (link in the WhatsApp message) opens that claim.
+  const selected = searchParams.get("klaim")
+  const [filter, setFilter] = useState<ClaimFilter>("semua")
+  const [page, setPage] = useState(1)
+  const [reloadKey, setReloadKey] = useState(0)
+  const [state, setState] = useState<ListState>({
+    key: "",
+    items: [],
+    hasMore: false,
+  })
+  const [formOpen, setFormOpen] = useState(false)
+  const requestKey = `${filter}|${page}|${reloadKey}`
+  const loading = state.key !== requestKey
 
-  const visible = claims.filter(
-    (claim) => filter === "semua" || claim.status === filter
-  )
-
-  function closeForm() {
-    setOpen(false)
-  }
-
-  function submitClaim(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const order = warrantyClaimOrders.find((item) => item.id === orderId)
-    if (!order || !category || !detail.trim()) return
-    const next: WarrantyClaim = {
-      id: `CLM-2026-${String(claims.length + 100).padStart(3, "0")}`,
-      orderId: order.id,
-      product: order.product,
-      reason: category,
-      status: "dalam-proses",
-      submittedAt: localStamp(),
+  useEffect(() => {
+    let cancelled = false
+    warrantyApi
+      .list({
+        status: filter === "semua" ? undefined : filter,
+        page,
+        perPage: PER_PAGE,
+      })
+      .then((res) => {
+        if (cancelled) return
+        setState((s) =>
+          res.success
+            ? {
+                key: requestKey,
+                items: page === 1 ? res.data : [...s.items, ...res.data],
+                hasMore: page < (res.meta?.totalPages ?? 1),
+              }
+            : {
+                ...s,
+                key: requestKey,
+                items: page === 1 ? [] : s.items,
+                error: res.error.message,
+              }
+        )
+      })
+    return () => {
+      cancelled = true
     }
-    setClaims((current) => [next, ...current])
-    setFilter("semua")
-    setOrderId("")
-    setCategory("")
-    setDetail("")
-    setFileName("")
-    setNote("")
-    setOpen(false)
-    setSelected(next)
+  }, [filter, page, requestKey])
+
+  function openClaim(code: string | null) {
+    const next = new URLSearchParams(searchParams.toString())
+    if (code) next.set("klaim", code)
+    else next.delete("klaim")
+    const qs = next.toString()
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
   }
+
+  function selectFilter(next: ClaimFilter) {
+    setFilter(next)
+    setPage(1)
+  }
+
+  const firstLoad = loading && page === 1
+  const failed = !loading && !!state.error
 
   return (
     <>
@@ -111,26 +116,31 @@ export function WarrantyClaims() {
               {warrantyClaimsPage.description}
             </p>
           </div>
-          <Button type="button" size="pill" onClick={() => setOpen(true)}>
+          <Button type="button" size="pill" onClick={() => setFormOpen(true)}>
             <Plus aria-hidden />
             {warrantyClaimsPage.cta}
           </Button>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          {warrantyClaimFilters.map((item) => {
-            const selected = item.id === filter
+        <div
+          role="tablist"
+          aria-label="Status klaim"
+          className="flex flex-wrap gap-2"
+        >
+          {claimFilters.map((item) => {
+            const active = item.id === filter
             return (
               <button
                 key={item.id}
                 type="button"
-                aria-pressed={selected}
-                onClick={() => setFilter(item.id)}
+                role="tab"
+                aria-selected={active}
+                onClick={() => selectFilter(item.id)}
                 className={cn(
-                  "h-9 rounded-full px-4 text-sm tracking-[-0.02em]",
-                  selected
+                  "h-9 cursor-pointer rounded-full px-4 text-sm tracking-[-0.02em] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
+                  active
                     ? "bg-primary text-white"
-                    : "border border-line bg-white text-black"
+                    : "border border-line bg-white text-black hover:border-primary"
                 )}
               >
                 {item.label}
@@ -139,11 +149,10 @@ export function WarrantyClaims() {
           })}
         </div>
 
-        {note && (
-          <p className="text-sm tracking-[-0.02em] text-subtle">{note}</p>
-        )}
-
-        <div className="overflow-x-auto rounded-2xl border border-line">
+        <div
+          className="overflow-x-auto rounded-2xl border border-line"
+          aria-busy={loading}
+        >
           <table className="w-full min-w-[860px] text-left text-sm tracking-[-0.02em]">
             <thead className="bg-surface text-subtle">
               <tr>
@@ -166,297 +175,112 @@ export function WarrantyClaims() {
               </tr>
             </thead>
             <tbody>
-              {visible.length === 0 ? (
+              {firstLoad ? (
+                [0, 1, 2].map((i) => (
+                  <tr key={i} className="border-t border-line">
+                    <td colSpan={7} className="px-4 py-4">
+                      <div className="h-4 w-full animate-pulse rounded bg-surface" />
+                    </td>
+                  </tr>
+                ))
+              ) : failed && state.items.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-4 py-10 text-center">
+                    <p className="text-subtle">{state.error}</p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="pill"
+                      className="mt-3"
+                      onClick={() => {
+                        setPage(1)
+                        setReloadKey((k) => k + 1)
+                      }}
+                    >
+                      Coba lagi
+                    </Button>
+                  </td>
+                </tr>
+              ) : state.items.length === 0 ? (
                 <tr>
                   <td
                     colSpan={7}
                     className="px-4 py-10 text-center text-subtle"
                   >
-                    Belum ada klaim di kategori ini.
+                    {filter === "semua"
+                      ? "Belum ada klaim. Ajukan klaim kalau akun marketplace-mu bermasalah selama masa garansi."
+                      : "Belum ada klaim di kategori ini."}
                   </td>
                 </tr>
               ) : (
-                visible.map((claim) => (
-                  <tr key={claim.id} className="border-t border-line">
-                    <td className="px-4 py-4 font-medium">{claim.id}</td>
-                    <td className="px-4 py-4">{claim.orderId}</td>
-                    <td className="px-4 py-4">{claim.product}</td>
-                    <td className="px-4 py-4">{claim.reason}</td>
-                    <td
-                      className={cn(
-                        "px-4 py-4 font-medium whitespace-nowrap",
-                        statusClass[claim.status]
-                      )}
-                    >
-                      {warrantyClaimStatusLabel[claim.status]}
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap">
-                      {claim.submittedAt}
-                    </td>
-                    <td className="px-4 py-4">
-                      <button
-                        type="button"
-                        onClick={() => setSelected(claim)}
-                        className="inline-flex h-9 items-center rounded-full border border-line px-3 text-sm whitespace-nowrap"
+                state.items.map((claim) => {
+                  const status = claimStatus(claim.status)
+                  return (
+                    <tr key={claim.code} className="border-t border-line">
+                      <td className="px-4 py-4 font-medium">{claim.code}</td>
+                      <td className="px-4 py-4">{claim.orderCode}</td>
+                      <td className="px-4 py-4">{claim.productName}</td>
+                      <td className="px-4 py-4">
+                        {categoryLabel(claim.category)}
+                      </td>
+                      <td
+                        className={cn(
+                          "px-4 py-4 font-medium whitespace-nowrap",
+                          toneClass[status.tone]
+                        )}
                       >
-                        Lihat Investigasi
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                        {status.label}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        {formatClaimTime(claim.createdAt)}
+                      </td>
+                      <td className="px-4 py-4">
+                        <button
+                          type="button"
+                          onClick={() => openClaim(claim.code)}
+                          className="inline-flex h-9 cursor-pointer items-center rounded-full border border-line px-3 text-sm whitespace-nowrap hover:border-primary hover:text-primary"
+                        >
+                          Lihat
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })
               )}
             </tbody>
           </table>
         </div>
+        {state.hasMore && !firstLoad && (
+          <div className="flex justify-center">
+            <Button
+              type="button"
+              variant="outline"
+              size="pill"
+              disabled={loading}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              {loading && <Loader2 className="animate-spin" aria-hidden />}
+              Muat lebih banyak
+            </Button>
+          </div>
+        )}
       </section>
 
-      {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center"
-          onClick={closeForm}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby={`${formId}-title`}
-            className="max-h-[90vh] w-full max-w-[520px] overflow-y-auto rounded-2xl bg-white p-5 md:p-6"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="mb-5 flex items-start justify-between gap-4">
-              <div className="flex flex-col gap-1">
-                <h2
-                  id={`${formId}-title`}
-                  className="text-xl font-semibold tracking-[-0.02em]"
-                >
-                  {warrantyClaimForm.title}
-                </h2>
-                <p className="text-sm leading-6 tracking-[-0.02em] text-subtle">
-                  {warrantyClaimForm.description}
-                </p>
-              </div>
-              <button
-                type="button"
-                aria-label="Tutup"
-                onClick={closeForm}
-                className="flex size-9 shrink-0 items-center justify-center rounded-full border border-line"
-              >
-                <X className="size-4" aria-hidden />
-              </button>
-            </div>
-            <form className="flex flex-col gap-4" onSubmit={submitClaim}>
-              <label className="flex flex-col gap-2 text-sm font-medium tracking-[-0.02em]">
-                {warrantyClaimForm.orderLabel}
-                <select
-                  required
-                  value={orderId}
-                  onChange={(event) => setOrderId(event.target.value)}
-                  className="h-12 rounded-xl border border-line bg-white px-3 text-sm font-normal tracking-[-0.02em] outline-none focus-visible:border-primary"
-                >
-                  <option value="">{warrantyClaimForm.orderPlaceholder}</option>
-                  {warrantyClaimOrders.map((order) => (
-                    <option key={order.id} value={order.id}>
-                      {order.id} · {order.product}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex flex-col gap-2 text-sm font-medium tracking-[-0.02em]">
-                {warrantyClaimForm.categoryLabel}
-                <select
-                  required
-                  value={category}
-                  onChange={(event) => setCategory(event.target.value)}
-                  className="h-12 rounded-xl border border-line bg-white px-3 text-sm font-normal tracking-[-0.02em] outline-none focus-visible:border-primary"
-                >
-                  <option value="">
-                    {warrantyClaimForm.categoryPlaceholder}
-                  </option>
-                  {warrantyClaimCategories.map((item) => (
-                    <option key={item} value={item}>
-                      {item}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex flex-col gap-2 text-sm font-medium tracking-[-0.02em]">
-                {warrantyClaimForm.detailLabel}
-                <textarea
-                  required
-                  value={detail}
-                  onChange={(event) => setDetail(event.target.value)}
-                  placeholder={warrantyClaimForm.detailPlaceholder}
-                  rows={4}
-                  className="rounded-xl border border-line px-3 py-3 text-sm font-normal tracking-[-0.02em] outline-none placeholder:text-subtle focus-visible:border-primary"
-                />
-              </label>
-              <div className="flex flex-col gap-2 text-sm font-medium tracking-[-0.02em]">
-                <p>{warrantyClaimForm.proofLabel}</p>
-                <p>{warrantyClaimForm.proofTitle}</p>
-                <label className="flex cursor-pointer flex-col items-center gap-3 rounded-xl border border-dashed border-line px-4 py-6 text-center font-normal">
-                  <Upload className="size-5 text-subtle" aria-hidden />
-                  <span className="text-sm text-subtle">
-                    {fileName || warrantyClaimForm.proofHint}
-                  </span>
-                  <span className="inline-flex h-9 items-center gap-1 rounded-full bg-surface px-3 text-sm">
-                    <Plus className="size-3.5" aria-hidden />
-                    {warrantyClaimForm.proofButton}
-                  </span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="sr-only"
-                    onChange={(event) =>
-                      setFileName(event.target.files?.[0]?.name ?? "")
-                    }
-                  />
-                </label>
-              </div>
-              <div className="flex items-center justify-end gap-4">
-                <button
-                  type="button"
-                  onClick={closeForm}
-                  className="text-sm tracking-[-0.02em] text-subtle"
-                >
-                  {warrantyClaimForm.cancel}
-                </button>
-                <Button type="submit" size="pill">
-                  {warrantyClaimForm.submit}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
+      {formOpen && (
+        <ClaimForm
+          onClose={() => setFormOpen(false)}
+          onCreated={(code) => {
+            setFormOpen(false)
+            setFilter("semua")
+            setPage(1)
+            setReloadKey((k) => k + 1)
+            openClaim(code)
+          }}
+        />
       )}
-
       {selected && (
-        <ClaimDetail claim={selected} onClose={() => setSelected(null)} />
+        <ClaimDetailModal code={selected} onClose={() => openClaim(null)} />
       )}
     </>
-  )
-}
-
-function ClaimDetail({
-  claim,
-  onClose,
-}: {
-  claim: WarrantyClaim
-  onClose: () => void
-}) {
-  const titleId = useId()
-  const when = formatClaimTime(claim.submittedAt)
-  const outcome =
-    claim.status === "ditolak"
-      ? "Klaim Ditolak (Laporan tidak valid)"
-      : "Klaim Diterima (Admin akan segera menghubungi)"
-  const steps = [
-    { title: "Klaim Berhasil Diajukan", time: when, state: "done" as const },
-    { title: "Klaim Dicek Sistem", time: when, state: "done" as const },
-    {
-      title: outcome,
-      time: claim.status === "dalam-proses" ? "" : when,
-      state:
-        claim.status === "ditolak"
-          ? ("failed" as const)
-          : claim.status === "selesai"
-            ? ("done" as const)
-            : ("pending" as const),
-    },
-  ]
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center"
-      onClick={onClose}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        className="w-full max-w-[520px] rounded-2xl bg-white p-5 md:p-6"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <div className="mb-5 flex items-start justify-between gap-4">
-          <div className="flex flex-col gap-1">
-            <h2
-              id={titleId}
-              className="text-xl font-semibold tracking-[-0.02em]"
-            >
-              Detail Klaim Garansi
-            </h2>
-            <p className="text-sm tracking-[-0.02em] text-subtle">
-              Pesanan #{claim.orderId}
-            </p>
-          </div>
-          <button
-            type="button"
-            aria-label="Tutup"
-            onClick={onClose}
-            className="flex size-9 shrink-0 items-center justify-center rounded-full border border-line"
-          >
-            <X className="size-4" aria-hidden />
-          </button>
-        </div>
-        <div className="rounded-xl bg-surface p-4">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <p className="text-xs font-medium tracking-[-0.02em] text-subtle">
-              Status
-            </p>
-            <p
-              className={cn(
-                "text-sm font-medium tracking-[-0.02em]",
-                statusClass[claim.status]
-              )}
-            >
-              {cornerStatus[claim.status]}
-            </p>
-          </div>
-          <ol className="flex flex-col gap-4">
-            {steps.map((step) => (
-              <li key={step.title} className="flex gap-3">
-                <span
-                  className={cn(
-                    "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full",
-                    step.state === "done" && "bg-emerald-600 text-white",
-                    step.state === "failed" && "bg-red-600 text-white",
-                    step.state === "pending" && "border border-line bg-white"
-                  )}
-                  aria-hidden
-                >
-                  {step.state === "done" && (
-                    <Check className="size-3" strokeWidth={3} />
-                  )}
-                  {step.state === "failed" && (
-                    <X className="size-3" strokeWidth={3} />
-                  )}
-                </span>
-                <span className="flex flex-col">
-                  <span
-                    className={cn(
-                      "text-sm font-medium tracking-[-0.02em]",
-                      step.state === "pending" && "text-subtle"
-                    )}
-                  >
-                    {step.title}
-                  </span>
-                  {step.time && (
-                    <span className="text-xs tracking-[-0.02em] text-subtle">
-                      {step.time}
-                    </span>
-                  )}
-                </span>
-              </li>
-            ))}
-          </ol>
-        </div>
-        <div className="mt-5 flex items-center justify-between gap-4">
-          <p className="text-sm tracking-[-0.02em] text-subtle">
-            Diajukan pada: {when}
-          </p>
-          <Button type="button" variant="outline" size="pill" onClick={onClose}>
-            Tutup
-          </Button>
-        </div>
-      </div>
-    </div>
   )
 }

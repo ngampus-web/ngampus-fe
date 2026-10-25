@@ -216,26 +216,79 @@ export interface FileUploadResponse {
 }
 
 /**
- * Warranty claim
+ * Uploads — docs/API-CONTRACT.md §3 (presigned PUT to R2, then complete)
  */
-export interface WarrantyClaimRequest {
-  orderId: string
-  reason: string
-  description: string
-  evidence?: string[]
+export type FilePurpose =
+  | "claim_evidence"
+  | "doc_check_source"
+  | "paraphrase_source"
+  | "paraphrase_report"
+
+export interface UploadTicket {
+  fileId: string
+  uploadUrl: string
+  method: "PUT"
+  headers: { "Content-Type": string }
+  expiresAt: string
 }
 
-export interface WarrantyClaim {
+export interface FileInfo {
   id: string
-  orderId: string
-  userId: string
-  status: "pending" | "approved" | "rejected" | "resolved"
-  reason: string
-  description: string
-  evidence?: string[]
-  response?: string
+  fileName: string
+  mimeType: string
+  sizeBytes: number
+  pageCount: number | null
+  wordCount: number | null
+  publicUrl: string | null
+}
+
+/**
+ * Warranty claims — docs/API-CONTRACT.md §9
+ */
+export type ClaimCategory =
+  | "logged_out"
+  | "password_changed"
+  | "quota_limit"
+  | "suspended"
+  | "invalid_license"
+  | "other"
+
+export type ClaimStatus =
+  "submitted" | "reviewing" | "accepted" | "rejected" | "resolved"
+
+export type ClaimTab = "in_progress" | "resolved" | "rejected"
+
+export interface EligibleOrder {
+  code: string
+  productName: string
+  planName: string
+  warrantyExpiresAt: string
+}
+
+export interface ClaimSummary {
+  code: string
+  orderCode: string
+  productName: string
+  category: ClaimCategory
+  status: ClaimStatus
   createdAt: string
-  updatedAt: string
+}
+
+export interface ClaimDetail extends ClaimSummary {
+  planName: string | null
+  description: string
+  customerMessage: string | null
+  resolution:
+    "repair_access" | "replace_account" | "replace_access" | "refund" | null
+  timeline: { status: ClaimStatus; at: string; note: string | null }[]
+  evidence: { id: string; fileName: string; url: string | null }[]
+}
+
+export interface CreateClaimRequest {
+  orderCode: string
+  category: ClaimCategory
+  description: string
+  evidenceFileIds: string[]
 }
 
 /**

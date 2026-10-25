@@ -414,3 +414,45 @@ assert.match(history.formatOrderDate("2026-01-01T17:30:00Z"), /2 Jan 2026/)
 console.log(
   "PASS: order history sections, filter chips, API counts and WIB dates."
 )
+
+const claims = load("features/warranty/services/claims.ts")
+assert.equal(claims.claimCategories.length, 6)
+assert.equal(
+  claims.categoryLabel("quota_limit"),
+  "Limit Pemakaian/Kuota Tercapai"
+)
+assert.equal(claims.claimStatus("reviewing").label, "Dalam Proses")
+assert.equal(claims.claimStatus("accepted").label, "Dalam Proses")
+assert.equal(claims.claimStatus("resolved").label, "Selesai")
+assert.equal(claims.cornerStatus("reviewing"), "Menunggu Review")
+assert.equal(claims.cornerStatus("resolved"), "Proses Selesai")
+const claimAt = "2026-10-01T09:50:53Z"
+const reviewingSteps = claims.claimSteps("reviewing", [
+  { status: "submitted", at: claimAt, note: null },
+  { status: "reviewing", at: claimAt, note: null },
+])
+assert.equal(
+  reviewingSteps.map((s) => `${s.title}:${s.state}`).join(" | "),
+  "Klaim Berhasil Diajukan:done | Klaim Dicek Sistem:done | Klaim Diterima (Admin akan segera menghubungi):pending"
+)
+const rejectedSteps = claims.claimSteps("rejected", [
+  { status: "submitted", at: claimAt, note: null },
+  { status: "reviewing", at: claimAt, note: null },
+  { status: "rejected", at: claimAt, note: "Bukti kurang" },
+])
+assert.equal(rejectedSteps.at(-1).state, "failed")
+assert.equal(rejectedSteps.at(-1).note, "Bukti kurang")
+assert.equal(claims.claimSteps("resolved", []).at(-1).title, "Proses Selesai")
+assert.equal(
+  claims.evidenceError({ type: "image/gif", size: 10 }),
+  "Screenshot harus berupa JPG, PNG, atau WEBP."
+)
+assert.equal(
+  claims.evidenceError({ type: "image/png", size: 6 * 1024 * 1024 }),
+  "Ukuran screenshot maksimal 5 MB."
+)
+assert.equal(claims.evidenceError({ type: "image/webp", size: 1024 }), null)
+assert.equal(claims.formatClaimTime(claimAt), "01/10/26 · 16.50")
+console.log(
+  "PASS: warranty claim categories, status labels, timeline steps and screenshot rules."
+)
