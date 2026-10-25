@@ -137,6 +137,7 @@ export interface MarketplaceOrderDetails {
 
 export interface OrderDetail extends OrderSummary {
   customerName: string
+  customerEmail?: string | null
   whatsapp: string
   subtotal: number
   discount: number

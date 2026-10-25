@@ -1,6 +1,7 @@
 import { ordersApi } from "@/lib/api/endpoints/orders"
 import type { OrderDetail, PaymentSession } from "@/types/api"
 
+import { validateMarketplaceEmail } from "./order-rules"
 import type { OrderDraft, PaymentOrder } from "../types"
 
 /** API order codes, e.g. `MKT-7K2M9QXA` (preview ids start with `NGP-`). */
@@ -27,6 +28,8 @@ function fromApi(o: OrderDetail): PaymentOrder {
       warranty: d?.warrantyLabel,
       accountType: d?.accountType ?? undefined,
       customerName: o.customerName,
+      customerEmail: o.customerEmail ?? undefined,
+      delivery: d?.delivery ?? null,
     },
   }
 }
@@ -41,9 +44,11 @@ export const apiGateway = {
     const d = draft.details
     if (d.kind !== "marketplace" || !d.offerId)
       return fail("Pilih paket terlebih dahulu.")
+    const customerEmail = validateMarketplaceEmail(d.customerEmail)
     const res = await ordersApi.createMarketplace({
       offerId: d.offerId,
       customerName: d.customerName,
+      customerEmail,
       whatsapp: draft.phone,
     })
     if (!res.success) return fail(res.error.message)

@@ -133,6 +133,13 @@ export function toCheckout(p: ProductDetail): MarketplaceCheckout {
         ...warranty,
         items: [
           ...warranty.items,
+          ...(["chatgpt", "claude"].includes(p.slug)
+            ? [
+                {
+                  body: "Khusus paket pre-order, pesanan diproses dalam 1–3 hari. Jika pesanan belum dipenuhi setelah 3 hari, dana akan dikembalikan sepenuhnya.",
+                },
+              ]
+            : []),
           ...p.additionalWarranty.map((body) => ({ body })),
         ],
       },
