@@ -1,5 +1,5 @@
 import { ordersApi } from "@/lib/api/endpoints/orders"
-import type { OrderDetail } from "@/types/api"
+import type { OrderDetail, PaymentSession } from "@/types/api"
 
 import { validateMarketplaceEmail } from "./order-rules"
 import type { OrderDraft, PaymentOrder } from "../types"
@@ -29,6 +29,7 @@ function fromApi(o: OrderDetail): PaymentOrder {
       accountType: d?.accountType ?? undefined,
       customerName: o.customerName,
       customerEmail: o.customerEmail ?? undefined,
+      delivery: d?.delivery ?? null,
     },
   }
 }
@@ -60,6 +61,17 @@ export const apiGateway = {
     if (res.success) return fromApi(res.data)
     if (res.error.status === 404) return null
     return fail(res.error.message)
+  },
+
+  async startPayment(code: string): Promise<PaymentSession> {
+    const res = await ordersApi.pay(code)
+    if (!res.success) return fail(res.error.message)
+    return res.data
+  },
+
+  async simulate(code: string, result: "paid" | "failed") {
+    const res = await ordersApi.simulatePayment(code, result)
+    if (!res.success) return fail(res.error.message)
   },
 
   async cancel(code: string): Promise<PaymentOrder> {

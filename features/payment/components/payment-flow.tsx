@@ -18,6 +18,8 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { usePaymentOrder } from "../hooks/use-payment-order"
+import { DeliveryBox } from "./delivery-box"
+import { QrisPanel } from "./qris-panel"
 import {
   effectiveStatus,
   formatFileSize,
@@ -39,8 +41,19 @@ export function PaymentFlow({
   orderId: string
   gateway?: boolean
 }) {
-  const { order, error: loadError, setOrder } = usePaymentOrder(orderId)
+  const {
+    order,
+    error: loadError,
+    setOrder,
+    refresh,
+  } = usePaymentOrder(orderId, { pollMs: gateway ? 5_000 : 15_000 })
   const router = useRouter()
+  // Leave the QR page once the order is no longer awaiting payment.
+  const leaveQr =
+    gateway && order?.mode === "live" && order.status !== "pending"
+  useEffect(() => {
+    if (leaveQr) router.replace(`/pembayaran/${orderId}`)
+  }, [leaveQr, router, orderId])
   const [now, setNow] = useState(() => Date.now())
   const [error, setError] = useState("")
   const [copied, setCopied] = useState(false)
@@ -91,6 +104,12 @@ export function PaymentFlow({
   const isMarket = details.kind === "marketplace"
   const status = effectiveStatus(order, now)
   const terminal = ["expired", "cancelled", "failed"].includes(status)
+  const deliveredVia =
+    (details.kind === "marketplace" &&
+      details.delivery?.channels
+        .map((c) => (c === "whatsapp" ? "WhatsApp" : "Email"))
+        .join(" & ")) ||
+    "WhatsApp/Email"
   const activeStep =
     status === "completed" ? 2 : status === "processing" ? 1 : 0
   const seconds = Math.max(
@@ -105,9 +124,7 @@ export function PaymentFlow({
   }).format(new Date(order.createdAt))
   async function openPayment() {
     if (live) {
-      setError(
-        "Pembayaran QRIS segera tersedia. Pesananmu sudah tersimpan dan bisa dibayar setelah integrasi pembayaran aktif."
-      )
+      router.push(`/pembayaran/${orderId}/qris`)
       return
     }
     setBusy(true)
@@ -344,7 +361,14 @@ export function PaymentFlow({
                 </div>
               </div>
             )}
-            {status === "pending" && gateway && (
+            {status === "pending" && gateway && live && (
+              <QrisPanel
+                code={orderId}
+                remaining={remaining}
+                onChanged={() => void refresh()}
+              />
+            )}
+            {status === "pending" && gateway && !live && (
               <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-line bg-surface p-6 text-center">
                 <div className="rounded-2xl border border-line bg-white p-7">
                   <QrCode className="size-24 text-subtle/40" strokeWidth={1} />
@@ -366,13 +390,11 @@ export function PaymentFlow({
               <div role="status" className="rounded-2xl bg-orange-50 p-5">
                 <LoaderCircle className="mb-3 size-7 animate-spin text-primary" />
                 <h3 className="font-semibold">
-                  {isMarket
-                    ? "Akses akunmu sedang disiapkan"
-                    : "Dokumenmu sedang diproses"}
+                  {isMarket ? "Sedang diproses" : "Dokumenmu sedang diproses"}
                 </h3>
                 <p className="mt-2 text-sm leading-6 text-subtle">
                   {isMarket
-                    ? "Setelah siap, akses dan panduan login akan dikirim melalui WhatsApp atau email."
+                    ? "Akun sedang disiapkan admin (biasanya 1–30 menit, maksimal 3 jam). Detail akun akan dikirim melalui WhatsApp & email dan tampil di halaman ini."
                     : details.slug === "parafrase-manual"
                       ? "Tim sedang meninjau dan mengerjakan parafrase dokumenmu."
                       : "Hasil pengecekan akan tersedia di halaman ini setelah proses selesai."}
@@ -397,22 +419,27 @@ export function PaymentFlow({
                 <CheckCircle2 className="mb-3 size-8 text-emerald-600" />
                 <h3 className="font-semibold">
                   {isMarket
-                    ? "Akses akun sudah dikirimkan"
+                    ? `Sudah dikirimkan melalui ${deliveredVia}`
                     : "Hasil dokumen siap"}
                 </h3>
                 <p className="mt-2 text-sm leading-6 text-emerald-900">
                   {isMarket
-                    ? "Silakan cek WhatsApp atau email, ikuti panduan login, dan nikmati layananmu."
+                    ? "Silakan login dan nikmati layananmu. Detail akun juga tersedia di bawah ini."
                     : "Kamu dapat mengunduh hasil setelah laporan tersedia dari layanan pemrosesan."}
                 </p>
-                <p className="mt-3 text-xs leading-5 text-emerald-800">
-                  Ini tampilan status selesai untuk pratinjau.{" "}
-                  {isMarket
-                    ? "Belum ada akun yang dikirimkan."
-                    : "Belum ada dokumen yang diproses atau laporan asli."}
-                </p>
+                {!live && (
+                  <p className="mt-3 text-xs leading-5 text-emerald-800">
+                    Ini tampilan status selesai untuk pratinjau.{" "}
+                    {isMarket
+                      ? "Belum ada akun yang dikirimkan."
+                      : "Belum ada dokumen yang diproses atau laporan asli."}
+                  </p>
+                )}
               </div>
             )}
+            {status === "completed" &&
+              details.kind === "marketplace" &&
+              details.delivery && <DeliveryBox delivery={details.delivery} />}
             {terminal && (
               <div role="status" className="rounded-2xl bg-red-50 p-5">
                 <XCircle className="mb-3 size-7 text-red-600" />
