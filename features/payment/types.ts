@@ -40,6 +40,8 @@ export type OrderDraft = {
   phone: string
   amount: number
   details: PaymentDetails
+  /** Checked again by the server when the order is created. */
+  promoCode?: string
 }
 
 export type PaymentOrder = OrderDraft & {
