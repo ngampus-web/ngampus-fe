@@ -6,7 +6,10 @@ import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 
 import { Breadcrumb } from "@/components/layout/breadcrumb"
-import { PromoCarousel } from "@/components/shared/promo-carousel"
+import {
+  PromoCarousel,
+  type PromoSlide,
+} from "@/components/shared/promo-carousel"
 import { Button } from "@/components/ui/button"
 import {
   type CategoryItem,
@@ -21,30 +24,17 @@ import {
 } from "@/features/marketplace/data/marketplace"
 import { cn } from "@/lib/utils"
 
-const promoSlides = [
-  {
-    image: "/images/marketplace/banner-premium.png",
-    href: "#marketplace-search",
-    label: "Akun Premium",
-    alt: "Dapatkan akun premium, harga mahasiswa. Mulai dari Rp10.000",
-  },
-  {
-    image: "/images/marketplace/banner-gpt-go.png",
-    href: "/marketplace/chatgpt",
-    label: "GPT Go",
-    alt: "Dapatkan akun GPT Go, harga terjangkau! Mulai dari Rp20.000",
-  },
-]
-
 const rupiah = (n: number) => `Rp ${n.toLocaleString("id-ID")}`
 
 /** Search and category filtering run on the API; first page comes from the server. */
 export function MarketplaceCatalog({
   initialProducts,
   categories,
+  promoSlides,
 }: {
   initialProducts: ProductSummary[]
   categories: CategoryItem[]
+  promoSlides: PromoSlide[]
 }) {
   const [query, setQuery] = useState("")
   const [category, setCategory] = useState("semua")

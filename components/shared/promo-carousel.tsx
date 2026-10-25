@@ -6,12 +6,9 @@ import { useEffect, useState } from "react"
 
 import { cn } from "@/lib/utils"
 
-export type PromoSlide = {
-  image: string
-  href: string
-  label: string
-  alt: string
-}
+import type { PromoSlide } from "./promo-slides"
+
+export type { PromoSlide }
 
 export function PromoCarousel({
   slides,
@@ -55,7 +52,7 @@ export function PromoCarousel({
         >
           {slides.map((slide, index) => (
             <div
-              key={slide.href}
+              key={`${index}-${slide.href}`}
               role="group"
               aria-roledescription="slide"
               aria-label={`${index + 1} dari ${slides.length}: ${slide.label}`}
@@ -75,6 +72,7 @@ export function PromoCarousel({
                   height={1440}
                   sizes="(max-width: 768px) calc(100vw - 40px), (max-width: 1120px) calc(100vw - 80px), 1040px"
                   loading="eager"
+                  unoptimized={/^https?:\/\//.test(slide.image)}
                   className="h-auto w-full"
                 />
               </Link>

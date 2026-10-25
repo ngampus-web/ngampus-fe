@@ -1,10 +1,13 @@
 import Image from "next/image"
 
 import { trustedBy } from "@/features/home/data/home"
+import type { ContentLogo } from "@/lib/api/endpoints/content"
 
-export function TrustedBy() {
+export function TrustedBy({ logos: items }: { logos: ContentLogo[] }) {
+  const shown = items.filter((l) => l.logoUrl)
+  if (!shown.length) return null
   // The marquee shifts by -50%, so each half must be wider than the widest viewport.
-  const logos = Array.from({ length: 6 }, () => trustedBy.logos).flat()
+  const logos = Array.from({ length: 6 }, () => shown).flat()
 
   return (
     <section className="flex flex-col items-center gap-6 overflow-hidden py-4">
@@ -16,14 +19,15 @@ export function TrustedBy() {
           {logos.map((logo, i) => (
             <li
               key={`${logo.id}-${i}`}
-              aria-hidden={i >= trustedBy.logos.length}
+              aria-hidden={i >= shown.length}
               className="pr-10"
             >
               <Image
-                src={logo.src}
+                src={logo.logoUrl!}
                 alt={logo.name}
-                width={logo.width}
-                height={logo.height}
+                width={160}
+                height={48}
+                unoptimized={/^https?:\/\//.test(logo.logoUrl!)}
                 className="h-12 w-auto object-contain grayscale"
               />
             </li>

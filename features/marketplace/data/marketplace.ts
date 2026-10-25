@@ -1,3 +1,4 @@
+import type { PromoSlide } from "../../../components/shared/promo-slides"
 import type { CheckoutSection } from "../types"
 
 export const marketplaceCategories = [
@@ -121,3 +122,19 @@ export const warrantyTerms: CheckoutSection = {
     },
   ],
 }
+
+/** Shown when the banner API is unavailable or has no live banners. */
+export const fallbackMarketplaceSlides: PromoSlide[] = [
+  {
+    image: "/images/marketplace/banner-premium.png",
+    href: "#marketplace-search",
+    label: "Akun Premium",
+    alt: "Dapatkan akun premium, harga mahasiswa. Mulai dari Rp10.000",
+  },
+  {
+    image: "/images/marketplace/banner-gpt-go.png",
+    href: "/marketplace/chatgpt",
+    label: "GPT Go",
+    alt: "Dapatkan akun GPT Go, harga terjangkau! Mulai dari Rp20.000",
+  },
+]

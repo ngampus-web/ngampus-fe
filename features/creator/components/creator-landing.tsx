@@ -1,6 +1,7 @@
 import Image from "next/image"
 
 import { CreatorBannerSubmit } from "@/features/creator/components/creator-banner-submit"
+import { CreatorExamples } from "@/features/creator/components/creator-examples"
 import { CreatorHeader } from "@/features/creator/components/creator-header"
 import {
   campaignContentRules,
@@ -10,6 +11,7 @@ import {
   campaignSections,
   creatorJoinSteps,
 } from "@/features/creator/data/campaign"
+import type { CreatorExample } from "@/lib/api/endpoints/content"
 
 function PlatformIcon({
   icon,
@@ -53,7 +55,11 @@ function PlatformIcon({
   )
 }
 
-export function CreatorLanding() {
+export function CreatorLanding({
+  examples,
+}: {
+  examples: { video: CreatorExample[]; post: CreatorExample[] }
+}) {
   return (
     <div className="flex min-h-svh flex-col bg-white">
       <CreatorHeader />
@@ -160,6 +166,8 @@ export function CreatorLanding() {
             ))}
           </ul>
         </section>
+
+        <CreatorExamples video={examples.video} post={examples.post} />
 
         {campaignSections.map((section) => (
           <section
