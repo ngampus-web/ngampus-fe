@@ -388,46 +388,29 @@ console.log(
   "PASS: pricing tier boundaries, supplied deadline examples, combined reductions, decimals, rounding, and amount consistency."
 )
 
-const orderFilters = load("features/orders/services/filter-orders.ts")
-const allPreviewOrders = load(
-  "features/payment/services/preview-gateway.ts"
-).listPreviewOrders()
-assert.ok(allPreviewOrders.length > 0)
-const marketHistory = orderFilters.filterOrders(
-  allPreviewOrders,
-  "081234567890",
-  "marketplace"
-)
-assert.ok(marketHistory.length > 0)
-assert.ok(marketHistory.every((item) => item.details.kind === "marketplace"))
-const documentHistory = orderFilters.filterOrders(
-  allPreviewOrders,
-  "+62 812-3456-7890",
-  "plagiarism"
-)
-assert.ok(documentHistory.some((item) => item.details.kind === "paraphrase"))
-assert.ok(documentHistory.every((item) => item.details.kind !== "marketplace"))
+const history = load("features/orders/services/order-history.ts")
 assert.equal(
-  orderFilters.filterOrders(
-    allPreviewOrders,
-    order.id.toLowerCase(),
-    "marketplace"
-  ).length,
-  1
+  history.sections.map((s) => s.label).join(" | "),
+  "Plagiarism Checker | Marketplace Account"
+)
+assert.equal(history.filterLabel("exclude_quotes"), "Tanpa Kutipan")
+assert.equal(history.filterLabel("exclude_bibliography"), "Tanpa Bibliografi")
+assert.equal(history.filterLabel("Custom"), "Custom")
+assert.equal(
+  JSON.stringify(
+    history.readCounts({
+      page: 1,
+      counts: { total: 5, completed: 2, unpaid: 1 },
+    })
+  ),
+  JSON.stringify({ total: 5, completed: 2, unpaid: 1 })
 )
 assert.equal(
-  orderFilters.filterOrders(allPreviewOrders, order.id, "plagiarism").length,
-  0
+  JSON.stringify(history.readCounts(undefined)),
+  JSON.stringify({ total: 0, completed: 0, unpaid: 0 })
 )
-assert.equal(
-  orderFilters.filterOrders(allPreviewOrders, "", "marketplace").length,
-  0
-)
-assert.equal(
-  orderFilters.filterOrders(allPreviewOrders, "081299999999", "marketplace")
-    .length,
-  0
-)
+assert.equal(history.historyStatus.expired.label, "Tidak Dibayar")
+assert.match(history.formatOrderDate("2026-01-01T17:30:00Z"), /2 Jan 2026/)
 console.log(
-  "PASS: order history categories, exact order ID and normalized phone search."
+  "PASS: order history sections, filter chips, API counts and WIB dates."
 )
