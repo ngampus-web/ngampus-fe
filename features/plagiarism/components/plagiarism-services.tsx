@@ -4,6 +4,7 @@ import Link from "next/link"
 
 import { Breadcrumb } from "@/components/layout/breadcrumb"
 import { Button } from "@/components/ui/button"
+import type { PromoSlide } from "@/components/shared/promo-carousel"
 import { PromoBanner } from "./promo-banner"
 import {
   formatStartPrice,
@@ -13,7 +14,7 @@ import {
   plagiarismServices,
 } from "@/features/plagiarism/data/plagiarism"
 
-export function PlagiarismServices() {
+export function PlagiarismServices({ slides }: { slides: PromoSlide[] }) {
   return (
     <>
       <Breadcrumb
@@ -24,7 +25,7 @@ export function PlagiarismServices() {
       />
       <section className="mx-auto flex w-full max-w-[1120px] flex-col gap-8 px-5 py-12 md:px-10 lg:py-16">
         <h1 className="sr-only">{plagiarismHub.title.join(" ")}</h1>
-        <PromoBanner />
+        <PromoBanner slides={slides} />
         <div className="grid items-start gap-4 md:grid-cols-3">
           {plagiarismServices.map((service) => (
             <article

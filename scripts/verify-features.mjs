@@ -456,3 +456,40 @@ assert.equal(claims.formatClaimTime(claimAt), "01/10/26 · 16.50")
 console.log(
   "PASS: warranty claim categories, status labels, timeline steps and screenshot rules."
 )
+
+const fallback = load("lib/api/fallback.ts")
+const staticFaq = [{ id: "static-0" }]
+assert.equal(
+  (
+    await fallback.withFallback(
+      () => Promise.reject(new Error("down")),
+      staticFaq
+    )
+  )[0].id,
+  "static-0"
+)
+assert.equal(
+  (await fallback.withFallback(() => Promise.resolve([]), staticFaq))[0].id,
+  "static-0"
+)
+assert.equal(
+  (
+    await fallback.withFallback(
+      () => Promise.resolve([{ id: "api" }]),
+      staticFaq
+    )
+  )[0].id,
+  "api"
+)
+assert.equal(fallback.initials("Nadia P."), "NP")
+assert.equal(fallback.initials("  reza  "), "R")
+const slidesHelper = load("components/shared/promo-slides.ts")
+const slides = slidesHelper.bannersToSlides([
+  { title: "Promo", imageUrl: "https://cdn.test/a.png", linkUrl: null },
+  { title: "Tanpa gambar", imageUrl: null, linkUrl: "/x" },
+])
+assert.equal(slides.length, 1)
+assert.equal(`${slides[0].href}|${slides[0].alt}`, "#|Promo")
+console.log(
+  "PASS: content fallback when the API fails or is empty, avatar initials, banner slides."
+)

@@ -8,6 +8,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 import { faq } from "@/features/home/data/home"
+import type { ContentFaq } from "@/lib/api/endpoints/content"
 
 function ToggleIcon() {
   return (
@@ -33,7 +34,7 @@ function ToggleIcon() {
   )
 }
 
-export function Faq() {
+export function Faq({ items }: { items: ContentFaq[] }) {
   return (
     <section
       id="faq"
@@ -51,9 +52,9 @@ export function Faq() {
         defaultValue="item-0"
         className="flex flex-col gap-4"
       >
-        {faq.items.map((item, i) => (
+        {items.map((item, i) => (
           <AccordionItem
-            key={item.question}
+            key={item.id}
             value={`item-${i}`}
             className="relative rounded-3xl border border-line-strong bg-white not-last:border-b"
           >
