@@ -29,6 +29,7 @@ function fromApi(o: OrderDetail): PaymentOrder {
       accountType: d?.accountType ?? undefined,
       customerName: o.customerName,
       customerEmail: o.customerEmail ?? undefined,
+      delivery: d?.delivery ?? null,
     },
   }
 }

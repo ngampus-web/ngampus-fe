@@ -1,5 +1,12 @@
 import type { ParaphraseDetails } from "../paraphrase/types"
 
+export type AccountDelivery = {
+  credentials: string
+  instructions: string | null
+  sentAt: string
+  channels: string[]
+}
+
 export type PaymentStatus =
   "pending" | "processing" | "completed" | "expired" | "cancelled" | "failed"
 export type PaymentDetails =
@@ -17,6 +24,8 @@ export type PaymentDetails =
       customerName: string
       /** Optional for historical orders created before email checkout. */
       customerEmail?: string
+      /** Account details sent by the admin (live orders, owner only). */
+      delivery?: AccountDelivery | null
     }
   | {
       kind: "document"
