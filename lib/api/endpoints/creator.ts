@@ -1,58 +1,60 @@
 /**
- * Creator program API endpoints
+ * Ngampus Creator API — docs/API-CONTRACT.md §10. Login uses /auth/login.
  */
 
-import { apiClient } from '../client';
+import { apiClient } from "../client"
 import type {
-  CreatorStats,
+  AuthResponse,
+  CreateSubmissionRequest,
+  CreateWithdrawalRequest,
+  CreatorMe,
+  CreatorProfile,
+  CreatorRegisterRequest,
   CreatorSubmission,
-  WithdrawRequest,
-  ApiResponse,
-  PaginatedResponse,
-  PaginationParams,
-} from '@/types/api';
+  CreatorWithdrawal,
+} from "@/types/api"
+
+function page(query: { page?: number; perPage?: number }) {
+  const params = new URLSearchParams()
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined) params.set(key, String(value))
+  }
+  const qs = params.toString()
+  return qs ? `?${qs}` : ""
+}
 
 export const creatorApi = {
-  /**
-   * Get creator dashboard stats
-   */
-  async getStats(): Promise<ApiResponse<CreatorStats>> {
-    return apiClient.get<CreatorStats>('/creator/stats');
+  register(body: CreatorRegisterRequest) {
+    return apiClient.post<AuthResponse>("/creator/register", body, {
+      skipRefresh: true,
+    })
   },
 
-  /**
-   * Get creator submissions
-   */
-  async getSubmissions(
-    params?: PaginationParams
-  ): Promise<ApiResponse<PaginatedResponse<CreatorSubmission>>> {
-    const searchParams = new URLSearchParams();
-    if (params?.page) searchParams.set('page', params.page.toString());
-    if (params?.perPage) searchParams.set('perPage', params.perPage.toString());
-
-    const query = searchParams.toString();
-    return apiClient.get<PaginatedResponse<CreatorSubmission>>(
-      `/creator/submissions${query ? `?${query}` : ''}`
-    );
+  join(whatsapp: string) {
+    return apiClient.post<CreatorProfile>("/creator/join", { whatsapp })
   },
 
-  /**
-   * Submit content for campaign
-   */
-  async submitContent(
-    campaignId: string,
-    contentUrl: string
-  ): Promise<ApiResponse<CreatorSubmission>> {
-    return apiClient.post<CreatorSubmission>('/creator/submissions', {
-      campaignId,
-      contentUrl,
-    });
+  me() {
+    return apiClient.get<CreatorMe>("/creator/me")
   },
 
-  /**
-   * Request withdrawal
-   */
-  async requestWithdrawal(data: WithdrawRequest): Promise<ApiResponse<{ id: string }>> {
-    return apiClient.post<{ id: string }>('/creator/withdraw', data);
+  submissions(query: { page?: number; perPage?: number } = {}) {
+    return apiClient.get<CreatorSubmission[]>(
+      `/creator/submissions${page(query)}`
+    )
   },
-};
+
+  submit(body: CreateSubmissionRequest) {
+    return apiClient.post<CreatorSubmission>("/creator/submissions", body)
+  },
+
+  withdrawals(query: { page?: number; perPage?: number } = {}) {
+    return apiClient.get<CreatorWithdrawal[]>(
+      `/creator/withdrawals${page(query)}`
+    )
+  },
+
+  withdraw(body: CreateWithdrawalRequest) {
+    return apiClient.post<CreatorWithdrawal>("/creator/withdrawals", body)
+  },
+}

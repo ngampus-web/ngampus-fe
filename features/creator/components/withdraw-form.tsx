@@ -7,11 +7,10 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
-import {
-  creatorDemoBalance,
-  MIN_WITHDRAWAL,
-  withdrawalError,
-} from "../data/demo-dashboard"
+import { useCreatorData } from "@/features/creator/hooks/use-creator-data"
+import { useCreatorGate } from "@/features/creator/hooks/use-creator-gate"
+import { withdrawalError } from "@/features/creator/services/creator-rules"
+import { creatorApi } from "@/lib/api"
 
 const fieldClass =
   "h-14 w-full rounded-full border border-line bg-white px-4 text-base font-normal tracking-[-0.02em] shadow-none outline-none placeholder:text-subtle focus-visible:border-primary focus-visible:ring-0 md:text-base"
@@ -19,7 +18,10 @@ const fieldClass =
 const banks = ["BCA", "Mandiri", "BNI", "BRI", "SeaBank"]
 
 export function WithdrawForm() {
+  const allowed = useCreatorGate()
+  const { data, error } = useCreatorData(allowed, false)
   const [note, setNote] = useState("")
+  const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
 
   if (submitted) {
@@ -43,20 +45,48 @@ export function WithdrawForm() {
     )
   }
 
+  if (!data) {
+    return error ? (
+      <p className="text-sm tracking-[-0.02em] text-primary">{error}</p>
+    ) : null
+  }
+
+  const { profile } = data.me
+  const creatorBalance = data.me.stats.balance
+  const MIN_WITHDRAWAL = data.me.withdraw.min
+
   return (
     <form
       className="flex flex-col gap-4"
-      onSubmit={(event) => {
+      onSubmit={async (event) => {
         event.preventDefault()
-        const data = new FormData(event.currentTarget)
-        const amount = Number(String(data.get("amount") ?? ""))
-        const error = withdrawalError(amount)
-        if (error) {
-          setNote(error)
+        const form = new FormData(event.currentTarget)
+        const amount = Number(String(form.get("amount") ?? ""))
+        const precheck = withdrawalError(amount, {
+          min: MIN_WITHDRAWAL,
+          balance: creatorBalance,
+        })
+        if (precheck) {
+          setNote(precheck)
           return
         }
         setNote("")
-        setSubmitted(true)
+        setSubmitting(true)
+        const res = await creatorApi.withdraw({
+          amount,
+          recipientName: String(form.get("holder")),
+          whatsapp: profile.whatsapp,
+          bankName: String(form.get("bank")),
+          accountNumber: String(form.get("account")),
+        })
+        setSubmitting(false)
+        if (res.success) {
+          setSubmitted(true)
+          return
+        }
+        const fields = res.error.details?.fieldErrors as
+          Record<string, string[]> | undefined
+        setNote((fields && Object.values(fields)[0]?.[0]) ?? res.error.message)
       }}
     >
       <div className="flex flex-col gap-1">
@@ -69,8 +99,8 @@ export function WithdrawForm() {
       </div>
 
       <p className="text-sm text-subtle">
-        Saldo dummy: Rp {creatorDemoBalance.toLocaleString("id-ID")}. Minimal
-        withdraw Rp {MIN_WITHDRAWAL.toLocaleString("id-ID")}.
+        Saldo: Rp {creatorBalance.toLocaleString("id-ID")}. Minimal withdraw Rp{" "}
+        {MIN_WITHDRAWAL.toLocaleString("id-ID")}.
       </p>
       <label className="flex flex-col gap-2 text-sm font-medium tracking-[-0.02em]">
         Nominal
@@ -92,7 +122,11 @@ export function WithdrawForm() {
           <select
             name="bank"
             required
-            defaultValue="BCA"
+            defaultValue={
+              profile.bankName && banks.includes(profile.bankName)
+                ? profile.bankName
+                : "BCA"
+            }
             className={`${fieldClass} appearance-none pr-12`}
           >
             {banks.map((name) => (
@@ -113,6 +147,7 @@ export function WithdrawForm() {
         <Input
           name="account"
           required
+          defaultValue={profile.bankAccountNumber ?? ""}
           inputMode="numeric"
           pattern="[0-9]+"
           placeholder="Nomor rekening"
@@ -125,6 +160,7 @@ export function WithdrawForm() {
         <Input
           name="holder"
           required
+          defaultValue={profile.bankAccountName ?? ""}
           placeholder="Nama sesuai rekening"
           className={fieldClass}
         />
@@ -154,6 +190,7 @@ export function WithdrawForm() {
 
       <Button
         type="submit"
+        disabled={submitting}
         className="mt-2 h-[52px] w-full rounded-3xl text-base"
       >
         Tarik Saldo

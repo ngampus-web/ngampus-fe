@@ -1,7 +1,5 @@
 "use client"
 
-import { useCreatorSession } from "../hooks/use-creator-session"
-
 import {
   Clapperboard,
   ExternalLink,
@@ -10,25 +8,20 @@ import {
   type LucideIcon,
 } from "lucide-react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useEffect } from "react"
 
 import { CreatorHeader } from "@/features/creator/components/creator-header"
 import { Button } from "@/components/ui/button"
-import {
-  creatorDemoBalance,
-  MIN_WITHDRAWAL,
-  creatorSubmissions,
-  creatorWithdrawals,
-} from "@/features/creator/data/demo-dashboard"
+import { useCreatorData } from "@/features/creator/hooks/use-creator-data"
+import { useCreatorGate } from "@/features/creator/hooks/use-creator-gate"
 import {
   type CreatorPlatform,
   type CreatorSubmitStatus,
-} from "@/features/creator/types"
-
-function rupiah(value: number) {
-  return `Rp ${value.toLocaleString("id-ID")}`
-}
+  platformLabel,
+  rupiah,
+  SUBMISSION_STATUS,
+  WITHDRAWAL_STATUS,
+  wibDateTime,
+} from "@/features/creator/services/creator-rules"
 
 const statusStyle: Record<CreatorSubmitStatus, string> = {
   Diproses: "bg-[#fff6e8] text-[#b86e00]",
@@ -74,22 +67,49 @@ function PlatformMark({ platform }: { platform: CreatorPlatform }) {
 }
 
 export function CreatorDashboard() {
-  const router = useRouter()
-  const session = useCreatorSession()
+  const allowed = useCreatorGate()
+  const { data, error, reload } = useCreatorData(allowed)
 
-  useEffect(() => {
-    if (session === null) router.replace("/creator/masuk")
-  }, [router, session])
-
-  if (!session) {
-    return <div className="min-h-svh bg-white" />
+  if (!data) {
+    return (
+      <div className="min-h-svh bg-white">
+        {error && (
+          <div className="flex min-h-svh flex-col items-center justify-center gap-3 px-5 text-center text-sm text-subtle">
+            <p>{error}</p>
+            <Button
+              type="button"
+              variant="outline"
+              size="pill"
+              onClick={reload}
+            >
+              Coba lagi
+            </Button>
+          </div>
+        )}
+      </div>
+    )
   }
 
-  const saldo = creatorDemoBalance
+  const MIN_WITHDRAWAL = data.me.withdraw.min
+  const saldo = data.me.stats.balance
+  const creatorSubmissions = data.submissions.map((item) => ({
+    link: item.contentUrl,
+    platform: platformLabel(item.platform),
+    submittedAt: wibDateTime(item.createdAt),
+    status: SUBMISSION_STATUS[item.status].label,
+    reward: item.rewardAmount ?? 0,
+  }))
+  const creatorWithdrawals = data.withdrawals.map((item) => ({
+    at: wibDateTime(item.createdAt),
+    amount: item.amount,
+    status: WITHDRAWAL_STATUS[item.status].label,
+    bank: item.bankName,
+    note: item.adminNote ?? "",
+  }))
   const stats: { label: string; value: string; icon: LucideIcon }[] = [
     {
       label: "Total konten",
-      value: String(creatorSubmissions.length),
+      value: String(data.me.stats.totalContent),
       icon: Clapperboard,
     },
     {

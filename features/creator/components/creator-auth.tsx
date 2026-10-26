@@ -1,140 +1,94 @@
 "use client"
 
-import { Eye, EyeOff } from "lucide-react"
-import Image from "next/image"
+import { Loader2 } from "lucide-react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { useEffect, useState } from "react"
 
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import {
-  readCreatorSession,
-  writeCreatorSession,
-} from "@/features/creator/services/demo-session"
+  Field,
+  type FieldErrors,
+  Heading,
+  Note,
+  PasswordField,
+  SubmitButton,
+} from "@/features/auth/components/auth-forms"
+import { safeNext } from "@/features/auth/components/require-auth"
+import { Turnstile } from "@/features/auth/components/turnstile"
+import { creatorApi } from "@/lib/api"
+import { useAuthStore } from "@/lib/stores/auth"
 
-const fieldClass =
-  "h-14 rounded-full border-line px-4 text-base tracking-[-0.02em] shadow-none placeholder:text-subtle focus-visible:border-primary focus-visible:ring-0 md:text-base"
+const DASHBOARD = "/creator/dashboard"
 
-function Field({
-  id,
-  label,
-  type = "text",
-  placeholder,
-  autoComplete,
-}: {
-  id: string
-  label: string
-  type?: string
-  placeholder: string
-  autoComplete?: string
-}) {
+function creatorNext(next: string | null) {
+  const target = safeNext(next)
+  return target.startsWith("/creator/") ? target : DASHBOARD
+}
+
+function Spinner() {
   return (
-    <div className="flex flex-col gap-2">
-      <label htmlFor={id} className="text-sm font-medium tracking-[-0.02em]">
-        {label}
-      </label>
-      <Input
-        id={id}
-        name={id}
-        type={type}
-        required
-        placeholder={placeholder}
-        autoComplete={autoComplete}
-        className={fieldClass}
-      />
+    <div className="flex min-h-60 items-center justify-center text-subtle">
+      <Loader2 className="size-6 animate-spin" aria-label="Memuat" />
     </div>
   )
 }
 
-function PasswordField({
-  id,
-  label,
-  placeholder,
-  autoComplete,
-}: {
-  id: string
-  label: string
-  placeholder: string
-  autoComplete?: string
-}) {
-  const [visible, setVisible] = useState(false)
-
-  return (
-    <div className="flex flex-col gap-2">
-      <label htmlFor={id} className="text-sm font-medium tracking-[-0.02em]">
-        {label}
-      </label>
-      <div className="relative">
-        <Input
-          id={id}
-          name={id}
-          type={visible ? "text" : "password"}
-          required
-          placeholder={placeholder}
-          autoComplete={autoComplete}
-          className={`${fieldClass} pr-12`}
-        />
-        <button
-          type="button"
-          className="absolute top-1/2 right-4 -translate-y-1/2 text-black"
-          aria-label={visible ? "Sembunyikan password" : "Tampilkan password"}
-          onClick={() => setVisible((current) => !current)}
-        >
-          {visible ? (
-            <Eye className="size-5" aria-hidden />
-          ) : (
-            <EyeOff className="size-5" aria-hidden />
-          )}
-        </button>
-      </div>
-    </div>
-  )
-}
-
-function Heading({
-  title,
-  description,
-}: {
-  title: string
-  description: string
-}) {
-  return (
-    <div className="flex flex-col gap-6">
-      <Image
-        src="/images/auth-mark.png"
-        alt=""
-        width={136}
-        height={136}
-        priority
-        className="mx-auto size-[68px]"
-      />
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-[-0.02em]">{title}</h1>
-        <p className="text-base tracking-[-0.02em]">{description}</p>
-      </div>
-    </div>
-  )
-}
-
+/** Sign-up for visitors; a "join" form for users who already have an account. */
 export function CreatorRegisterForm() {
+  const status = useAuthStore((s) => s.status)
+  const user = useAuthStore((s) => s.user)
+  const router = useRouter()
+
+  useEffect(() => {
+    if (user?.isCreator) router.replace(DASHBOARD)
+  }, [user, router])
+
+  if (status === "idle" || status === "loading" || user?.isCreator)
+    return <Spinner />
+  return user ? <JoinForm /> : <SignUpForm />
+}
+
+function SignUpForm() {
+  const setSession = useAuthStore((s) => s.setSession)
   const router = useRouter()
   const [note, setNote] = useState("")
+  const [errors, setErrors] = useState<FieldErrors>()
+  const [turnstileToken, setTurnstileToken] = useState<string>()
+  const [resetCaptcha, setResetCaptcha] = useState(0)
+  const [submitting, setSubmitting] = useState(false)
 
   return (
     <form
       className="flex flex-col gap-6"
-      onSubmit={(event) => {
+      onSubmit={async (event) => {
         event.preventDefault()
         const data = new FormData(event.currentTarget)
-        if (data.get("password") !== data.get("confirm-password")) {
-          setNote("Konfirmasi password belum sama.")
+        const password = String(data.get("password"))
+        if (password !== String(data.get("confirm-password"))) {
+          setErrors({ confirmPassword: ["Konfirmasi password belum sama."] })
           return
         }
-        const name = String(data.get("name") ?? "").trim()
-        const email = String(data.get("email") ?? "").trim()
-        writeCreatorSession({ name, email })
-        router.push("/creator/dashboard")
+        setSubmitting(true)
+        setNote("")
+        setErrors(undefined)
+        const res = await creatorApi.register({
+          name: String(data.get("name")),
+          email: String(data.get("email")),
+          whatsapp: String(data.get("whatsapp")),
+          password,
+          turnstileToken,
+        })
+        setSubmitting(false)
+        if (res.success) {
+          setSession(res.data.user, res.data.accessToken)
+          router.replace(DASHBOARD)
+          return
+        }
+        setErrors(
+          res.error.details?.fieldErrors as Record<string, string[]> | undefined
+        )
+        setNote(res.error.message)
+        setResetCaptcha((n) => n + 1)
       }}
     >
       <Heading
@@ -147,6 +101,7 @@ export function CreatorRegisterForm() {
           label="Nama Lengkap"
           placeholder="Nama lengkap"
           autoComplete="name"
+          errors={errors}
         />
         <Field
           id="email"
@@ -154,29 +109,37 @@ export function CreatorRegisterForm() {
           type="email"
           placeholder="kamu@gmail.com"
           autoComplete="email"
+          errors={errors}
         />
       </div>
+      <Field
+        id="whatsapp"
+        label="Nomor WhatsApp"
+        type="tel"
+        inputMode="tel"
+        placeholder="081234567890"
+        autoComplete="tel"
+        errors={errors}
+      />
       <PasswordField
         id="password"
         label="Password"
         placeholder="Password"
         autoComplete="new-password"
+        errors={errors}
       />
       <PasswordField
         id="confirm-password"
         label="Konfirmasi Password"
         placeholder="Konfirmasi password"
         autoComplete="new-password"
+        errors={errors}
+        errorKey="confirmPassword"
       />
+      <Turnstile onToken={setTurnstileToken} resetKey={resetCaptcha} />
       <div className="flex flex-col gap-3">
-        <Button type="submit" className="h-[52px] w-full rounded-3xl text-base">
-          Daftar Sekarang
-        </Button>
-        {note && (
-          <p className="text-center text-sm tracking-[-0.02em] text-subtle">
-            {note}
-          </p>
-        )}
+        <SubmitButton submitting={submitting} label="Daftar Sekarang" />
+        <Note text={note} tone="error" />
         <p className="text-center text-sm tracking-[-0.02em]">
           Sudah punya akun creator?{" "}
           <Link href="/creator/masuk" className="font-medium text-primary">
@@ -188,23 +151,93 @@ export function CreatorRegisterForm() {
   )
 }
 
-export function CreatorLoginForm() {
+function JoinForm() {
+  const user = useAuthStore((s) => s.user)!
+  const setUser = useAuthStore((s) => s.setUser)
   const router = useRouter()
+  const [note, setNote] = useState("")
+  const [errors, setErrors] = useState<FieldErrors>()
+  const [submitting, setSubmitting] = useState(false)
 
   return (
     <form
       className="flex flex-col gap-6"
-      onSubmit={(event) => {
+      onSubmit={async (event) => {
+        event.preventDefault()
+        const whatsapp = String(
+          new FormData(event.currentTarget).get("whatsapp")
+        )
+        setSubmitting(true)
+        setNote("")
+        setErrors(undefined)
+        const res = await creatorApi.join(whatsapp)
+        setSubmitting(false)
+        // 409: already a creator (e.g. joined in another tab).
+        if (res.success || res.error.status === 409) {
+          setUser({ ...user, isCreator: true })
+          router.replace(DASHBOARD)
+          return
+        }
+        setErrors(
+          res.error.details?.fieldErrors as Record<string, string[]> | undefined
+        )
+        setNote(res.error.message)
+      }}
+    >
+      <Heading
+        title="Gabung Ngampus Creator"
+        description={`Kamu masuk sebagai ${user.name}. Lengkapi nomor WhatsApp untuk mulai jadi creator.`}
+      />
+      <Field
+        id="whatsapp"
+        label="Nomor WhatsApp"
+        type="tel"
+        inputMode="tel"
+        placeholder="081234567890"
+        autoComplete="tel"
+        defaultValue={user.phone ?? ""}
+        errors={errors}
+      />
+      <div className="flex flex-col gap-3">
+        <SubmitButton submitting={submitting} label="Gabung jadi Creator" />
+        <Note text={note} tone="error" />
+      </div>
+    </form>
+  )
+}
+
+export function CreatorLoginForm() {
+  const login = useAuthStore((s) => s.login)
+  const status = useAuthStore((s) => s.status)
+  const user = useAuthStore((s) => s.user)
+  const router = useRouter()
+  const next = creatorNext(useSearchParams().get("next"))
+  const [note, setNote] = useState("")
+  const [submitting, setSubmitting] = useState(false)
+
+  // Already signed in: creators continue, others are offered the join form.
+  useEffect(() => {
+    if (status === "authenticated")
+      router.replace(user?.isCreator ? next : "/creator/daftar")
+  }, [status, user, next, router])
+
+  if (status !== "guest") return <Spinner />
+
+  return (
+    <form
+      className="flex flex-col gap-6"
+      onSubmit={async (event) => {
         event.preventDefault()
         const data = new FormData(event.currentTarget)
-        const email = String(data.get("email") ?? "").trim()
-        const existing = readCreatorSession()
-        const name =
-          existing?.email === email
-            ? existing.name
-            : email.split("@")[0] || "Creator"
-        writeCreatorSession({ name, email })
-        router.push("/creator/dashboard")
+        setSubmitting(true)
+        setNote("")
+        const result = await login(
+          String(data.get("email")),
+          String(data.get("password")),
+          true
+        )
+        setSubmitting(false)
+        if (!result.success) setNote(result.error)
       }}
     >
       <Heading
@@ -225,9 +258,8 @@ export function CreatorLoginForm() {
         autoComplete="current-password"
       />
       <div className="flex flex-col gap-3">
-        <Button type="submit" className="h-[52px] w-full rounded-3xl text-base">
-          Masuk Sekarang
-        </Button>
+        <SubmitButton submitting={submitting} label="Masuk Sekarang" />
+        <Note text={note} tone="error" />
         <p className="text-center text-sm tracking-[-0.02em]">
           Belum punya akun creator?{" "}
           <Link href="/creator/daftar" className="font-medium text-primary">
