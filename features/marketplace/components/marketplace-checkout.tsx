@@ -145,7 +145,7 @@ export function MarketplaceCheckout({
             </div>
             <div className="flex shrink-0 gap-2">
               {[
-                isPreorderPlan(product.slug, packageName)
+                isPreorderPlan(offers, packageName)
                   ? "Pre-order"
                   : product.isInStock
                     ? "Stok Tersedia"
@@ -282,7 +282,7 @@ export function MarketplaceCheckout({
                     key={item}
                     selected={item === packageName}
                     label={item}
-                    preorder={isPreorderPlan(product.slug, item)}
+                    preorder={isPreorderPlan(offers, item)}
                     onSelect={() => selectPlan(item)}
                   />
                 ))}
