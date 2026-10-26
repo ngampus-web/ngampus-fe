@@ -18,7 +18,6 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { usePaymentOrder } from "../hooks/use-payment-order"
-import { DeliveryBox } from "./delivery-box"
 import { QrisPanel } from "./qris-panel"
 import {
   effectiveStatus,
@@ -437,9 +436,6 @@ export function PaymentFlow({
                 )}
               </div>
             )}
-            {status === "completed" &&
-              details.kind === "marketplace" &&
-              details.delivery && <DeliveryBox delivery={details.delivery} />}
             {terminal && (
               <div role="status" className="rounded-2xl bg-red-50 p-5">
                 <XCircle className="mb-3 size-7 text-red-600" />

@@ -11,12 +11,7 @@ import {
   checkoutTypes,
 } from "@/features/marketplace/data/marketplace"
 import { type MarketplaceCheckout } from "@/features/marketplace/types"
-import {
-  type AppliedPromo,
-  PromoField,
-} from "@/features/payment/components/promo-field"
 import type { OrderDraft } from "@/features/payment/types"
-import { ordersApi } from "@/lib/api/endpoints/orders"
 import { isPreorderPlan } from "../services/preorder"
 import { useAuthStore } from "@/lib/stores/auth"
 import { cn } from "@/lib/utils"
@@ -88,12 +83,6 @@ export function MarketplaceCheckout({
       checkoutDurations[0].id
   )
   const [payNote, setPayNote] = useState("")
-  const [promoInput, setPromoInput] = useState("")
-  const [promo, setPromo] = useState<
-    (AppliedPromo & { offerId: string; total: number }) | null
-  >(null)
-  const [promoError, setPromoError] = useState("")
-  const [promoBusy, setPromoBusy] = useState(false)
 
   const planOffers = offers?.filter((offer) => offer.plan === packageName)
   const selectedOffer =
@@ -109,43 +98,6 @@ export function MarketplaceCheckout({
     ? selectedOffer.official
     : product.compare * duration.months
   const savings = official - total
-  // A quote is tied to the offer it was made for; another plan needs a new one.
-  const activePromo =
-    promo && promo.offerId === selectedOffer?.id ? promo : null
-  const payable = activePromo ? activePromo.total : total
-
-  async function applyPromo() {
-    const code = promoInput.trim().toUpperCase()
-    const offerId = selectedOffer?.id
-    if (!code || !offerId) return
-    if (useAuthStore.getState().status !== "authenticated") {
-      setPromoError("Masuk dulu untuk memakai kode promo.")
-      return
-    }
-    setPromoBusy(true)
-    setPromoError("")
-    const res = await ordersApi.quote({
-      kind: "marketplace",
-      offerId,
-      promoCode: code,
-    })
-    setPromoBusy(false)
-    if (!res.success) {
-      setPromoError(res.error.message)
-      return
-    }
-    setPromo({
-      code,
-      discount: res.data.discount,
-      offerId,
-      total: res.data.total,
-    })
-  }
-
-  function removePromo() {
-    setPromo(null)
-    setPromoError("")
-  }
 
   function selectPlan(plan: string) {
     setPackageName(plan)
@@ -243,8 +195,7 @@ export function MarketplaceCheckout({
             try {
               await onCheckout({
                 phone: whatsapp,
-                amount: payable,
-                promoCode: activePromo?.code,
+                amount: total,
                 details: {
                   kind: "marketplace",
                   slug: product.slug,
@@ -394,25 +345,6 @@ export function MarketplaceCheckout({
               </span>
               Ringkasan Pembayaran
             </h2>
-            {offers && (
-              <PromoField
-                value={promoInput}
-                onChange={(v) => {
-                  setPromoInput(v)
-                  setPromoError("")
-                }}
-                applied={activePromo}
-                error={
-                  promoError ||
-                  (promo && !activePromo
-                    ? "Paket berubah. Klik Gunakan lagi untuk menerapkan kode promo."
-                    : "")
-                }
-                busy={promoBusy}
-                onApply={applyPromo}
-                onRemove={removePromo}
-              />
-            )}
             <dl className="flex flex-col gap-2 text-sm tracking-[-0.02em]">
               <div className="flex justify-between gap-4">
                 <dt>Harga Resmi</dt>
@@ -426,26 +358,9 @@ export function MarketplaceCheckout({
                 <dt>Subtotal</dt>
                 <dd>{rupiah(total)}</dd>
               </div>
-              {activePromo && (
-                <div className="flex justify-between gap-4 text-emerald-600">
-                  <dt>Diskon ({activePromo.code})</dt>
-                  <dd>−{rupiah(activePromo.discount)}</dd>
-                </div>
-              )}
-              {activePromo &&
-                activePromo.total !== total - activePromo.discount && (
-                  <div className="flex justify-between gap-4">
-                    <dt>Biaya layanan</dt>
-                    <dd>
-                      {rupiah(
-                        activePromo.total - (total - activePromo.discount)
-                      )}
-                    </dd>
-                  </div>
-                )}
               <div className="flex justify-between gap-4 font-semibold">
                 <dt>Total Pembayaran</dt>
-                <dd>{rupiah(payable)}</dd>
+                <dd>{rupiah(total)}</dd>
               </div>
             </dl>
             <Button

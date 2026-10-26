@@ -400,14 +400,14 @@ assert.equal(
   JSON.stringify(
     history.readCounts({
       page: 1,
-      counts: { total: 5, completed: 2, unpaid: 1 },
+      counts: { total: 5, completed: 2, processing: 1, unpaid: 1 },
     })
   ),
-  JSON.stringify({ total: 5, completed: 2, unpaid: 1 })
+  JSON.stringify({ total: 5, completed: 2, processing: 1, unpaid: 1 })
 )
 assert.equal(
   JSON.stringify(history.readCounts(undefined)),
-  JSON.stringify({ total: 0, completed: 0, unpaid: 0 })
+  JSON.stringify({ total: 0, completed: 0, processing: 0, unpaid: 0 })
 )
 assert.equal(history.historyStatus.expired.label, "Tidak Dibayar")
 assert.match(history.formatOrderDate("2026-01-01T17:30:00Z"), /2 Jan 2026/)
@@ -416,11 +416,8 @@ console.log(
 )
 
 const claims = load("features/warranty/services/claims.ts")
-assert.equal(claims.claimCategories.length, 6)
-assert.equal(
-  claims.categoryLabel("quota_limit"),
-  "Limit Pemakaian/Kuota Tercapai"
-)
+assert.equal(claims.claimCategories.length, 3)
+assert.equal(claims.categoryLabel("quota_limit"), "Limit Tercapai")
 assert.equal(claims.claimStatus("reviewing").label, "Dalam Proses")
 assert.equal(claims.claimStatus("accepted").label, "Dalam Proses")
 assert.equal(claims.claimStatus("resolved").label, "Selesai")

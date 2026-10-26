@@ -14,6 +14,7 @@ type Status =
 export interface HistoryCounts {
   total: number
   completed: number
+  processing: number
   unpaid: number
 }
 
@@ -63,6 +64,7 @@ export function readCounts(meta: unknown): HistoryCounts {
   return {
     total: counts?.total ?? 0,
     completed: counts?.completed ?? 0,
+    processing: counts?.processing ?? 0,
     unpaid: counts?.unpaid ?? 0,
   }
 }
