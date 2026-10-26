@@ -22,6 +22,8 @@ interface AuthState {
   register: (body: RegisterRequest) => Promise<Result>
   logout: () => Promise<void>
   setUser: (user: User) => void
+  /** Signs in with a session issued elsewhere (e.g. creator registration). */
+  setSession: (user: User, token: string) => void
   initAuth: () => Promise<void>
 }
 
@@ -95,6 +97,8 @@ export const useAuthStore = create<AuthState>()((set, get) => {
     },
 
     setUser: (user) => set({ user }),
+
+    setSession: (user, token) => set({ user, token, status: "authenticated" }),
 
     initAuth: async () => {
       if (get().status !== "idle") return

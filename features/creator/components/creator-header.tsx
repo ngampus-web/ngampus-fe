@@ -1,20 +1,18 @@
 "use client"
 
-import { useCreatorSession } from "../hooks/use-creator-session"
-
-import { creatorDemoName } from "../data/demo-dashboard"
-
 import { UserRound } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
 import { Logo } from "@/components/layout/logo"
 import { Button } from "@/components/ui/button"
-import { clearCreatorSession } from "@/features/creator/services/demo-session"
+import { useAuthStore } from "@/lib/stores/auth"
 
 export function CreatorHeader() {
   const router = useRouter()
-  const session = useCreatorSession()
+  const status = useAuthStore((s) => s.status)
+  const user = useAuthStore((s) => s.user)
+  const logout = useAuthStore((s) => s.logout)
 
   return (
     <header className="border-b border-line bg-white">
@@ -25,25 +23,25 @@ export function CreatorHeader() {
             Creator
           </span>
         </div>
-        {session === undefined ? (
+        {status === "idle" || status === "loading" ? (
           <div className="h-10 w-[169px]" />
-        ) : session ? (
+        ) : user ? (
           <div className="flex items-center gap-3">
             <Link
-              href="/creator/dashboard"
+              href={user.isCreator ? "/creator/dashboard" : "/creator/daftar"}
               className="flex items-center gap-2 text-sm font-medium tracking-[-0.02em]"
             >
               <span className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <UserRound className="size-4" aria-hidden />
               </span>
-              {creatorDemoName(session.name)}
+              {user.name}
             </Link>
             <Button
               type="button"
               variant="outline"
               size="pill"
-              onClick={() => {
-                clearCreatorSession()
+              onClick={async () => {
+                await logout()
                 router.replace("/creator")
               }}
             >

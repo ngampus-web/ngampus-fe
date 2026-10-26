@@ -220,6 +220,7 @@ export interface FileUploadResponse {
  */
 export type FilePurpose =
   | "claim_evidence"
+  | "submission_proof"
   | "doc_check_source"
   | "paraphrase_source"
   | "paraphrase_report"
@@ -292,31 +293,82 @@ export interface CreateClaimRequest {
 }
 
 /**
- * Creator
+ * Creator — docs/API-CONTRACT.md §10
  */
-export interface CreatorStats {
-  totalEarnings: number
-  pendingEarnings: number
-  totalSubmissions: number
-  approvedSubmissions: number
+export type CreatorPlatformKey = "tiktok" | "instagram" | "x_threads"
+export type SubmissionStatus = "pending" | "approved" | "rejected"
+export type WithdrawalStatus = "pending" | "paid" | "rejected"
+
+export interface CreatorProfile {
+  whatsapp: string
+  status: "active" | "suspended"
+  joinedAt: string
+  bankName: string | null
+  bankAccountNumber: string | null
+  bankAccountName: string | null
+}
+
+export interface CreatorMe {
+  profile: CreatorProfile
+  stats: {
+    totalContent: number
+    totalReward: number
+    balance: number
+    pendingWithdrawal: number
+  }
+  withdraw: { min: number; fee: number }
+}
+
+export interface CreatorRegisterRequest {
+  name: string
+  email: string
+  whatsapp: string
+  password: string
+  turnstileToken?: string
 }
 
 export interface CreatorSubmission {
-  id: string
-  creatorId: string
-  campaignId: string
+  code: string
   contentUrl: string
-  status: "pending" | "approved" | "rejected"
-  earnings?: number
-  feedback?: string
+  platform: CreatorPlatformKey
+  accountUsername: string
+  contentPublishedOn: string
+  viewsCount: number
+  status: SubmissionStatus
+  rewardAmount: number | null
+  reviewNote: string | null
   createdAt: string
 }
 
-export interface WithdrawRequest {
+export interface CreateSubmissionRequest {
+  contentUrl: string
+  platform: CreatorPlatformKey
+  accountUsername: string
+  contentPublishedOn: string
+  viewsCount: number
+  proofFileId: string
+}
+
+export interface CreatorWithdrawal {
+  code: string
   amount: number
+  fee: number
+  netAmount: number
+  status: WithdrawalStatus
+  recipientName: string
   bankName: string
   accountNumber: string
-  accountName: string
+  adminNote: string | null
+  createdAt: string
+  processedAt: string | null
+}
+
+export interface CreateWithdrawalRequest {
+  amount: number
+  recipientName: string
+  whatsapp: string
+  bankName: string
+  accountNumber: string
 }
 
 /**

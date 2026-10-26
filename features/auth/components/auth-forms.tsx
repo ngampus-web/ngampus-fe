@@ -14,7 +14,7 @@ import { useAuthStore } from "@/lib/stores/auth"
 import { safeNext } from "./require-auth"
 import { Turnstile } from "./turnstile"
 
-type FieldErrors = Record<string, string[]> | undefined
+export type FieldErrors = Record<string, string[]> | undefined
 
 function FieldError({ errors, name }: { errors: FieldErrors; name: string }) {
   const message = errors?.[name]?.[0]
@@ -26,7 +26,7 @@ function FieldError({ errors, name }: { errors: FieldErrors; name: string }) {
   )
 }
 
-function Note({
+export function Note({
   text,
   tone = "muted",
 }: {
@@ -47,7 +47,7 @@ function Note({
 const fieldClass =
   "h-14 rounded-full border-line px-4 text-base tracking-[-0.02em] shadow-none placeholder:text-subtle focus-visible:border-primary focus-visible:ring-0 md:text-base"
 
-function Field({
+export function Field({
   id,
   label,
   type = "text",
@@ -55,6 +55,8 @@ function Field({
   autoComplete,
   errors,
   errorKey,
+  defaultValue,
+  inputMode,
 }: {
   id: string
   label: string
@@ -63,6 +65,8 @@ function Field({
   autoComplete?: string
   errors?: FieldErrors
   errorKey?: string
+  defaultValue?: string
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"]
 }) {
   return (
     <div className="flex flex-col gap-2">
@@ -76,6 +80,8 @@ function Field({
         required
         placeholder={placeholder}
         autoComplete={autoComplete}
+        defaultValue={defaultValue}
+        inputMode={inputMode}
         aria-invalid={Boolean(errors?.[errorKey ?? id])}
         className={fieldClass}
       />
@@ -84,7 +90,7 @@ function Field({
   )
 }
 
-function PasswordField({
+export function PasswordField({
   id,
   label,
   placeholder,
@@ -134,7 +140,7 @@ function PasswordField({
   )
 }
 
-function Heading({
+export function Heading({
   title,
   description,
 }: {
@@ -164,7 +170,7 @@ function useSubmitting() {
   return [submitting, setSubmitting] as const
 }
 
-function SubmitButton({
+export function SubmitButton({
   submitting,
   label,
 }: {

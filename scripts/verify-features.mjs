@@ -72,23 +72,28 @@ assert.equal(
 )
 const { creatorJoinSteps } = load("features/creator/data/campaign.ts")
 assert.equal(creatorJoinSteps.length, 3)
-const session = load("features/creator/services/demo-session.ts")
-let changes = 0
-const unsubscribe = session.subscribeCreatorSession(() => changes++)
-assert.equal(session.readCreatorSession(), null)
-session.writeCreatorSession({ name: "Test", email: "test@example.com" })
-assert.equal(session.readCreatorSession().name, "Test")
-assert.equal(changes, 1)
-session.clearCreatorSession()
-assert.equal(session.readCreatorSession(), null)
-assert.equal(changes, 2)
-unsubscribe()
-session.writeCreatorSession({ name: "Test", email: "test@example.com" })
-assert.equal(changes, 2)
-sessionStorage.setItem("ngampus-creator-session", "invalid json")
-assert.equal(session.readCreatorSession(), null)
+const creator = load("features/creator/services/creator-rules.ts")
+assert.equal(creator.platformLabel("x_threads"), "X / Thread")
+assert.equal(creator.SUBMISSION_STATUS.pending.label, "Diproses")
+assert.equal(creator.SUBMISSION_STATUS.approved.label, "Diterima")
+assert.equal(creator.wibDateTime("2026-10-04T06:01:52Z"), "2026-10-04 13:01:52")
+assert.equal(
+  creator.withdrawalError(40000, { min: 50000, balance: 60000 }),
+  "Minimal withdraw Rp 50.000."
+)
+assert.equal(
+  creator.withdrawalError(70000, { min: 50000, balance: 60000 }),
+  "Nominal melebihi saldo yang tersedia."
+)
+assert.equal(creator.withdrawalError(60000, { min: 50000, balance: 60000 }), "")
+assert.equal(creator.creatorEntryHref(null), "/creator/daftar")
+assert.equal(creator.creatorEntryHref({ isCreator: false }), "/creator/daftar")
+assert.equal(
+  creator.creatorEntryHref({ isCreator: true }),
+  "/creator/submit?from=beranda"
+)
 console.log(
-  "PASS: warranty terms, logo fallbacks, blog queries, creator steps, and session lifecycle."
+  "PASS: warranty terms, logo fallbacks, blog queries, creator steps, and creator rules."
 )
 
 const paymentRules = load("features/payment/services/order-rules.ts")
