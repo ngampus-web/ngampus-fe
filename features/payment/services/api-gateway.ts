@@ -50,7 +50,6 @@ export const apiGateway = {
       customerName: d.customerName,
       customerEmail,
       whatsapp: draft.phone,
-      promoCode: draft.promoCode,
     })
     if (!res.success) return fail(res.error.message)
     return fromApi(res.data)
