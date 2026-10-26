@@ -12,14 +12,11 @@ export const claimFilters: { id: ClaimFilter; label: string }[] = [
   { id: "rejected", label: "Ditolak" },
 ]
 
-// docs/ERD.md claim_category — the six categories from the brief.
+// The kendala options of the original claim form, mapped to claim_category values.
 export const claimCategories = [
   { value: "logged_out", label: "Akun Ter-logout Otomatis" },
-  { value: "password_changed", label: "Password Salah/Diubah" },
-  { value: "quota_limit", label: "Limit Pemakaian/Kuota Tercapai" },
-  { value: "suspended", label: "Akun Disuspend/Terblokir Platform" },
-  { value: "invalid_license", label: "Lisensi/Tautan Invite Tidak Valid" },
-  { value: "other", label: "Masalah Teknis Lainnya" },
+  { value: "password_changed", label: "Password Berubah" },
+  { value: "quota_limit", label: "Limit Tercapai" },
 ] as const
 
 export function categoryLabel(value: string) {

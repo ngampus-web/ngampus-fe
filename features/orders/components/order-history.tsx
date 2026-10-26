@@ -52,7 +52,7 @@ interface HistoryState {
 const initial: HistoryState = {
   key: "",
   items: [],
-  counts: { total: 0, completed: 0, unpaid: 0 },
+  counts: { total: 0, completed: 0, processing: 0, unpaid: 0 },
   hasMore: false,
 }
 
@@ -171,6 +171,7 @@ export function OrderHistory() {
               [
                 [`${state.counts.total} Total`, "bg-slate-400"],
                 [`${state.counts.completed} Selesai`, "bg-emerald-500"],
+                [`${state.counts.processing} Diproses`, "bg-orange-400"],
                 [`${state.counts.unpaid} Tidak Dibayar`, "bg-red-500"],
               ] as const
             ).map(([label, color]) => (
