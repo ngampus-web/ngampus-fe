@@ -173,11 +173,15 @@ export function MarketplaceCatalog({
                   <div className="flex flex-wrap gap-2">
                     {[
                       app.isInStock ? "Stok Tersedia" : "Stok Habis",
+                      ...(app.hasPreorder ? ["Pre-order"] : []),
                       "Garansi",
                     ].map((badge) => (
                       <span
                         key={badge}
-                        className="rounded-full border border-line px-3 py-2 text-sm tracking-[-0.02em]"
+                        className={cn(
+                          "rounded-full border border-line px-3 py-2 text-sm tracking-[-0.02em]",
+                          badge === "Pre-order" && "font-semibold text-primary"
+                        )}
                       >
                         {badge}
                       </span>

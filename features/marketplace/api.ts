@@ -21,6 +21,8 @@ export interface ProductSummary {
   startingPrice: number
   startingOfficialPrice: number
   isInStock: boolean
+  /** At least one active offer is a pre-order. */
+  hasPreorder: boolean
 }
 
 export interface ProductDetail extends ProductSummary {
@@ -36,6 +38,7 @@ export interface ProductDetail extends ProductSummary {
     warrantyLabel: string
     price: number
     officialPrice: number
+    isPreorder: boolean
   }[]
 }
 
@@ -124,6 +127,7 @@ export function toCheckout(p: ProductDetail): MarketplaceCheckout {
       warranty: o.warrantyLabel,
       price: o.price,
       official: o.officialPrice,
+      preorder: o.isPreorder,
     })),
     sections: [
       ...section("Deskripsi", p.descriptionParagraphs),
@@ -133,7 +137,7 @@ export function toCheckout(p: ProductDetail): MarketplaceCheckout {
         ...warranty,
         items: [
           ...warranty.items,
-          ...(["chatgpt", "claude"].includes(p.slug)
+          ...(p.hasPreorder
             ? [
                 {
                   body: "Khusus paket pre-order, pesanan diproses dalam 1–3 hari. Jika pesanan belum dipenuhi setelah 3 hari, dana akan dikembalikan sepenuhnya.",

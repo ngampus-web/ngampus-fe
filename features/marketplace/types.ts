@@ -11,6 +11,7 @@ export type CheckoutOffer = {
   duration: string
   price: number
   official: number
+  preorder?: boolean
 }
 
 export type MarketplaceCheckout = {
