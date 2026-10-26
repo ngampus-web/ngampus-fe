@@ -47,7 +47,6 @@ export const apiGateway = {
     const customerEmail = validateMarketplaceEmail(d.customerEmail)
     const res = await ordersApi.createMarketplace({
       offerId: d.offerId,
-      customerName: d.customerName,
       customerEmail,
       whatsapp: draft.phone,
     })

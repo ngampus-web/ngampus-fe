@@ -13,7 +13,6 @@ import {
 import { type MarketplaceCheckout } from "@/features/marketplace/types"
 import type { OrderDraft } from "@/features/payment/types"
 import { isPreorderPlan } from "../services/preorder"
-import { useAuthStore } from "@/lib/stores/auth"
 import { cn } from "@/lib/utils"
 
 function rupiah(value: number) {
@@ -201,7 +200,6 @@ export function MarketplaceCheckout({
                   slug: product.slug,
                   offerId: selectedOffer?.id,
                   title: product.name,
-                  customerName: useAuthStore.getState().user?.name ?? "",
                   customerEmail: email.trim(),
                   plan: packageName,
                   duration: selectedOffer?.duration ?? duration.label,

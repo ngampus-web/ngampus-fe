@@ -35,7 +35,6 @@ export const ordersApi = {
 
   createMarketplace(body: {
     offerId: string
-    customerName: string
     customerEmail: string
     whatsapp: string
     promoCode?: string

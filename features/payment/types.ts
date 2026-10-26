@@ -21,7 +21,8 @@ export type PaymentDetails =
       duration: string
       accountType?: string
       warranty?: string
-      customerName: string
+      /** Filled by the server from the account; checkout only sends email and WhatsApp. */
+      customerName?: string
       /** Optional for historical orders created before email checkout. */
       customerEmail?: string
       /** Account details sent by the admin (live orders, owner only). */
