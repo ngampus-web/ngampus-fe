@@ -367,7 +367,7 @@ assert.equal(
     wordCount: 1,
     reports: [{ type: "turnitin", initialScore: 10.01, targetScore: 10 }],
   }).total,
-  31
+  25000
 )
 assert.throws(() =>
   pricing.calculateParaphrasePrice({

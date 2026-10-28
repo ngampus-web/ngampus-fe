@@ -28,6 +28,12 @@ export function PriceBreakdown({ price }: { price: ParaphrasePrice }) {
         <span>Multiplier pengerjaan</span>
         <span>×{number(price.multiplier)}</span>
       </div>
+      {price.minimumTopUp > 0 && (
+        <div className="flex justify-between gap-3">
+          <span>Penyesuaian harga minimum</span>
+          <span>Rp {number(price.minimumTopUp)}</span>
+        </div>
+      )}
     </div>
   )
 }
