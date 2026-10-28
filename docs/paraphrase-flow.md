@@ -12,7 +12,8 @@ Rute: `/cek-plagiarisme/parafrase-manual`. Adapter rute memilih `features/paraph
 - Multiplier Santai ×1; Gaskeun ×1,3; Kejar Deadline ×1,5. Selisih skor dalam poin persentase, maksimal dua desimal. Total akhir dibulatkan ke Rupiah terdekat, rincian dasar tidak dibulatkan lebih awal.
 - `services/pricing.ts` dan `price-formula.ts` memusatkan perhitungan. Form dan pembayaran memakai fungsi yang sama; amount diverifikasi terhadap rincian saat membuat/membaca order. Pesanan pratinjau lama dengan harga tetap yang tidak cocok harus dibuat ulang. Backend wajib menghitung ulang harga dari data terverifikasi saat integrasi.
 - `ParaphraseDetails` adalah varian `PaymentDetails` dengan `kind: "paraphrase"`. Validasi ulang dilakukan saat order dibuat/dibaca. Semua metadata tampil di konfirmasi dan status pembayaran; proses menampilkan pemberitahuan hasil dikirim lewat WhatsApp.
-- Berkas asli hanya berada dalam state form. SessionStorage menyimpan metadata dan rincian, bukan file biner. Integrasi berikutnya harus mengunggah DOCX dan semua PDF, memperoleh ID berkas, menghitung ulang kata, memverifikasi skor dan harga di server, lalu menyimpan order terotorisasi.
-- QRIS, status proses, dan notifikasi masih simulasi frontend. Tidak ada panggilan gateway atau pengiriman WhatsApp.
+- Saat "Bayar Sekarang" (sudah login), DOCX (`paraphrase_source`) dan PDF laporan (`paraphrase_report`) diunggah lewat presigned URL, lalu `POST /orders/paraphrase` membuat order. Server menghitung ulang kata dan harga; total di halaman pembayaran adalah total server. File yang sama tidak diunggah ulang saat mencoba lagi.
+- Halaman status order live menampilkan estimasi selesai (`deadlineAt`), waktu dibayar, dan waktu tim mulai (WIB). Setelah selesai, tombol "Unduh Hasil Parafrase" mengambil URL dari `GET /orders/:code/result`.
+- Pesanan pratinjau lama (tanpa login/ID berkas) tetap memakai simulasi frontend.
 
 Validasi: `npm run test:docx`, `npm run test:features`, lint, typecheck, build, dan uji alur browser.

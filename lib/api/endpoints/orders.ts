@@ -42,6 +42,33 @@ export const ordersApi = {
     return apiClient.post<OrderDetail>("/orders/marketplace", body)
   },
 
+  createParaphrase(body: {
+    service: "turnitin" | "ai" | "combined"
+    sourceFileId: string
+    reports: {
+      type: "turnitin" | "ai"
+      fileId: string
+      initialScore: number
+      targetScore: number
+    }[]
+    language: "id" | "en"
+    field?: string
+    notes?: string
+    turnaround: "relaxed" | "regular" | "urgent"
+    customerName: string
+    whatsapp: string
+    promoCode?: string
+  }) {
+    return apiClient.post<OrderDetail>("/orders/paraphrase", body)
+  },
+
+  /** Presigned download of a completed order's result. */
+  result(code: string) {
+    return apiClient.get<{ url: string; expiresAt: string }>(
+      `/orders/${encodeURIComponent(code)}/result`
+    )
+  },
+
   cancel(code: string) {
     return apiClient.post<OrderDetail>(
       `/orders/${encodeURIComponent(code)}/cancel`

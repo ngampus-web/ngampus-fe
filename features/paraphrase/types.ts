@@ -9,9 +9,13 @@ export type ParaphraseDetails = {
   fileSize: number
   wordCount: number
   service: ParaphraseKind
+  /** Uploaded DOCX (live orders). */
+  sourceFileId?: string
   reports: {
     type: "turnitin" | "ai"
     file: FileMetadata
+    /** Uploaded PDF (live orders). */
+    fileId?: string
     initialScore: number
     targetScore: number
   }[]
@@ -20,4 +24,11 @@ export type ParaphraseDetails = {
   field: string
   customerName: string
   turnaround: Turnaround
+  /** Schedule from the API (live orders); deadline is set once paid. */
+  schedule?: {
+    paidAt: string | null
+    deadlineAt: string | null
+    startedAt: string | null
+  }
+  hasResult?: boolean
 }

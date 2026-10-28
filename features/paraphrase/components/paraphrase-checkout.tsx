@@ -5,6 +5,9 @@ import { FileText, Upload, Clock3, MessageCircle } from "lucide-react"
 import { Breadcrumb } from "@/components/layout/breadcrumb"
 import { Button } from "@/components/ui/button"
 import type { OrderDraft } from "@/features/payment/types"
+import { filesApi } from "@/lib/api/endpoints/files"
+import { useAuthStore } from "@/lib/stores/auth"
+import type { FilePurpose } from "@/types/api"
 import { formatFileSize, rupiah } from "@/features/payment/services/order-rules"
 import { paraphraseServices, turnaroundOptions } from "../options"
 import type { ParaphraseDetails, ParaphraseKind, Turnaround } from "../types"
@@ -13,6 +16,28 @@ import { validateFile, validateParaphrase } from "../services/validation"
 
 import { calculateParaphrasePrice } from "../services/pricing"
 import { PriceBreakdown } from "./price-breakdown"
+
+const DOCX_MIME =
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+
+/** Uploads once per picked file; a retry after an error reuses the ids. */
+async function uploadOnce(
+  cache: WeakMap<File, string>,
+  file: File,
+  purpose: FilePurpose
+) {
+  const cached = cache.get(file)
+  if (cached) return cached
+  const res = await filesApi.upload(
+    file,
+    purpose,
+    file.type ||
+      (purpose === "paraphrase_source" ? DOCX_MIME : "application/pdf")
+  )
+  if (!res.success) throw new Error(res.error.message)
+  cache.set(file, res.data.id)
+  return res.data.id
+}
 
 const inputStyle =
   "w-full rounded-xl border border-line bg-white px-4 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:bg-surface"
@@ -119,6 +144,7 @@ export function ParaphraseCheckout({
   const [busy, setBusy] = useState(false)
   const request = useRef(0)
   const inFlight = useRef(false)
+  const uploaded = useRef(new WeakMap<File, string>())
   const reportTypes: ("turnitin" | "ai")[] =
     service === "combined" ? ["turnitin", "ai"] : [service]
   const selectedService = paraphraseServices.find((s) => s.id === service)!
@@ -204,6 +230,20 @@ export function ParaphraseCheckout({
       validateParaphrase(details)
       inFlight.current = true
       setBusy(true)
+      // Guests are sent to login by onCheckout; files go up only with a session.
+      if (useAuthStore.getState().status === "authenticated") {
+        details.sourceFileId = await uploadOnce(
+          uploaded.current,
+          document,
+          "paraphrase_source"
+        )
+        for (const r of details.reports)
+          r.fileId = await uploadOnce(
+            uploaded.current,
+            reports[r.type]!,
+            "paraphrase_report"
+          )
+      }
       await onCheckout({
         phone,
         amount: calculateParaphrasePrice(details).total,
@@ -411,7 +451,7 @@ export function ParaphraseCheckout({
                     </span>
                     <input
                       className={inputStyle}
-                      maxLength={150}
+                      maxLength={120}
                       placeholder="Contoh: Ekonomi, Kedokteran"
                       value={field}
                       onChange={(e) => setField(e.target.value)}

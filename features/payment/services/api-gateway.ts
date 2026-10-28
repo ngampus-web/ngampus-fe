@@ -1,25 +1,55 @@
 import { ordersApi } from "@/lib/api/endpoints/orders"
 import type { OrderDetail, PaymentSession } from "@/types/api"
 
+import { paraphraseServices } from "@/features/paraphrase/options"
+import type { ParaphraseDetails } from "@/features/paraphrase/types"
+
 import { validateMarketplaceEmail } from "./order-rules"
-import type { OrderDraft, PaymentOrder } from "../types"
+import type { OrderDraft, PaymentDetails, PaymentOrder } from "../types"
 
 /** API order codes, e.g. `MKT-7K2M9QXA` (preview ids start with `NGP-`). */
 export const isOrderCode = (id: string) => /^[A-Z]{3}-[0-9A-Z]{8}$/.test(id)
 
+function paraphraseDetails(
+  o: OrderDetail,
+  d: Extract<OrderDetail["details"], { kind: "paraphrase" }>
+): ParaphraseDetails {
+  return {
+    kind: "paraphrase",
+    slug: "parafrase-manual",
+    title: paraphraseServices.find((s) => s.id === d.service)?.label ?? o.title,
+    fileName: d.fileName,
+    fileSize: o.fileSizeBytes ?? 0,
+    wordCount: d.wordCount,
+    service: d.service,
+    reports: d.reports.map((r) => ({
+      type: r.type,
+      file: { name: r.fileName, size: r.fileSizeBytes },
+      initialScore: r.initialScore,
+      targetScore: r.targetScore,
+    })),
+    notes: d.notes ?? "",
+    language: d.language,
+    field: d.field ?? "",
+    customerName: o.customerName,
+    turnaround: d.turnaround,
+    schedule: {
+      paidAt: o.paidAt,
+      deadlineAt: d.deadlineAt,
+      startedAt: d.startedAt,
+    },
+    hasResult: d.hasResult,
+  }
+}
+
 /** API order → the shape the payment pages already render. */
 function fromApi(o: OrderDetail): PaymentOrder {
-  const d = o.details.kind === "marketplace" ? o.details : null
-  return {
-    id: o.code,
-    mode: "live",
-    phone: o.whatsapp,
-    amount: o.total,
-    status: o.status === "refunded" ? "completed" : o.status,
-    createdAt: o.createdAt,
-    expiresAt: o.expiresAt,
-    updatedAt: o.completedAt ?? o.paidAt ?? o.createdAt,
-    details: {
+  let details: PaymentDetails
+  if (o.details.kind === "paraphrase") {
+    details = paraphraseDetails(o, o.details)
+  } else {
+    const d = o.details.kind === "marketplace" ? o.details : null
+    details = {
       kind: "marketplace",
       slug: d?.productSlug ?? "",
       title: d?.productName ?? o.title,
@@ -30,7 +60,18 @@ function fromApi(o: OrderDetail): PaymentOrder {
       customerName: o.customerName,
       customerEmail: o.customerEmail ?? undefined,
       delivery: d?.delivery ?? null,
-    },
+    }
+  }
+  return {
+    id: o.code,
+    mode: "live",
+    phone: o.whatsapp,
+    amount: o.total,
+    status: o.status === "refunded" ? "completed" : o.status,
+    createdAt: o.createdAt,
+    expiresAt: o.expiresAt,
+    updatedAt: o.completedAt ?? o.paidAt ?? o.createdAt,
+    details,
   }
 }
 
@@ -52,6 +93,41 @@ export const apiGateway = {
     })
     if (!res.success) return fail(res.error.message)
     return fromApi(res.data)
+  },
+
+  /** Files are uploaded first; the server recounts words and prices the order. */
+  async createParaphraseOrder(draft: OrderDraft): Promise<PaymentOrder> {
+    const d = draft.details
+    if (
+      d.kind !== "paraphrase" ||
+      !d.sourceFileId ||
+      d.reports.some((r) => !r.fileId)
+    )
+      return fail("Unggah dokumen dan laporan terlebih dahulu.")
+    const res = await ordersApi.createParaphrase({
+      service: d.service,
+      sourceFileId: d.sourceFileId,
+      reports: d.reports.map((r) => ({
+        type: r.type,
+        fileId: r.fileId!,
+        initialScore: r.initialScore,
+        targetScore: r.targetScore,
+      })),
+      language: d.language,
+      field: d.field || undefined,
+      notes: d.notes || undefined,
+      turnaround: d.turnaround,
+      customerName: d.customerName,
+      whatsapp: draft.phone,
+    })
+    if (!res.success) return fail(res.error.message)
+    return fromApi(res.data)
+  },
+
+  async resultUrl(code: string): Promise<string> {
+    const res = await ordersApi.result(code)
+    if (!res.success) return fail(res.error.message)
+    return res.data.url
   },
 
   /** null when missing or owned by someone else. */
