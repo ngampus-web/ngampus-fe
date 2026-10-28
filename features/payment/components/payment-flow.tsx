@@ -29,6 +29,7 @@ import {
 import { apiGateway } from "../services/api-gateway"
 import { previewGateway, simulateStatus } from "../services/preview-gateway"
 import { turnaroundOptions } from "@/features/paraphrase/options"
+import { AI_CHECK_ACCEPT } from "@/features/plagiarism/services/document-file"
 import { PriceBreakdown } from "@/features/paraphrase/components/price-breakdown"
 import { calculateParaphrasePrice } from "@/features/paraphrase/services/pricing"
 import type { PaymentStatus } from "../types"
@@ -129,7 +130,24 @@ export function PaymentFlow({
     timeZone: "Asia/Jakarta",
   }).format(new Date(order.createdAt))
   const canDownload =
-    live && details.kind === "paraphrase" && !!details.hasResult
+    live &&
+    (details.kind === "paraphrase" || details.kind === "document") &&
+    !!details.hasResult
+  // A failed live document check keeps its payment; the file can be replaced.
+  const docFailed = live && details.kind === "document" && status === "failed"
+  const canResubmit =
+    docFailed && details.kind === "document" && (details.retriesLeft ?? 0) > 0
+  async function resubmit(file: File) {
+    setBusy(true)
+    setError("")
+    try {
+      setOrder(await apiGateway.resubmit(orderId, file))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Dokumen gagal diunggah.")
+    } finally {
+      setBusy(false)
+    }
+  }
   async function downloadResult() {
     setBusy(true)
     setError("")
@@ -463,7 +481,11 @@ export function PaymentFlow({
                 <p className="mt-2 text-sm leading-6 text-emerald-900">
                   {isMarket
                     ? "Silakan login dan nikmati layananmu. Detail akun juga tersedia di bawah ini."
-                    : "Kamu dapat mengunduh hasil setelah laporan tersedia dari layanan pemrosesan."}
+                    : live &&
+                        details.kind === "document" &&
+                        details.score != null
+                      ? `Skor ${details.slug === "cek-ai" ? "AI" : "similarity"}: ${details.score}%. Unduh laporan lengkapnya di bawah.`
+                      : "Kamu dapat mengunduh hasil setelah laporan tersedia dari layanan pemrosesan."}
                 </p>
                 {!live && (
                   <p className="mt-3 text-xs leading-5 text-emerald-800">
@@ -475,7 +497,43 @@ export function PaymentFlow({
                 )}
               </div>
             )}
-            {terminal && (
+            {docFailed && details.kind === "document" && (
+              <div role="status" className="rounded-2xl bg-red-50 p-5">
+                <XCircle className="mb-3 size-7 text-red-600" />
+                <h3 className="font-semibold">Dokumen belum bisa diproses</h3>
+                {details.failReason && (
+                  <p className="mt-2 text-sm leading-6">
+                    Alasan: {details.failReason}
+                  </p>
+                )}
+                <p className="mt-2 text-sm leading-6 text-subtle">
+                  {canResubmit
+                    ? `Pembayaran kamu tetap aman. Unggah ulang dokumen tanpa biaya tambahan (sisa ${details.retriesLeft}x).`
+                    : `Batas unggah ulang sudah habis. Hubungi CS Ngampus dengan nomor pesanan ${order.id} agar kami bantu cek manual.`}
+                </p>
+                {canResubmit && (
+                  <label className="mt-4 inline-flex cursor-pointer items-center justify-center rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white">
+                    {busy ? "Mengunggah…" : "Unggah ulang dokumen"}
+                    <input
+                      type="file"
+                      className="sr-only"
+                      disabled={busy}
+                      accept={
+                        details.slug === "cek-ai"
+                          ? AI_CHECK_ACCEPT
+                          : ".pdf,application/pdf"
+                      }
+                      onChange={(event) => {
+                        const file = event.target.files?.[0]
+                        event.target.value = ""
+                        if (file) void resubmit(file)
+                      }}
+                    />
+                  </label>
+                )}
+              </div>
+            )}
+            {terminal && !docFailed && (
               <div role="status" className="rounded-2xl bg-red-50 p-5">
                 <XCircle className="mb-3 size-7 text-red-600" />
                 <h3 className="font-semibold">{statusLabels[status]}</h3>
@@ -504,9 +562,19 @@ export function PaymentFlow({
                 </Button>
                 {!canDownload && (
                   <p className="-mt-3 text-center text-xs text-subtle">
-                    Unduhan aktif saat backend menyediakan hasil asli.
+                    {live && details.kind === "document"
+                      ? "Laporan sudah tidak tersimpan. Hubungi CS Ngampus jika masih membutuhkannya."
+                      : "Unduhan aktif saat backend menyediakan hasil asli."}
                   </p>
                 )}
+                {canDownload &&
+                  details.kind === "document" &&
+                  details.resultExpiresAt && (
+                    <p className="-mt-3 text-center text-xs text-subtle">
+                      Unduh sebelum {wib(details.resultExpiresAt)} WIB. Setelah
+                      itu laporan dihapus otomatis.
+                    </p>
+                  )}
                 {details.slug !== "parafrase-manual" && (
                   <Link
                     href="/cek-plagiarisme/parafrase-manual"
@@ -579,7 +647,7 @@ export function PaymentFlow({
               </Button>
             </>
           )}
-          {terminal && (
+          {terminal && !canResubmit && (
             <Button asChild size="pill">
               <Link href={orderBackHref(order)}>Buat pesanan baru</Link>
             </Button>

@@ -29,7 +29,7 @@ export const plagiarismServices: PlagiarismService[] = [
     title: "Cek AI",
     description:
       "Penasaran tulisanmu terdeteksi AI atau nggak? Cek dokumenmu dan lihat hasilnya di sini.",
-    price: 4000,
+    price: 6000,
     summary: "Cek deteksi AI satu dokumen. Hasil masuk ke WhatsApp.",
     filters: false,
   },
@@ -93,7 +93,7 @@ export const turnitinNotice = {
 
 export const aiCheckNotice = {
   title: "Ketentuan Cek AI",
-  body: "Dokumen maksimal 10 MB & 25.000 kata. Pengecekan AI menggunakan Multi-LLM seperti GPT-4o, Claude 3.5, Gemini, dan DeepSeek untuk mendeteksi indikasi kecerdasan buatan pada teks yang kamu cek serta dokumen tidak tersimpan di database.",
+  body: "Dokumen PDF, DOCX, DOC, atau TXT maksimal 50 MB, minimal 250 kata & maksimal 50.000 karakter. Rp6.000 untuk 6.000 kata pertama, lalu Rp1.000 per 1.000 kata. Pengecekan menggunakan GPTZero untuk mendeteksi tulisan ChatGPT, Claude, Gemini, DeepSeek, dan AI lainnya, serta dokumen tidak tersimpan di database.",
 }
 
 export const plagiarismCheckout = {
@@ -143,6 +143,6 @@ export const fallbackPlagiarismSlides: PromoSlide[] = [
     image: "/images/plagiarism/banner-ai-fc01e12299.png",
     href: "/cek-plagiarisme/cek-ai",
     label: "Cek AI",
-    alt: "Cek persentase AI 24 jam non-stop, mulai dari Rp4.000 per file",
+    alt: "Cek persentase AI 24 jam non-stop, mulai dari Rp6.000 per file",
   },
 ]

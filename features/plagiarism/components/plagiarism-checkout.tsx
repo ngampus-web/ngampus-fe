@@ -14,6 +14,16 @@ import {
 } from "@/features/plagiarism/data/plagiarism"
 
 import { countPdfWords } from "@/features/plagiarism/services/pdf-word-count"
+import {
+  AI_CHECK_ACCEPT,
+  aiCheckPricing,
+  countDocumentWords,
+  documentMime,
+  isAiCheckFile,
+  priceAiCheck,
+} from "@/features/plagiarism/services/document-file"
+import { filesApi } from "@/lib/api/endpoints/files"
+import { useAuthStore } from "@/lib/stores/auth"
 
 import type { OrderDraft } from "@/features/payment/types"
 
@@ -39,17 +49,19 @@ export function PlagiarismCheckout({
   const [busy, setBusy] = useState(false)
   const [payError, setPayError] = useState("")
   const [promoNote, setPromoNote] = useState("")
-  const maxWords =
-    service.slug === "cek-ai"
-      ? 25000
-      : service.slug === "turnitin"
-        ? 60000
-        : Infinity
+  const isAi = service.slug === "cek-ai"
+  const maxWords = service.slug === "turnitin" ? 60000 : Infinity
+  // Uploaded once per picked file, so a retried checkout reuses it.
+  const uploaded = useRef(new WeakMap<File, string>())
   async function checkout() {
     if (inFlight.current) return
     setPayError("")
     if (!file) {
-      setPayError("Pilih dokumen PDF terlebih dahulu.")
+      setPayError(
+        isAi
+          ? "Pilih dokumen terlebih dahulu."
+          : "Pilih dokumen PDF terlebih dahulu."
+      )
       return
     }
     if (wordCount === undefined) {
@@ -59,6 +71,12 @@ export function PlagiarismCheckout({
     if (wordCount && wordCount > maxWords) {
       setPayError(
         `Dokumen melebihi batas ${maxWords.toLocaleString("id-ID")} kata.`
+      )
+      return
+    }
+    if (isAi && wordCount !== null && wordCount < aiCheckPricing.minWords) {
+      setPayError(
+        `Dokumen minimal ${aiCheckPricing.minWords.toLocaleString("id-ID")} kata.`
       )
       return
     }
@@ -80,15 +98,31 @@ export function PlagiarismCheckout({
     inFlight.current = true
     setBusy(true)
     try {
+      let fileId: string | undefined
+      if (isAi && useAuthStore.getState().status === "authenticated") {
+        fileId = uploaded.current.get(file)
+        if (!fileId) {
+          const res = await filesApi.upload(
+            file,
+            "doc_check_source",
+            documentMime(file)
+          )
+          if (!res.success) throw new Error(res.error.message)
+          fileId = res.data.id
+          uploaded.current.set(file, fileId)
+        }
+      }
       await onCheckout({
         phone,
-        amount: service.price,
+        amount: price,
+        promoCode: isAi ? promo.trim() || undefined : undefined,
         details: {
           kind: "document",
           slug,
           title: service.title,
           fileName: file.name,
           fileSize: file.size,
+          fileId,
           filters: service.filters
             ? plagiarismFilters
                 .filter((f) => checked[f.id])
@@ -123,6 +157,7 @@ export function PlagiarismCheckout({
   const [excludeUnit, setExcludeUnit] = useState<"kata" | "persentase">(
     "persentase"
   )
+  const price = isAi ? priceAiCheck(wordCount) : service.price
   const notice =
     service.slug === "turnitin"
       ? turnitinNotice
@@ -209,7 +244,9 @@ export function PlagiarismCheckout({
                   type="button"
                   onClick={() =>
                     setPromoNote(
-                      "Kode promo belum tersedia pada pratinjau. Total tetap mengikuti harga layanan."
+                      isAi
+                        ? "Kode promo dicek saat pesanan dibuat."
+                        : "Kode promo belum tersedia pada pratinjau. Total tetap mengikuti harga layanan."
                     )
                   }
                   size="pill"
@@ -336,10 +373,14 @@ export function PlagiarismCheckout({
                         {wordCount === undefined
                           ? "Menghitung kata..."
                           : wordCount === null
-                            ? "Jumlah kata tidak terbaca"
+                            ? isAi
+                              ? "Jumlah kata dihitung saat pembayaran"
+                              : "Jumlah kata tidak terbaca"
                             : `${wordCount.toLocaleString("id-ID")} kata`}
                       </span>
                     </>
+                  ) : isAi ? (
+                    "PDF, DOCX, DOC, TXT"
                   ) : (
                     plagiarismCheckout.uploadDescription
                   )}
@@ -349,23 +390,28 @@ export function PlagiarismCheckout({
             <input
               id={uploadId}
               type="file"
-              accept=".pdf,application/pdf"
+              accept={isAi ? AI_CHECK_ACCEPT : ".pdf,application/pdf"}
               className="sr-only"
               onChange={(event) => {
                 const next = event.target.files?.[0] ?? null
                 const request = wordRequest.current + 1
                 wordRequest.current = request
                 setPayError("")
+                const maxMb = isAi ? aiCheckPricing.maxSizeMb : 10
                 if (
                   next &&
-                  (!next.name.toLowerCase().endsWith(".pdf") ||
+                  (!(isAi
+                    ? isAiCheckFile(next)
+                    : next.name.toLowerCase().endsWith(".pdf")) ||
                     next.size === 0 ||
-                    next.size > 10 * 1024 * 1024)
+                    next.size > maxMb * 1024 * 1024)
                 ) {
                   setFile(null)
                   setWordCount(null)
                   setPayError(
-                    "Gunakan PDF yang tidak kosong dengan ukuran maksimal 10 MB."
+                    isAi
+                      ? "Gunakan file PDF, DOCX, DOC, atau TXT yang tidak kosong dengan ukuran maksimal 50 MB."
+                      : "Gunakan PDF yang tidak kosong dengan ukuran maksimal 10 MB."
                   )
                   event.target.value = ""
                   return
@@ -376,7 +422,7 @@ export function PlagiarismCheckout({
                   return
                 }
                 setWordCount(undefined)
-                countPdfWords(next)
+                ;(isAi ? countDocumentWords(next) : countPdfWords(next))
                   .then((count) => {
                     if (wordRequest.current === request) setWordCount(count)
                   })
@@ -386,7 +432,9 @@ export function PlagiarismCheckout({
                       setPayError(
                         error instanceof Error
                           ? error.message
-                          : "PDF tidak dapat dibaca. Coba gunakan file PDF lain."
+                          : isAi
+                            ? "Dokumen tidak dapat dibaca. Coba gunakan file lain."
+                            : "PDF tidak dapat dibaca. Coba gunakan file PDF lain."
                       )
                     }
                   })
@@ -418,11 +466,11 @@ export function PlagiarismCheckout({
           <dl className="flex flex-col gap-3 text-sm tracking-[-0.02em]">
             <div className="flex items-center justify-between">
               <dt>Subtotal</dt>
-              <dd>{rupiah(service.price)}</dd>
+              <dd>{rupiah(price)}</dd>
             </div>
             <div className="flex items-center justify-between font-semibold">
               <dt>Total Pembayaran</dt>
-              <dd>{rupiah(service.price)}</dd>
+              <dd>{rupiah(price)}</dd>
             </div>
           </dl>
           <Button
@@ -434,10 +482,12 @@ export function PlagiarismCheckout({
           >
             {busy ? "Menyiapkan pesanan…" : plagiarismCheckout.payLabel}
           </Button>
-          <p className="text-xs leading-5 text-subtle">
-            Pratinjau pembayaran. File belum diunggah; hanya nama dan ukuran
-            yang diteruskan.
-          </p>
+          {!isAi && (
+            <p className="text-xs leading-5 text-subtle">
+              Pratinjau pembayaran. File belum diunggah; hanya nama dan ukuran
+              yang diteruskan.
+            </p>
+          )}
           {payError && (
             <p role="alert" className="text-sm text-red-600">
               {payError}

@@ -1,7 +1,10 @@
 import { ordersApi } from "@/lib/api/endpoints/orders"
 import type { OrderDetail, PaymentSession } from "@/types/api"
 
+import { filesApi } from "@/lib/api/endpoints/files"
 import { paraphraseServices } from "@/features/paraphrase/options"
+import { getPlagiarismService } from "@/features/plagiarism/data/plagiarism"
+import { documentMime } from "@/features/plagiarism/services/document-file"
 import type { ParaphraseDetails } from "@/features/paraphrase/types"
 
 import { validateMarketplaceEmail } from "./order-rules"
@@ -42,11 +45,34 @@ function paraphraseDetails(
   }
 }
 
+function documentDetails(
+  o: OrderDetail,
+  d: Extract<OrderDetail["details"], { kind: "turnitin" | "ai_check" }>
+): PaymentDetails {
+  const slug = d.kind === "turnitin" ? "turnitin" : "cek-ai"
+  return {
+    kind: "document",
+    slug,
+    title: getPlagiarismService(slug)?.title ?? o.title,
+    fileName: d.fileName,
+    fileSize: d.fileSizeBytes,
+    filters: d.filters,
+    wordCount: d.wordCount,
+    score: d.resultScore,
+    hasResult: d.hasResult,
+    failReason: d.failReason,
+    retriesLeft: d.retriesLeft,
+    resultExpiresAt: d.resultExpiresAt,
+  }
+}
+
 /** API order → the shape the payment pages already render. */
 function fromApi(o: OrderDetail): PaymentOrder {
   let details: PaymentDetails
   if (o.details.kind === "paraphrase") {
     details = paraphraseDetails(o, o.details)
+  } else if (o.details.kind === "turnitin" || o.details.kind === "ai_check") {
+    details = documentDetails(o, o.details)
   } else {
     const d = o.details.kind === "marketplace" ? o.details : null
     details = {
@@ -121,6 +147,34 @@ export const apiGateway = {
       customerName: d.customerName,
       whatsapp: draft.phone,
     })
+    if (!res.success) return fail(res.error.message)
+    return fromApi(res.data)
+  },
+
+  /** The file is uploaded first; the server counts words and prices the order. */
+  async createAiCheckOrder(draft: OrderDraft): Promise<PaymentOrder> {
+    const d = draft.details
+    if (d.kind !== "document" || d.slug !== "cek-ai" || !d.fileId)
+      return fail("Unggah dokumen terlebih dahulu.")
+    const res = await ordersApi.createAiCheck({
+      documentTitle:
+        d.fileName.replace(/\.[^.]+$/, "").slice(0, 200) || d.fileName,
+      fileId: d.fileId,
+      whatsapp: draft.phone,
+      promoCode: draft.promoCode,
+    })
+    if (!res.success) return fail(res.error.message)
+    return fromApi(res.data)
+  },
+
+  async resubmit(code: string, file: File): Promise<PaymentOrder> {
+    const up = await filesApi.upload(
+      file,
+      "doc_check_source",
+      documentMime(file)
+    )
+    if (!up.success) return fail(up.error.message)
+    const res = await ordersApi.resubmit(code, up.data.id)
     if (!res.success) return fail(res.error.message)
     return fromApi(res.data)
   },

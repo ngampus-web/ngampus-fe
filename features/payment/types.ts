@@ -35,6 +35,15 @@ export type PaymentDetails =
       fileName: string
       fileSize: number
       filters: string[]
+      /** Uploaded source (live Cek AI orders). */
+      fileId?: string
+      wordCount?: number | null
+      /** Live orders: result and free re-upload after a failed check. */
+      score?: number | null
+      hasResult?: boolean
+      failReason?: string | null
+      retriesLeft?: number
+      resultExpiresAt?: string | null
     }
 
 export type OrderDraft = {
