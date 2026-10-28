@@ -135,6 +135,29 @@ export interface MarketplaceOrderDetails {
   } | null
 }
 
+export interface ParaphraseOrderDetails {
+  kind: "paraphrase"
+  service: "turnitin" | "ai" | "combined"
+  fileName: string
+  wordCount: number
+  language: "id" | "en"
+  field: string | null
+  notes: string | null
+  turnaround: "relaxed" | "regular" | "urgent"
+  deadlineAt: string | null
+  startedAt: string | null
+  deliveredAt: string | null
+  resultNote: string | null
+  reports: {
+    type: "turnitin" | "ai"
+    initialScore: number
+    targetScore: number
+    fileName: string
+    fileSizeBytes: number
+  }[]
+  hasResult: boolean
+}
+
 export interface OrderDetail extends OrderSummary {
   customerName: string
   customerEmail?: string | null
@@ -151,7 +174,8 @@ export interface OrderDetail extends OrderSummary {
   /** Document/paraphrase details land with their changes. */
   details:
     | MarketplaceOrderDetails
-    | ({ kind: Exclude<OrderKind, "marketplace"> } & Record<string, unknown>)
+    | ParaphraseOrderDetails
+    | ({ kind: "turnitin" | "ai_check" } & Record<string, unknown>)
 }
 
 export interface PaymentSession {

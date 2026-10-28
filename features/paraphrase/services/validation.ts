@@ -35,7 +35,7 @@ export function validateParaphrase(d: ParaphraseDetails) {
     typeof d.notes !== "string" ||
     d.notes.length > 2000 ||
     typeof d.field !== "string" ||
-    d.field.length > 150
+    d.field.length > 120
   )
     throw new Error("Catatan atau bidang terlalu panjang.")
   const required = d.service === "combined" ? ["turnitin", "ai"] : [d.service]

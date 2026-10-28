@@ -14,12 +14,14 @@ import type {
 export const filesApi = {
   async upload(
     file: File,
-    purpose: FilePurpose
+    purpose: FilePurpose,
+    /** Some browsers leave `file.type` empty (e.g. DOCX on Windows). */
+    mimeType = file.type
   ): Promise<ApiResponse<FileInfo>> {
     const ticket = await apiClient.post<UploadTicket>("/uploads", {
       purpose,
       fileName: file.name,
-      mimeType: file.type,
+      mimeType,
       sizeBytes: file.size,
     })
     if (!ticket.success) return ticket

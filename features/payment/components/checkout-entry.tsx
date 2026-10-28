@@ -8,8 +8,8 @@ import { previewGateway } from "../services/preview-gateway"
 
 /**
  * Checkout requires an account: guests go to /masuk?next=<current page>.
- * Marketplace orders are created on the API (priced from `offerId`);
- * document services still use the preview gateway until their API lands.
+ * Marketplace and paraphrase orders are created on the API (priced on the
+ * server); document checks still use the preview gateway until their API lands.
  */
 export function useCheckoutPayment() {
   const router = useRouter()
@@ -22,7 +22,9 @@ export function useCheckoutPayment() {
     const order =
       draft.details.kind === "marketplace" && draft.details.offerId
         ? await apiGateway.createMarketplaceOrder(draft)
-        : await previewGateway.createOrder(draft)
+        : draft.details.kind === "paraphrase" && draft.details.sourceFileId
+          ? await apiGateway.createParaphraseOrder(draft)
+          : await previewGateway.createOrder(draft)
     router.push(`/pembayaran/${order.id}`)
   }
 }

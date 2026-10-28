@@ -33,6 +33,13 @@ import { PriceBreakdown } from "@/features/paraphrase/components/price-breakdown
 import { calculateParaphrasePrice } from "@/features/paraphrase/services/pricing"
 import type { PaymentStatus } from "../types"
 
+const wib = (iso: string) =>
+  new Intl.DateTimeFormat("id-ID", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Asia/Jakarta",
+  }).format(new Date(iso))
+
 export function PaymentFlow({
   orderId,
   gateway = false,
@@ -121,6 +128,20 @@ export function PaymentFlow({
     timeStyle: "short",
     timeZone: "Asia/Jakarta",
   }).format(new Date(order.createdAt))
+  const canDownload =
+    live && details.kind === "paraphrase" && !!details.hasResult
+  async function downloadResult() {
+    setBusy(true)
+    setError("")
+    try {
+      // Presigned with an attachment name: the browser downloads it.
+      window.location.assign(await apiGateway.resultUrl(orderId))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Hasil belum dapat diunduh.")
+    } finally {
+      setBusy(false)
+    }
+  }
   async function openPayment() {
     if (live) {
       router.push(`/pembayaran/${orderId}/qris`)
@@ -407,10 +428,28 @@ export function PaymentFlow({
               >
                 Kalau sudah selesai, hasilnya akan langsung dikirim ke WhatsApp
                 kamu!
-                <p className="mt-2 text-xs text-subtle">
-                  Estimasi dihitung setelah pembayaran terverifikasi dan dokumen
-                  lengkap. Ini simulasi; belum ada pengiriman WhatsApp.
-                </p>
+                {live && details.schedule ? (
+                  <dl className="mt-3 space-y-1 text-xs text-subtle">
+                    {[
+                      ["Estimasi selesai", details.schedule.deadlineAt],
+                      ["Dibayar", details.schedule.paidAt],
+                      ["Tim mulai", details.schedule.startedAt],
+                    ].map(([label, at]) => (
+                      <div key={label} className="flex justify-between gap-4">
+                        <dt>{label}</dt>
+                        <dd className="text-right font-medium text-black">
+                          {at ? `${wib(at)} WIB` : "Menunggu"}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                ) : (
+                  <p className="mt-2 text-xs text-subtle">
+                    Estimasi dihitung setelah pembayaran terverifikasi dan
+                    dokumen lengkap. Ini simulasi; belum ada pengiriman
+                    WhatsApp.
+                  </p>
+                )}
               </div>
             )}
             {status === "completed" && (
@@ -452,16 +491,22 @@ export function PaymentFlow({
             )}
             {status === "completed" && !isMarket && (
               <>
-                <Button disabled className="h-12 w-full rounded-full">
+                <Button
+                  disabled={!canDownload || busy}
+                  onClick={() => void downloadResult()}
+                  className="h-12 w-full rounded-full"
+                >
                   {details.slug === "turnitin"
                     ? "Unduh Laporan Plagiasi"
                     : details.slug === "cek-ai"
                       ? "Unduh Laporan AI"
                       : "Unduh Hasil Parafrase"}
                 </Button>
-                <p className="-mt-3 text-center text-xs text-subtle">
-                  Unduhan aktif saat backend menyediakan hasil asli.
-                </p>
+                {!canDownload && (
+                  <p className="-mt-3 text-center text-xs text-subtle">
+                    Unduhan aktif saat backend menyediakan hasil asli.
+                  </p>
+                )}
                 {details.slug !== "parafrase-manual" && (
                   <Link
                     href="/cek-plagiarisme/parafrase-manual"
