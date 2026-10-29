@@ -8,8 +8,8 @@ import { previewGateway } from "../services/preview-gateway"
 
 /**
  * Checkout requires an account: guests go to /masuk?next=<current page>.
- * Marketplace and paraphrase orders are created on the API (priced on the
- * server); document checks still use the preview gateway until their API lands.
+ * Marketplace, paraphrase and Cek AI orders are created on the API (priced on
+ * the server); Turnitin still uses the preview gateway until its API lands.
  */
 export function useCheckoutPayment() {
   const router = useRouter()
@@ -24,7 +24,9 @@ export function useCheckoutPayment() {
         ? await apiGateway.createMarketplaceOrder(draft)
         : draft.details.kind === "paraphrase" && draft.details.sourceFileId
           ? await apiGateway.createParaphraseOrder(draft)
-          : await previewGateway.createOrder(draft)
+          : draft.details.kind === "document" && draft.details.fileId
+            ? await apiGateway.createAiCheckOrder(draft)
+            : await previewGateway.createOrder(draft)
     router.push(`/pembayaran/${order.id}`)
   }
 }

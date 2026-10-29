@@ -171,11 +171,25 @@ export interface OrderDetail extends OrderSummary {
   completedAt: string | null
   timeline: { status: OrderStatus; at: string; note: string | null }[]
   payment: PaymentSession | null
-  /** Document/paraphrase details land with their changes. */
   details:
-    | MarketplaceOrderDetails
-    | ParaphraseOrderDetails
-    | ({ kind: "turnitin" | "ai_check" } & Record<string, unknown>)
+    MarketplaceOrderDetails | ParaphraseOrderDetails | DocumentCheckOrderDetails
+}
+
+/** docs/API-CONTRACT.md `DocumentCheckDetails`. */
+export interface DocumentCheckOrderDetails {
+  kind: "turnitin" | "ai_check"
+  documentTitle: string
+  fileName: string
+  fileSizeBytes: number
+  pageCount: number | null
+  wordCount: number
+  charCount: number | null
+  filters: string[]
+  resultScore: number | null
+  hasResult: boolean
+  failReason: string | null
+  retriesLeft: number
+  resultExpiresAt: string | null
 }
 
 export interface PaymentSession {

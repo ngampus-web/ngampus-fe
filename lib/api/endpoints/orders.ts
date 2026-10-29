@@ -62,6 +62,23 @@ export const ordersApi = {
     return apiClient.post<OrderDetail>("/orders/paraphrase", body)
   },
 
+  createAiCheck(body: {
+    documentTitle: string
+    fileId: string
+    whatsapp: string
+    promoCode?: string
+  }) {
+    return apiClient.post<OrderDetail>("/orders/ai-check", body)
+  },
+
+  /** Free re-upload after a failed document check. */
+  resubmit(code: string, fileId: string) {
+    return apiClient.post<OrderDetail>(
+      `/orders/${encodeURIComponent(code)}/resubmit`,
+      { fileId }
+    )
+  },
+
   /** Presigned download of a completed order's result. */
   result(code: string) {
     return apiClient.get<{ url: string; expiresAt: string }>(
