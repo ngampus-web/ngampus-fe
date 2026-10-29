@@ -2,12 +2,14 @@
 
 import { ImagePlus, Loader2, Plus, X } from "lucide-react"
 import Link from "next/link"
-import { type FormEvent, useEffect, useId, useState } from "react"
+import { type FormEvent, useEffect, useId, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { warrantyClaimForm } from "@/features/warranty/data/warranty-claims"
 import { filesApi } from "@/lib/api/endpoints/files"
 import { warrantyApi } from "@/lib/api/endpoints/warranty"
+import { useAuthStore } from "@/lib/stores/auth"
+import { guestEligibleOrders } from "../services/guest-claims"
 import { cn } from "@/lib/utils"
 import type { ClaimCategory, EligibleOrder } from "@/types/api"
 
@@ -57,9 +59,19 @@ export function ClaimForm({
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
 
+  // Guest screenshots share one upload token per form.
+  const uploadToken = useRef<string | undefined>(undefined)
+  const signedIn = useAuthStore((s) => s.status === "authenticated")
+
   useEffect(() => {
     let cancelled = false
-    warrantyApi.eligibleOrders().then((res) => {
+    const load = signedIn
+      ? warrantyApi.eligibleOrders()
+      : guestEligibleOrders().then((orders) => ({
+          success: true as const,
+          data: orders,
+        }))
+    void load.then((res) => {
       if (cancelled) return
       setEligible(
         res.success
@@ -70,7 +82,7 @@ export function ClaimForm({
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [signedIn])
 
   // Release preview object URLs when the form closes.
   useEffect(
@@ -101,7 +113,13 @@ export function ClaimForm({
           status: "uploading",
         },
       ])
-      const res = await filesApi.upload(file, "claim_evidence")
+      const res = await filesApi.upload(
+        file,
+        "claim_evidence",
+        file.type,
+        uploadToken.current
+      )
+      if (res.success) uploadToken.current ??= res.data.uploadToken
       setEvidence((current) =>
         current.map((e) =>
           e.key !== key
@@ -138,12 +156,15 @@ export function ClaimForm({
     if (Object.keys(next).length || uploading || !category) return
 
     setSubmitting(true)
-    const res = await warrantyApi.create({
-      orderCode,
-      category,
-      description: description.trim(),
-      evidenceFileIds: ready.map((e) => e.fileId!),
-    })
+    const res = await warrantyApi.create(
+      {
+        orderCode,
+        category,
+        description: description.trim(),
+        evidenceFileIds: ready.map((e) => e.fileId!),
+      },
+      uploadToken.current
+    )
     setSubmitting(false)
     if (res.success) {
       onCreated(res.data.code)
