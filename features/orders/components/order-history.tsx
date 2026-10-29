@@ -262,7 +262,7 @@ export function OrderHistory() {
   )
 }
 
-function OrderCard({ order }: { order: OrderSummary }) {
+export function OrderCard({ order }: { order: OrderSummary }) {
   const status = historyStatus[order.status]
   const isDocument = order.kind !== "marketplace"
   return (
