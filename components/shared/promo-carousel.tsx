@@ -83,7 +83,7 @@ export function PromoCarousel({
       <div className="mt-3 flex items-center justify-center gap-3">
         {slides.map((slide, index) => (
           <button
-            key={slide.href}
+            key={`${index}-${slide.href}`}
             type="button"
             aria-label={`Tampilkan banner ${slide.label}`}
             aria-current={active === index ? "true" : undefined}
