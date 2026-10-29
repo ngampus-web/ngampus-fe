@@ -118,8 +118,11 @@ export function PaymentFlow({
         .map((c) => (c === "whatsapp" ? "WhatsApp" : "Email"))
         .join(" & ")) ||
     "WhatsApp/Email"
+  // A failed live document check keeps its payment; the file can be replaced.
+  const docFailed = live && details.kind === "document" && status === "failed"
+  const statusLabel = docFailed ? "Dokumen Gagal Diproses" : statusLabels[status]
   const activeStep =
-    status === "completed" ? 2 : status === "processing" ? 1 : 0
+    status === "completed" ? 2 : status === "processing" || docFailed ? 1 : 0
   const seconds = Math.max(
     0,
     Math.ceil((Date.parse(order.expiresAt) - now) / 1000)
@@ -134,8 +137,6 @@ export function PaymentFlow({
     live &&
     (details.kind === "paraphrase" || details.kind === "document") &&
     !!details.hasResult
-  // A failed live document check keeps its payment; the file can be replaced.
-  const docFailed = live && details.kind === "document" && status === "failed"
   const canResubmit =
     docFailed && details.kind === "document" && (details.retriesLeft ?? 0) > 0
   async function resendDelivery() {
@@ -252,7 +253,7 @@ export function PaymentFlow({
               : status === "processing"
                 ? "Pesanan sedang diproses"
                 : terminal
-                  ? statusLabels[status]
+                  ? statusLabel
                   : "Konfirmasi pesanan"}
         </h1>
         <p className="mt-3 text-sm leading-6 text-subtle">
@@ -271,7 +272,7 @@ export function PaymentFlow({
               <span
                 className={`rounded-full px-3 py-1.5 text-xs font-semibold ${status === "completed" ? "bg-emerald-50 text-emerald-700" : terminal ? "bg-red-50 text-red-700" : "bg-orange-50 text-orange-700"}`}
               >
-                {statusLabels[status]}
+                {statusLabel}
               </span>
             </div>
             <div className="mt-3 flex items-start gap-2 text-xs text-subtle">
