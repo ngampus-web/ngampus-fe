@@ -174,6 +174,7 @@ export function MarketplaceCheckout({
                 alt=""
                 width={56}
                 height={56}
+                unoptimized={/^https?:\/\//.test(product.logo)}
                 className="size-14 rounded-xl object-cover"
               />
               <div className="flex flex-col gap-1">
