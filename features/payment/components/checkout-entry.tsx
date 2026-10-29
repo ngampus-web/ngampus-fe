@@ -1,24 +1,17 @@
 "use client"
-import { usePathname, useRouter } from "next/navigation"
-import { loginHref } from "@/features/auth/components/require-auth"
-import { useAuthStore } from "@/lib/stores/auth"
+import { useRouter } from "next/navigation"
 import type { OrderDraft } from "../types"
 import { apiGateway } from "../services/api-gateway"
 import { previewGateway } from "../services/preview-gateway"
 
 /**
- * Checkout requires an account: guests go to /masuk?next=<current page>.
+ * Login is optional: guests check out too and open the order with its token.
  * Marketplace, paraphrase and Cek AI orders are created on the API (priced on
  * the server); Turnitin still uses the preview gateway until its API lands.
  */
 export function useCheckoutPayment() {
   const router = useRouter()
-  const pathname = usePathname()
   return async (draft: OrderDraft) => {
-    if (useAuthStore.getState().status !== "authenticated") {
-      router.push(loginHref(pathname))
-      return
-    }
     const order =
       draft.details.kind === "marketplace" && draft.details.offerId
         ? await apiGateway.createMarketplaceOrder(draft)

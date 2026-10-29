@@ -6,7 +6,10 @@ import { Breadcrumb } from "@/components/layout/breadcrumb"
 import { Button } from "@/components/ui/button"
 import type { OrderDraft } from "@/features/payment/types"
 import { filesApi } from "@/lib/api/endpoints/files"
-import { useAuthStore } from "@/lib/stores/auth"
+import {
+  localPhone,
+  useProfileAutofill,
+} from "@/features/auth/hooks/use-profile-autofill"
 import type { FilePurpose } from "@/types/api"
 import { formatFileSize, rupiah } from "@/features/payment/services/order-rules"
 import { paraphraseServices, turnaroundOptions } from "../options"
@@ -21,21 +24,26 @@ const DOCX_MIME =
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 
 /** Uploads once per picked file; a retry after an error reuses the ids. */
+/** Uploads of one checkout; guests share one upload token across files. */
+type UploadSession = { files: WeakMap<File, string>; token?: string }
+
 async function uploadOnce(
-  cache: WeakMap<File, string>,
+  session: UploadSession,
   file: File,
   purpose: FilePurpose
 ) {
-  const cached = cache.get(file)
+  const cached = session.files.get(file)
   if (cached) return cached
   const res = await filesApi.upload(
     file,
     purpose,
     file.type ||
-      (purpose === "paraphrase_source" ? DOCX_MIME : "application/pdf")
+      (purpose === "paraphrase_source" ? DOCX_MIME : "application/pdf"),
+    session.token
   )
   if (!res.success) throw new Error(res.error.message)
-  cache.set(file, res.data.id)
+  session.token = res.data.uploadToken ?? session.token
+  session.files.set(file, res.data.id)
   return res.data.id
 }
 
@@ -138,13 +146,17 @@ export function ParaphraseCheckout({
   const [field, setField] = useState("")
   const [name, setName] = useState("")
   const [phone, setPhone] = useState("")
+  useProfileAutofill((user) => {
+    setName((v) => v || user.name)
+    setPhone((v) => v || localPhone(user.phone))
+  })
   const [turnaround, setTurnaround] = useState<Turnaround>("relaxed")
   const [error, setError] = useState("")
   const [docError, setDocError] = useState("")
   const [busy, setBusy] = useState(false)
   const request = useRef(0)
   const inFlight = useRef(false)
-  const uploaded = useRef(new WeakMap<File, string>())
+  const uploaded = useRef<UploadSession>({ files: new WeakMap() })
   const reportTypes: ("turnitin" | "ai")[] =
     service === "combined" ? ["turnitin", "ai"] : [service]
   const selectedService = paraphraseServices.find((s) => s.id === service)!
@@ -230,24 +242,23 @@ export function ParaphraseCheckout({
       validateParaphrase(details)
       inFlight.current = true
       setBusy(true)
-      // Guests are sent to login by onCheckout; files go up only with a session.
-      if (useAuthStore.getState().status === "authenticated") {
-        details.sourceFileId = await uploadOnce(
+      // Login is optional; guest uploads are proven by the upload token.
+      details.sourceFileId = await uploadOnce(
+        uploaded.current,
+        document,
+        "paraphrase_source"
+      )
+      for (const r of details.reports)
+        r.fileId = await uploadOnce(
           uploaded.current,
-          document,
-          "paraphrase_source"
+          reports[r.type]!,
+          "paraphrase_report"
         )
-        for (const r of details.reports)
-          r.fileId = await uploadOnce(
-            uploaded.current,
-            reports[r.type]!,
-            "paraphrase_report"
-          )
-      }
       await onCheckout({
         phone,
         amount: calculateParaphrasePrice(details).total,
         details,
+        uploadToken: uploaded.current.token,
       })
     } catch (e) {
       setError(e instanceof Error ? e.message : "Pesanan belum dapat dibuat.")

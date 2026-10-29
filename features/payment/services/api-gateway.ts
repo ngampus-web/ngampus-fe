@@ -1,4 +1,5 @@
-import { ordersApi } from "@/lib/api/endpoints/orders"
+import { type CreatedOrder, ordersApi } from "@/lib/api/endpoints/orders"
+import { orderTokens } from "@/lib/orders/order-tokens"
 import type { OrderDetail, PaymentSession } from "@/types/api"
 
 import { filesApi } from "@/lib/api/endpoints/files"
@@ -105,6 +106,12 @@ const fail = (message: string): never => {
   throw new Error(message)
 }
 
+/** Keeps the order openable from this browser without login. */
+function remember(o: CreatedOrder): PaymentOrder {
+  orderTokens.save(o.code, o.accessToken)
+  return fromApi(o)
+}
+
 export const apiGateway = {
   /** Server prices the order from `offerId`; the draft amount is ignored. */
   async createMarketplaceOrder(draft: OrderDraft): Promise<PaymentOrder> {
@@ -119,7 +126,7 @@ export const apiGateway = {
       promoCode: draft.promoCode,
     })
     if (!res.success) return fail(res.error.message)
-    return fromApi(res.data)
+    return remember(res.data)
   },
 
   /** Files are uploaded first; the server recounts words and prices the order. */
@@ -131,24 +138,27 @@ export const apiGateway = {
       d.reports.some((r) => !r.fileId)
     )
       return fail("Unggah dokumen dan laporan terlebih dahulu.")
-    const res = await ordersApi.createParaphrase({
-      service: d.service,
-      sourceFileId: d.sourceFileId,
-      reports: d.reports.map((r) => ({
-        type: r.type,
-        fileId: r.fileId!,
-        initialScore: r.initialScore,
-        targetScore: r.targetScore,
-      })),
-      language: d.language,
-      field: d.field || undefined,
-      notes: d.notes || undefined,
-      turnaround: d.turnaround,
-      customerName: d.customerName,
-      whatsapp: draft.phone,
-    })
+    const res = await ordersApi.createParaphrase(
+      {
+        service: d.service,
+        sourceFileId: d.sourceFileId,
+        reports: d.reports.map((r) => ({
+          type: r.type,
+          fileId: r.fileId!,
+          initialScore: r.initialScore,
+          targetScore: r.targetScore,
+        })),
+        language: d.language,
+        field: d.field || undefined,
+        notes: d.notes || undefined,
+        turnaround: d.turnaround,
+        customerName: d.customerName,
+        whatsapp: draft.phone,
+      },
+      draft.uploadToken
+    )
     if (!res.success) return fail(res.error.message)
-    return fromApi(res.data)
+    return remember(res.data)
   },
 
   /** The file is uploaded first; the server counts words and prices the order. */
@@ -156,15 +166,18 @@ export const apiGateway = {
     const d = draft.details
     if (d.kind !== "document" || d.slug !== "cek-ai" || !d.fileId)
       return fail("Unggah dokumen terlebih dahulu.")
-    const res = await ordersApi.createAiCheck({
-      documentTitle:
-        d.fileName.replace(/\.[^.]+$/, "").slice(0, 200) || d.fileName,
-      fileId: d.fileId,
-      whatsapp: draft.phone,
-      promoCode: draft.promoCode,
-    })
+    const res = await ordersApi.createAiCheck(
+      {
+        documentTitle:
+          d.fileName.replace(/\.[^.]+$/, "").slice(0, 200) || d.fileName,
+        fileId: d.fileId,
+        whatsapp: draft.phone,
+        promoCode: draft.promoCode,
+      },
+      draft.uploadToken
+    )
     if (!res.success) return fail(res.error.message)
-    return fromApi(res.data)
+    return remember(res.data)
   },
 
   async resubmit(code: string, file: File): Promise<PaymentOrder> {
@@ -174,7 +187,7 @@ export const apiGateway = {
       documentMime(file)
     )
     if (!up.success) return fail(up.error.message)
-    const res = await ordersApi.resubmit(code, up.data.id)
+    const res = await ordersApi.resubmit(code, up.data.id, up.data.uploadToken)
     if (!res.success) return fail(res.error.message)
     return fromApi(res.data)
   },

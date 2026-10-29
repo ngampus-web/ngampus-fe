@@ -7,6 +7,8 @@ import {
   useSyncExternalStore,
 } from "react"
 
+import { orderTokens } from "@/lib/orders/order-tokens"
+
 import { apiGateway, isOrderCode } from "../services/api-gateway"
 import { parseOrder } from "../services/order-rules"
 import { readOrderSnapshot, subscribeOrders } from "../services/preview-gateway"
@@ -29,6 +31,19 @@ function usePreviewOrder(id: string, enabled: boolean) {
   }, [raw, id])
 }
 
+/**
+ * A WhatsApp/email link carries `?t=<token>`: keep it for this browser and
+ * drop it from the address bar so it does not end up in history or screenshots.
+ */
+function takeLinkToken(code: string) {
+  const url = new URL(window.location.href)
+  const token = url.searchParams.get("t")
+  if (!token) return
+  orderTokens.save(code, token)
+  url.searchParams.delete("t")
+  window.history.replaceState(window.history.state, "", url)
+}
+
 /** API orders, polled every 15s while pending or processing. */
 function useLiveOrder(code: string, enabled: boolean, pollMs: number) {
   const [order, setOrder] = useState<PaymentOrder | null | undefined>(undefined)
@@ -45,6 +60,7 @@ function useLiveOrder(code: string, enabled: boolean, pollMs: number) {
 
   useEffect(() => {
     if (!enabled) return
+    takeLinkToken(code)
     let cancelled = false
     void apiGateway
       .getOrder(code)

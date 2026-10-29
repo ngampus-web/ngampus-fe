@@ -265,6 +265,8 @@ export type FilePurpose =
 
 export interface UploadTicket {
   fileId: string
+  /** Guests only: proves the uploads of one checkout. */
+  uploadToken?: string
   uploadUrl: string
   method: "PUT"
   headers: { "Content-Type": string }
