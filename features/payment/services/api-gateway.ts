@@ -192,6 +192,11 @@ export const apiGateway = {
     return fromApi(res.data)
   },
 
+  async resendDelivery(code: string): Promise<void> {
+    const res = await ordersApi.resendDelivery(code)
+    if (!res.success) fail(res.error.message)
+  },
+
   async resultUrl(code: string): Promise<string> {
     const res = await ordersApi.result(code)
     if (!res.success) return fail(res.error.message)
