@@ -23,7 +23,10 @@ import {
   priceAiCheck,
 } from "@/features/plagiarism/services/document-file"
 import { filesApi } from "@/lib/api/endpoints/files"
-import { useAuthStore } from "@/lib/stores/auth"
+import {
+  localPhone,
+  useProfileAutofill,
+} from "@/features/auth/hooks/use-profile-autofill"
 
 import type { OrderDraft } from "@/features/payment/types"
 
@@ -51,8 +54,10 @@ export function PlagiarismCheckout({
   const [promoNote, setPromoNote] = useState("")
   const isAi = service.slug === "cek-ai"
   const maxWords = service.slug === "turnitin" ? 60000 : Infinity
-  // Uploaded once per picked file, so a retried checkout reuses it.
+  // Uploaded once per picked file, so a retried checkout reuses it; guests
+  // keep the upload token that proves the file.
   const uploaded = useRef(new WeakMap<File, string>())
+  const uploadToken = useRef<string | undefined>(undefined)
   async function checkout() {
     if (inFlight.current) return
     setPayError("")
@@ -99,16 +104,18 @@ export function PlagiarismCheckout({
     setBusy(true)
     try {
       let fileId: string | undefined
-      if (isAi && useAuthStore.getState().status === "authenticated") {
+      if (isAi) {
         fileId = uploaded.current.get(file)
         if (!fileId) {
           const res = await filesApi.upload(
             file,
             "doc_check_source",
-            documentMime(file)
+            documentMime(file),
+            uploadToken.current
           )
           if (!res.success) throw new Error(res.error.message)
           fileId = res.data.id
+          uploadToken.current = res.data.uploadToken ?? uploadToken.current
           uploaded.current.set(file, fileId)
         }
       }
@@ -116,6 +123,7 @@ export function PlagiarismCheckout({
         phone,
         amount: price,
         promoCode: isAi ? promo.trim() || undefined : undefined,
+        uploadToken: uploadToken.current,
         details: {
           kind: "document",
           slug,
@@ -144,6 +152,7 @@ export function PlagiarismCheckout({
     }
   }
   const [phone, setPhone] = useState("")
+  useProfileAutofill((user) => setPhone((v) => v || localPhone(user.phone)))
   const [promo, setPromo] = useState("")
   const [checked, setChecked] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(

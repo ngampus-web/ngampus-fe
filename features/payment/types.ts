@@ -52,6 +52,8 @@ export type OrderDraft = {
   details: PaymentDetails
   /** Checked again by the server when the order is created. */
   promoCode?: string
+  /** Guest uploads of this checkout (sent as `X-Upload-Token`). */
+  uploadToken?: string
 }
 
 export type PaymentOrder = OrderDraft & {

@@ -18,7 +18,10 @@ import {
 import type { OrderDraft } from "@/features/payment/types"
 import { ordersApi } from "@/lib/api/endpoints/orders"
 import { isPreorderPlan } from "../services/preorder"
-import { useAuthStore } from "@/lib/stores/auth"
+import {
+  localPhone,
+  useProfileAutofill,
+} from "@/features/auth/hooks/use-profile-autofill"
 import { cn } from "@/lib/utils"
 
 function rupiah(value: number) {
@@ -81,6 +84,10 @@ export function MarketplaceCheckout({
   const offers = product.offers
   const [email, setEmail] = useState("")
   const [whatsapp, setWhatsapp] = useState("")
+  useProfileAutofill((user) => {
+    setEmail((v) => v || user.email)
+    setWhatsapp((v) => v || localPhone(user.phone))
+  })
   const [packageName, setPackageName] = useState(product.packages[0])
   const [accountType, setAccountType] = useState(checkoutTypes[0])
   const [durationId, setDurationId] = useState(
@@ -118,10 +125,6 @@ export function MarketplaceCheckout({
     const code = promoInput.trim().toUpperCase()
     const offerId = selectedOffer?.id
     if (!code || !offerId) return
-    if (useAuthStore.getState().status !== "authenticated") {
-      setPromoError("Masuk dulu untuk memakai kode promo.")
-      return
-    }
     setPromoBusy(true)
     setPromoError("")
     const res = await ordersApi.quote({
