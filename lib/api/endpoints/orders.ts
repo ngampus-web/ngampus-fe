@@ -108,6 +108,11 @@ export const ordersApi = {
     )
   },
 
+  /** Guests: invoice code + WhatsApp → the order and a new access token. */
+  lookup(code: string, whatsapp: string) {
+    return apiClient.post<CreatedOrder>("/orders/lookup", { code, whatsapp })
+  },
+
   /** Presigned download of a completed order's result. */
   result(code: string) {
     return apiClient.get<{ url: string; expiresAt: string }>(
