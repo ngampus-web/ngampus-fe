@@ -8,6 +8,7 @@ import {
 } from "react"
 
 import { orderTokens } from "@/lib/orders/order-tokens"
+import { useAuthStore } from "@/lib/stores/auth"
 
 import { apiGateway, isOrderCode } from "../services/api-gateway"
 import { parseOrder } from "../services/order-rules"
@@ -44,8 +45,15 @@ function takeLinkToken(code: string) {
   window.history.replaceState(window.history.state, "", url)
 }
 
+/** Signed-in viewers own orders by account: wait until the session is restored. */
+function useSessionReady() {
+  const status = useAuthStore((s) => s.status)
+  return status === "authenticated" || status === "guest" ? status : null
+}
+
 /** API orders, polled every 15s while pending or processing. */
 function useLiveOrder(code: string, enabled: boolean, pollMs: number) {
+  const session = useSessionReady()
   const [order, setOrder] = useState<PaymentOrder | null | undefined>(undefined)
   const [error, setError] = useState("")
 
@@ -59,7 +67,7 @@ function useLiveOrder(code: string, enabled: boolean, pollMs: number) {
   }, [code])
 
   useEffect(() => {
-    if (!enabled) return
+    if (!enabled || !session) return
     takeLinkToken(code)
     let cancelled = false
     void apiGateway
@@ -73,7 +81,7 @@ function useLiveOrder(code: string, enabled: boolean, pollMs: number) {
     return () => {
       cancelled = true
     }
-  }, [code, enabled])
+  }, [code, enabled, session])
 
   const active = order?.status === "pending" || order?.status === "processing"
   useEffect(() => {
