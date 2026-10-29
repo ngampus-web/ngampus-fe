@@ -127,9 +127,8 @@ export interface MarketplaceOrderDetails {
   unitPrice: number
   officialPrice: number
   warrantyExpiresAt: string | null
+  /** Credentials are sent by WhatsApp/email only, never returned here. */
   delivery: {
-    credentials: string
-    instructions: string | null
     sentAt: string
     channels: string[]
   } | null

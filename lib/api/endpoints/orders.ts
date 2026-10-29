@@ -108,6 +108,15 @@ export const ordersApi = {
     )
   },
 
+  /** Sends the account details again to the order's own WhatsApp/email. */
+  resendDelivery(code: string) {
+    return apiClient.post<{ sentAt: string; channels: string[] }>(
+      `/orders/${encodeURIComponent(code)}/resend-delivery`,
+      undefined,
+      tokenOf(code)
+    )
+  },
+
   /** Guests: invoice code + WhatsApp → the order and a new access token. */
   lookup(code: string, whatsapp: string) {
     return apiClient.post<CreatedOrder>("/orders/lookup", { code, whatsapp })

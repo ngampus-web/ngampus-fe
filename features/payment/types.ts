@@ -1,8 +1,7 @@
 import type { ParaphraseDetails } from "../paraphrase/types"
 
+/** Credentials only travel by WhatsApp/email; the page shows when and where. */
 export type AccountDelivery = {
-  credentials: string
-  instructions: string | null
   sentAt: string
   channels: string[]
 }

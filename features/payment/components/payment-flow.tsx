@@ -65,6 +65,7 @@ export function PaymentFlow({
   const [error, setError] = useState("")
   const [copied, setCopied] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [resent, setResent] = useState(false)
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(timer)
@@ -137,6 +138,19 @@ export function PaymentFlow({
   const docFailed = live && details.kind === "document" && status === "failed"
   const canResubmit =
     docFailed && details.kind === "document" && (details.retriesLeft ?? 0) > 0
+  async function resendDelivery() {
+    setBusy(true)
+    setError("")
+    setResent(false)
+    try {
+      await apiGateway.resendDelivery(orderId)
+      setResent(true)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Gagal mengirim ulang.")
+    } finally {
+      setBusy(false)
+    }
+  }
   async function resubmit(file: File) {
     setBusy(true)
     setError("")
@@ -432,7 +446,7 @@ export function PaymentFlow({
                 </h3>
                 <p className="mt-2 text-sm leading-6 text-subtle">
                   {isMarket
-                    ? "Akun sedang disiapkan admin (biasanya 1–30 menit, maksimal 3 jam). Detail akun akan dikirim melalui WhatsApp & email dan tampil di halaman ini."
+                    ? "Akun sedang disiapkan admin (biasanya 1–30 menit, maksimal 3 jam). Detail akun akan dikirim melalui WhatsApp & email."
                     : details.slug === "parafrase-manual"
                       ? "Tim sedang meninjau dan mengerjakan parafrase dokumenmu."
                       : "Hasil pengecekan akan tersedia di halaman ini setelah proses selesai."}
@@ -480,13 +494,32 @@ export function PaymentFlow({
                 </h3>
                 <p className="mt-2 text-sm leading-6 text-emerald-900">
                   {isMarket
-                    ? "Silakan login dan nikmati layananmu. Detail akun juga tersedia di bawah ini."
+                    ? details.kind === "marketplace" && details.delivery
+                      ? `Detail akun sudah dikirim ke ${deliveredVia} pada ${wib(details.delivery.sentAt)} WIB. Demi keamanan, detail akun tidak ditampilkan di halaman ini.`
+                      : "Silakan login dan nikmati layananmu."
                     : live &&
                         details.kind === "document" &&
                         details.score != null
                       ? `Skor ${details.slug === "cek-ai" ? "AI" : "similarity"}: ${details.score}%. Unduh laporan lengkapnya di bawah.`
                       : "Kamu dapat mengunduh hasil setelah laporan tersedia dari layanan pemrosesan."}
                 </p>
+                {live && details.kind === "marketplace" && details.delivery && (
+                  <div className="mt-4 flex flex-wrap items-center gap-3">
+                    <Button
+                      variant="outline"
+                      size="pill"
+                      disabled={busy}
+                      onClick={() => void resendDelivery()}
+                    >
+                      {busy ? "Mengirim…" : "Kirim ulang"}
+                    </Button>
+                    {resent && (
+                      <span role="status" className="text-xs text-emerald-800">
+                        Detail akun dikirim ulang ke {deliveredVia}.
+                      </span>
+                    )}
+                  </div>
+                )}
                 {!live && (
                   <p className="mt-3 text-xs leading-5 text-emerald-800">
                     Ini tampilan status selesai untuk pratinjau.{" "}
