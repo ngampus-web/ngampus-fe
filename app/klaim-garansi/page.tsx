@@ -1,7 +1,6 @@
 import type { Metadata } from "next"
 import { Suspense } from "react"
 
-import { RequireAuth } from "@/features/auth/components/require-auth"
 import { WarrantyClaims } from "@/features/warranty/components/warranty-claims"
 
 export const metadata: Metadata = {
@@ -12,10 +11,9 @@ export const metadata: Metadata = {
 
 export default function WarrantyClaimsPage() {
   return (
-    <RequireAuth>
-      <Suspense>
-        <WarrantyClaims />
-      </Suspense>
-    </RequireAuth>
+    // Login is optional: guests claim with their order's access token.
+    <Suspense>
+      <WarrantyClaims />
+    </Suspense>
   )
 }

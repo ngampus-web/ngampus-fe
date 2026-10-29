@@ -8,6 +8,8 @@ import { Breadcrumb } from "@/components/layout/breadcrumb"
 import { Button } from "@/components/ui/button"
 import { warrantyClaimsPage } from "@/features/warranty/data/warranty-claims"
 import { warrantyApi } from "@/lib/api/endpoints/warranty"
+import { orderTokens } from "@/lib/orders/order-tokens"
+import { useAuthStore } from "@/lib/stores/auth"
 import { cn } from "@/lib/utils"
 import type { ClaimSummary } from "@/types/api"
 
@@ -19,6 +21,7 @@ import {
   formatClaimTime,
   toneClass,
 } from "../services/claims"
+import { guestClaims } from "../services/guest-claims"
 import { ClaimDetailModal } from "./claim-detail-modal"
 import { ClaimForm } from "./claim-form"
 
@@ -32,13 +35,27 @@ interface ListState {
   error?: string
 }
 
-/** Pusat Klaim Garansi: the signed-in user's claims from the API. */
+/**
+ * Pusat Klaim Garansi: the account's claims from the API, or for guests the
+ * claims opened in this browser.
+ */
 export function WarrantyClaims() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  // `?klaim=CLM-…` (link in the WhatsApp message) opens that claim.
+  const signedIn = useAuthStore((s) => s.status === "authenticated")
+  // `?klaim=CLM-…&t=…` (link in the WhatsApp message) opens that claim.
   const selected = searchParams.get("klaim")
+  const linkToken = searchParams.get("t")
+  if (selected && linkToken && typeof window !== "undefined")
+    orderTokens.save(selected, linkToken)
+  useEffect(() => {
+    if (!selected || !linkToken) return
+    // Keep the token out of history and screenshots.
+    const next = new URLSearchParams(searchParams.toString())
+    next.delete("t")
+    router.replace(`${pathname}?${next.toString()}`, { scroll: false })
+  }, [selected, linkToken, searchParams, router, pathname])
   const [filter, setFilter] = useState<ClaimFilter>("semua")
   const [page, setPage] = useState(1)
   const [reloadKey, setReloadKey] = useState(0)
@@ -48,38 +65,50 @@ export function WarrantyClaims() {
     hasMore: false,
   })
   const [formOpen, setFormOpen] = useState(false)
-  const requestKey = `${filter}|${page}|${reloadKey}`
+  const requestKey = `${filter}|${page}|${reloadKey}|${signedIn}`
   const loading = state.key !== requestKey
 
   useEffect(() => {
     let cancelled = false
-    warrantyApi
-      .list({
-        status: filter === "semua" ? undefined : filter,
-        page,
-        perPage: PER_PAGE,
-      })
-      .then((res) => {
-        if (cancelled) return
-        setState((s) =>
-          res.success
-            ? {
-                key: requestKey,
-                items: page === 1 ? res.data : [...s.items, ...res.data],
-                hasMore: page < (res.meta?.totalPages ?? 1),
-              }
-            : {
-                ...s,
-                key: requestKey,
-                items: page === 1 ? [] : s.items,
-                error: res.error.message,
-              }
-        )
-      })
+    const load = signedIn
+      ? warrantyApi.list({
+          status: filter === "semua" ? undefined : filter,
+          page,
+          perPage: PER_PAGE,
+        })
+      : guestClaims().then((items) => ({
+          success: true as const,
+          data: items.filter(
+            (c) =>
+              filter === "semua" ||
+              filter ===
+                (c.status === "resolved" || c.status === "rejected"
+                  ? c.status
+                  : "in_progress")
+          ),
+          meta: undefined,
+        }))
+    void load.then((res) => {
+      if (cancelled) return
+      setState((s) =>
+        res.success
+          ? {
+              key: requestKey,
+              items: page === 1 ? res.data : [...s.items, ...res.data],
+              hasMore: page < (res.meta?.totalPages ?? 1),
+            }
+          : {
+              ...s,
+              key: requestKey,
+              items: page === 1 ? [] : s.items,
+              error: res.error.message,
+            }
+      )
+    })
     return () => {
       cancelled = true
     }
-  }, [filter, page, requestKey])
+  }, [filter, page, requestKey, signedIn])
 
   function openClaim(code: string | null) {
     const next = new URLSearchParams(searchParams.toString())
