@@ -4,8 +4,16 @@ import { ChevronDown } from "lucide-react"
 import Link from "next/link"
 import { useRef, useState } from "react"
 
+import { DatePicker } from "@/components/shared/date-picker"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { campaignPlatforms } from "@/features/creator/data/campaign"
 import { useCreatorGate } from "@/features/creator/hooks/use-creator-gate"
 import { PLATFORM_OPTIONS } from "@/features/creator/services/creator-rules"
@@ -139,24 +147,18 @@ export function SubmitContentForm() {
 
       <label className="flex flex-col gap-2 text-sm font-medium tracking-[-0.02em]">
         Platform
-        <span className="relative">
-          <select
-            name="platform"
-            required
-            defaultValue="TikTok"
-            className={`${fieldClass} appearance-none pr-12`}
-          >
+        <Select name="platform" required defaultValue="TikTok">
+          <SelectTrigger className={fieldClass}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
             {platforms.map((name) => (
-              <option key={name} value={name}>
+              <SelectItem key={name} value={name}>
                 {name}
-              </option>
+              </SelectItem>
             ))}
-          </select>
-          <ChevronDown
-            className="pointer-events-none absolute top-1/2 right-4 size-5 -translate-y-1/2 text-black"
-            aria-hidden
-          />
-        </span>
+          </SelectContent>
+        </Select>
       </label>
 
       <label className="flex flex-col gap-2 text-sm font-medium tracking-[-0.02em]">
@@ -171,9 +173,8 @@ export function SubmitContentForm() {
 
       <label className="flex flex-col gap-2 text-sm font-medium tracking-[-0.02em]">
         Tanggal pembuatan
-        <Input
+        <DatePicker
           name="publishedOn"
-          type="date"
           required
           max={todayWib()}
           className={fieldClass}

@@ -1,11 +1,17 @@
 "use client"
 
-import { ChevronDown } from "lucide-react"
 import { useState } from "react"
 import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 import { useCreatorData } from "@/features/creator/hooks/use-creator-data"
 import { useCreatorGate } from "@/features/creator/hooks/use-creator-gate"
@@ -118,28 +124,26 @@ export function WithdrawForm() {
 
       <label className="flex flex-col gap-2 text-sm font-medium tracking-[-0.02em]">
         Bank
-        <span className="relative">
-          <select
-            name="bank"
-            required
-            defaultValue={
-              profile.bankName && banks.includes(profile.bankName)
-                ? profile.bankName
-                : "BCA"
-            }
-            className={`${fieldClass} appearance-none pr-12`}
-          >
+        <Select
+          name="bank"
+          required
+          defaultValue={
+            profile.bankName && banks.includes(profile.bankName)
+              ? profile.bankName
+              : "BCA"
+          }
+        >
+          <SelectTrigger className={fieldClass}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
             {banks.map((name) => (
-              <option key={name} value={name}>
+              <SelectItem key={name} value={name}>
                 {name}
-              </option>
+              </SelectItem>
             ))}
-          </select>
-          <ChevronDown
-            className="pointer-events-none absolute top-1/2 right-4 size-5 -translate-y-1/2 text-black"
-            aria-hidden
-          />
-        </span>
+          </SelectContent>
+        </Select>
       </label>
 
       <label className="flex flex-col gap-2 text-sm font-medium tracking-[-0.02em]">

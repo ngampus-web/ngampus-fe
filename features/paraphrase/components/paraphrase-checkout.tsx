@@ -4,6 +4,13 @@ import { useId, useRef, useState, type ReactNode } from "react"
 import { FileText, Upload, Clock3, MessageCircle } from "lucide-react"
 import { Breadcrumb } from "@/components/layout/breadcrumb"
 import { Button } from "@/components/ui/button"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import type { OrderDraft } from "@/features/payment/types"
 import { filesApi } from "@/lib/api/endpoints/files"
 import {
@@ -445,16 +452,18 @@ export function ParaphraseCheckout({
                 <div className="mt-5 grid gap-4 sm:grid-cols-2">
                   <label className="space-y-2 text-sm">
                     <span>Bahasa dokumen</span>
-                    <select
-                      className={inputStyle}
+                    <Select
                       value={language}
-                      onChange={(e) =>
-                        setLanguage(e.target.value as "id" | "en")
-                      }
+                      onValueChange={(v) => setLanguage(v as "id" | "en")}
                     >
-                      <option value="id">Indonesia</option>
-                      <option value="en">Inggris</option>
-                    </select>
+                      <SelectTrigger className={inputStyle}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="id">Indonesia</SelectItem>
+                        <SelectItem value="en">Inggris</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </label>
                   <label className="space-y-2 text-sm">
                     <span>

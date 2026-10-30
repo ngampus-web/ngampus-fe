@@ -5,6 +5,13 @@ import Link from "next/link"
 import { type FormEvent, useEffect, useId, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { warrantyClaimForm } from "@/features/warranty/data/warranty-claims"
 import { filesApi } from "@/lib/api/endpoints/files"
 import { warrantyApi } from "@/lib/api/endpoints/warranty"
@@ -215,25 +222,32 @@ export function ClaimForm({
               (eligible.status === "error" ? eligible.message : undefined)
             }
           >
-            <select
-              id={`${ids}-order`}
+            <Select
               value={orderCode}
-              onChange={(e) => setOrderCode(e.target.value)}
+              onValueChange={setOrderCode}
               disabled={eligible.status !== "ready"}
-              aria-invalid={!!errors.orderCode}
-              className={cn(fieldClass, "h-12")}
             >
-              <option value="">
-                {eligible.status === "loading"
-                  ? "Memuat pesanan…"
-                  : warrantyClaimForm.orderPlaceholder}
-              </option>
-              {orders.map((order) => (
-                <option key={order.code} value={order.code}>
-                  {order.code} · {order.productName} · {order.planName}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger
+                id={`${ids}-order`}
+                aria-invalid={!!errors.orderCode}
+                className={cn(fieldClass, "h-12 w-full")}
+              >
+                <SelectValue
+                  placeholder={
+                    eligible.status === "loading"
+                      ? "Memuat pesanan…"
+                      : warrantyClaimForm.orderPlaceholder
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {orders.map((order) => (
+                  <SelectItem key={order.code} value={order.code}>
+                    {order.code} · {order.productName} · {order.planName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Field>
 
           <Field
@@ -241,20 +255,27 @@ export function ClaimForm({
             label={warrantyClaimForm.categoryLabel}
             error={errors.category}
           >
-            <select
-              id={`${ids}-category`}
+            <Select
               value={category}
-              onChange={(e) => setCategory(e.target.value as ClaimCategory)}
-              aria-invalid={!!errors.category}
-              className={cn(fieldClass, "h-12")}
+              onValueChange={(v) => setCategory(v as ClaimCategory)}
             >
-              <option value="">{warrantyClaimForm.categoryPlaceholder}</option>
-              {claimCategories.map((c) => (
-                <option key={c.value} value={c.value}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger
+                id={`${ids}-category`}
+                aria-invalid={!!errors.category}
+                className={cn(fieldClass, "h-12 w-full")}
+              >
+                <SelectValue
+                  placeholder={warrantyClaimForm.categoryPlaceholder}
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {claimCategories.map((c) => (
+                  <SelectItem key={c.value} value={c.value}>
+                    {c.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Field>
 
           <Field
