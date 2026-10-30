@@ -75,6 +75,17 @@ export async function getMarketplaceProducts(): Promise<ProductSummary[]> {
   }
 }
 
+/** Products an admin marked "Tampilkan di beranda", in catalog order. */
+export async function getFeaturedProducts(): Promise<ProductSummary[]> {
+  try {
+    return (
+      await serverGet<ProductSummary[]>("/marketplace/products?featured=true")
+    ).data
+  } catch {
+    return []
+  }
+}
+
 /** Browser: search and category filter run on the API. */
 export async function searchMarketplaceProducts(params: {
   category?: string
