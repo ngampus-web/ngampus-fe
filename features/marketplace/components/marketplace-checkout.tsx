@@ -197,11 +197,13 @@ export function MarketplaceCheckout({
             </div>
             <div className="flex shrink-0 gap-2">
               {[
-                isPreorderPlan(offers, packageName)
-                  ? "Pre-order"
-                  : product.isInStock
-                    ? "Stok Tersedia"
-                    : "Stok Habis",
+                product.previewOnly
+                  ? "Pratinjau"
+                  : isPreorderPlan(offers, packageName)
+                    ? "Pre-order"
+                    : product.isInStock
+                      ? "Stok Tersedia"
+                      : "Stok Habis",
                 "Garansi",
               ].map((badge) => (
                 <span
@@ -240,6 +242,7 @@ export function MarketplaceCheckout({
           className="flex flex-col gap-4"
           onSubmit={async (event) => {
             event.preventDefault()
+            if (product.previewOnly || !product.isInStock) return
             if (inFlight.current) return
             inFlight.current = true
             setPayBusy(true)
@@ -453,17 +456,21 @@ export function MarketplaceCheckout({
             </dl>
             <Button
               type="submit"
-              disabled={payBusy || !product.isInStock}
+              disabled={product.previewOnly || payBusy || !product.isInStock}
               className="h-12 w-full rounded-3xl text-base"
             >
-              {!product.isInStock
-                ? "Stok Habis"
-                : payBusy
-                  ? "Menyiapkan pesanan…"
-                  : "Bayar Sekarang"}
+              {product.previewOnly
+                ? "Pembayaran belum tersedia"
+                : !product.isInStock
+                  ? "Stok Habis"
+                  : payBusy
+                    ? "Menyiapkan pesanan…"
+                    : "Bayar Sekarang"}
             </Button>
             <p className="text-center text-xs leading-5 text-subtle">
-              Pratinjau alur pembayaran. Belum ada transaksi nyata.
+              {product.previewOnly
+                ? "Data katalog pratinjau. Pembayaran tersedia setelah layanan terhubung kembali."
+                : "Pratinjau alur pembayaran. Belum ada transaksi nyata."}
             </p>
             {payNote && (
               <p className="text-center text-sm tracking-[-0.02em] text-subtle">

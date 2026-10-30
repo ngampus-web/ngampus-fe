@@ -232,7 +232,7 @@ export function RegisterForm() {
     >
       <Heading
         title="Daftar Sekarang"
-        description="Buat akun Ngampus.id kamu sekarang!"
+        description="Buat akun Ngampus.co.id kamu sekarang!"
       />
       <div className="grid gap-4 sm:grid-cols-2">
         <Field

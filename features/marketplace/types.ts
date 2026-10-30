@@ -15,6 +15,7 @@ export type CheckoutOffer = {
 }
 
 export type MarketplaceCheckout = {
+  previewOnly?: boolean
   slug: string
   name: string
   logo: string

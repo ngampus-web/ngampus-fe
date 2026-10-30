@@ -26,6 +26,7 @@ export interface ProductSummary {
 }
 
 export interface ProductDetail extends ProductSummary {
+  previewOnly?: boolean
   descriptionParagraphs: string[]
   planDescriptions: string[]
   notes: string[]
@@ -101,6 +102,11 @@ export async function getMarketplaceProduct(
     ).data
   } catch (err) {
     if (err instanceof ApiNotFoundError) return null
+    if (process.env.NODE_ENV === "development") {
+      const { previewProducts } = await import("./data/preview-products")
+      const preview = previewProducts.find((product) => product.slug === slug)
+      if (preview) return preview
+    }
     throw err
   }
 }
@@ -112,6 +118,7 @@ const section = (title: string, items: string[]): CheckoutSection[] =>
 export function toCheckout(p: ProductDetail): MarketplaceCheckout {
   return {
     slug: p.slug,
+    previewOnly: p.previewOnly,
     name: p.name,
     logo: productLogo(p),
     rating: p.rating,
@@ -131,7 +138,18 @@ export function toCheckout(p: ProductDetail): MarketplaceCheckout {
     })),
     sections: [
       ...section("Deskripsi", p.descriptionParagraphs),
-      ...section("Penjelasan Plan", p.planDescriptions),
+      ...section("Penjelasan Plan", p.planDescriptions).map((planSection) => ({
+        ...planSection,
+        items: planSection.items.map((item) => {
+          if (p.slug !== "canva") return item
+          const match = item.body.match(
+            /^(Member|Designer|Head\s*\/\s*Owner)\b\s*/i
+          )
+          return match
+            ? { title: match[1], body: item.body.slice(match[0].length) }
+            : item
+        }),
+      })),
       ...section("Catatan Penting", p.notes),
       {
         ...warranty,

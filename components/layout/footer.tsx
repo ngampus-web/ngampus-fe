@@ -65,7 +65,7 @@ export function Footer() {
             {footerColumns.map((column) => (
               <div
                 key={column.title}
-                className="flex w-max min-w-[136px] flex-col gap-4"
+                className={`flex min-w-0 flex-col gap-4 ${column.title === "KONTAK KAMI" ? "col-span-2 sm:col-span-1" : ""}`}
               >
                 <p className="font-semibold tracking-[-0.02em] text-black">
                   {column.title}
@@ -100,6 +100,18 @@ export function Footer() {
                     )
                   })}
                 </ul>
+                {column.title === "KONTAK KAMI" && (
+                  <div className="flex max-w-[220px] items-start gap-2 text-black">
+                    <div className="min-w-0">
+                      <p className="font-semibold tracking-[-0.02em]">
+                        ALAMAT KAMI
+                      </p>
+                      <address className="mt-1 text-sm leading-6 tracking-[-0.02em] not-italic">
+                        {footer.address}
+                      </address>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
