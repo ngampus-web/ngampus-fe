@@ -321,7 +321,7 @@ export function LoginForm() {
     >
       <Heading
         title="Masuk Sekarang"
-        description="Selamat datang kembali di Ngampus.id!"
+        description="Selamat datang kembali di Ngampus.co.id!"
       />
       <Field
         id="email"
@@ -465,7 +465,7 @@ export function ResetPasswordForm() {
     >
       <Heading
         title="Buat Password Baru"
-        description="Masukkan password baru untuk akun Ngampus.id kamu."
+        description="Masukkan password baru untuk akun Ngampus.co.id kamu."
       />
       <PasswordField
         id="password"

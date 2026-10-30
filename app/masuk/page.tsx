@@ -6,7 +6,7 @@ import { AuthShell } from "@/components/layout/auth-shell"
 
 export const metadata: Metadata = {
   title: "Masuk",
-  description: "Masuk ke akun Ngampus.id.",
+  description: "Masuk ke akun Ngampus.co.id.",
 }
 
 export default function LoginPage() {
