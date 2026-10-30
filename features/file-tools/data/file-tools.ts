@@ -1,3 +1,5 @@
+import { CONVERT_ACCEPT } from "@/features/file-tools/lib/convert"
+
 export const fileTools = [
   {
     id: "merge",
@@ -18,16 +20,16 @@ export const fileTools = [
   {
     id: "convert",
     title: "Convert ke PDF",
-    description: "Konversi file DOCX, PPT, dll ke PDF",
-    accept: ".doc,.docx,.ppt,.pptx,.xls,.xlsx,.png,.jpg,.jpeg,application/pdf",
-    multiple: false,
+    description: "Konversi DOCX, gambar, atau teks ke PDF",
+    accept: CONVERT_ACCEPT,
+    multiple: true,
     icon: "convert" as const,
   },
 ]
 
 export const fileToolsUpload = {
   title: "Upload Dokumen",
-  description: "PDF, DOCX, atau PPT.",
+  description: "PDF, DOCX, gambar, atau teks.",
 }
 
 export const fileToolsHowTo = {
@@ -41,7 +43,7 @@ export const fileToolsHowTo = {
     },
     {
       title: "Upload dokumen",
-      description: "Kirim PDF, DOCX, atau PPT.",
+      description: "Kirim PDF, DOCX, gambar, atau teks.",
       icon: "upload" as const,
     },
     {
