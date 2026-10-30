@@ -7,13 +7,7 @@ import { cn } from "@/lib/utils"
 
 const rupiah = (n: number) => `Rp ${n.toLocaleString("id-ID")}`
 
-export function ProductCard({
-  app,
-  catalogFallback = false,
-}: {
-  app: ProductSummary
-  catalogFallback?: boolean
-}) {
+export function ProductCard({ app }: { app: ProductSummary }) {
   return (
     <article className="flex flex-col gap-4 rounded-2xl border border-line bg-white p-5">
       <div className="flex items-center gap-3">
@@ -29,15 +23,11 @@ export function ProductCard({
           <h3 className="text-base font-semibold tracking-[-0.02em]">
             {app.name}
           </h3>
-          {!catalogFallback && (
-            <p className="flex items-center gap-1.5 text-sm tracking-[-0.02em] text-subtle">
-              <Star className="size-4 fill-primary text-primary" aria-hidden />
-              <span className="text-black">{app.rating.toFixed(1)}</span>
-              <span>
-                · Telah Terjual {app.soldCount.toLocaleString("id-ID")}
-              </span>
-            </p>
-          )}
+          <p className="flex items-center gap-1.5 text-sm tracking-[-0.02em] text-subtle">
+            <Star className="size-4 fill-primary text-primary" aria-hidden />
+            <span className="text-black">{app.rating.toFixed(1)}</span>
+            <span>· Telah Terjual {app.soldCount.toLocaleString("id-ID")}</span>
+          </p>
         </div>
       </div>
       <div className="flex flex-col gap-2">
@@ -49,9 +39,7 @@ export function ProductCard({
         </p>
         <div className="flex flex-wrap gap-2">
           {[
-            ...(catalogFallback
-              ? []
-              : [app.isInStock ? "Stok Tersedia" : "Stok Habis"]),
+            app.isInStock ? "Stok Tersedia" : "Stok Habis",
             ...(app.hasPreorder ? ["Pre-order"] : []),
             "Garansi",
           ].map((badge) => (
