@@ -6,21 +6,27 @@ import { useId, useRef, useState } from "react"
 import { Breadcrumb } from "@/components/layout/breadcrumb"
 import { Button } from "@/components/ui/button"
 import {
-  aiCheckNotice,
+  aiCheckNoticeTitle,
   plagiarismCheckout,
   plagiarismFilters,
-  turnitinNotice,
+  turnitinNoticeTitle,
   type PlagiarismService,
 } from "@/features/plagiarism/data/plagiarism"
+import {
+  aiCheckNoticeBody,
+  documentConfig,
+  turnitinNoticeBody,
+  type DocumentConfig,
+} from "@/features/plagiarism/services/document-config"
 
 import { countPdfWords } from "@/features/plagiarism/services/pdf-word-count"
 import {
   AI_CHECK_ACCEPT,
-  aiCheckPricing,
-  countDocumentWords,
+  analyzeDocument,
   documentMime,
   isAiCheckFile,
-  priceAiCheck,
+  quoteAiCheck,
+  type AiCheckPricing,
 } from "@/features/plagiarism/services/document-file"
 import { filesApi } from "@/lib/api/endpoints/files"
 import {
@@ -39,13 +45,32 @@ function rupiah(value: number) {
   return `Rp ${value.toLocaleString("id-ID")}`
 }
 
+const num = (value: number) => value.toLocaleString("id-ID")
+
+/** Problem with the local count against Cek AI limits, if any. */
+function aiLimitError(
+  p: AiCheckPricing,
+  words: number | null,
+  chars: number | null
+) {
+  if (words !== null && words < p.minWords)
+    return `Dokumen minimal ${num(p.minWords)} kata.`
+  if (chars !== null && chars > p.maxChars)
+    return `Dokumen melebihi batas ${num(p.maxChars)} karakter.`
+  return null
+}
+
 export function PlagiarismCheckout({
   service,
+  config = documentConfig,
   onCheckout,
 }: {
   service: PlagiarismService
+  config?: DocumentConfig
   onCheckout: (draft: OrderDraft) => Promise<void>
 }) {
+  const aiPricing = config.aiCheck
+  const turnitin = config.turnitin
   const uploadId = useId()
   const formId = useId()
   const inFlight = useRef(false)
@@ -53,7 +78,7 @@ export function PlagiarismCheckout({
   const [payError, setPayError] = useState("")
   const [promoNote, setPromoNote] = useState("")
   const isAi = service.slug === "cek-ai"
-  const maxWords = service.slug === "turnitin" ? 60000 : Infinity
+  const maxWords = service.slug === "turnitin" ? turnitin.maxWords : Infinity
   // Uploaded once per picked file, so a retried checkout reuses it; guests
   // keep the upload token that proves the file.
   const uploaded = useRef(new WeakMap<File, string>())
@@ -79,10 +104,9 @@ export function PlagiarismCheckout({
       )
       return
     }
-    if (isAi && wordCount !== null && wordCount < aiCheckPricing.minWords) {
-      setPayError(
-        `Dokumen minimal ${aiCheckPricing.minWords.toLocaleString("id-ID")} kata.`
-      )
+    const limit = isAi ? aiLimitError(aiPricing, wordCount, charCount) : null
+    if (limit) {
+      setPayError(limit)
       return
     }
     const slug = service.slug
@@ -121,7 +145,7 @@ export function PlagiarismCheckout({
       }
       await onCheckout({
         phone,
-        amount: price,
+        amount: price ?? aiPricing.startingPrice,
         promoCode: isAi ? promo.trim() || undefined : undefined,
         uploadToken: uploadToken.current,
         details: {
@@ -161,17 +185,23 @@ export function PlagiarismCheckout({
   )
   const [file, setFile] = useState<File | null>(null)
   const [wordCount, setWordCount] = useState<number | null | undefined>(null)
+  const [charCount, setCharCount] = useState<number | null>(null)
   const wordRequest = useRef(0)
   const [excludeAmount, setExcludeAmount] = useState("20")
   const [excludeUnit, setExcludeUnit] = useState<"kata" | "persentase">(
     "persentase"
   )
-  const price = isAi ? priceAiCheck(wordCount) : service.price
+  // Cek AI has no price until the document is counted and within limits.
+  const limitError =
+    isAi && wordCount ? aiLimitError(aiPricing, wordCount, charCount) : null
+  const quote =
+    isAi && wordCount && !limitError ? quoteAiCheck(aiPricing, wordCount) : null
+  const price = isAi ? (quote?.total ?? null) : turnitin.startingPrice
   const notice =
     service.slug === "turnitin"
-      ? turnitinNotice
+      ? { title: turnitinNoticeTitle, body: turnitinNoticeBody(turnitin) }
       : service.slug === "cek-ai"
-        ? aiCheckNotice
+        ? { title: aiCheckNoticeTitle, body: aiCheckNoticeBody(aiPricing) }
         : null
 
   return (
@@ -406,7 +436,7 @@ export function PlagiarismCheckout({
                 const request = wordRequest.current + 1
                 wordRequest.current = request
                 setPayError("")
-                const maxMb = isAi ? aiCheckPricing.maxSizeMb : 10
+                const maxMb = isAi ? aiPricing.maxSizeMb : turnitin.maxSizeMb
                 if (
                   next &&
                   (!(isAi
@@ -419,21 +449,34 @@ export function PlagiarismCheckout({
                   setWordCount(null)
                   setPayError(
                     isAi
-                      ? "Gunakan file PDF, DOCX, DOC, atau TXT yang tidak kosong dengan ukuran maksimal 50 MB."
-                      : "Gunakan PDF yang tidak kosong dengan ukuran maksimal 10 MB."
+                      ? `Gunakan file PDF, DOCX, DOC, atau TXT yang tidak kosong dengan ukuran maksimal ${aiPricing.maxSizeMb} MB.`
+                      : `Gunakan PDF yang tidak kosong dengan ukuran maksimal ${turnitin.maxSizeMb} MB.`
                   )
                   event.target.value = ""
                   return
                 }
                 setFile(next)
+                setCharCount(null)
                 if (!next) {
                   setWordCount(null)
                   return
                 }
                 setWordCount(undefined)
-                ;(isAi ? countDocumentWords(next) : countPdfWords(next))
-                  .then((count) => {
-                    if (wordRequest.current === request) setWordCount(count)
+                ;(isAi
+                  ? analyzeDocument(next)
+                  : countPdfWords(next).then((words) => ({
+                      words,
+                      chars: null,
+                    }))
+                )
+                  .then((stats) => {
+                    if (wordRequest.current !== request) return
+                    setWordCount(stats?.words ?? null)
+                    setCharCount(stats?.chars ?? null)
+                    if (isAi && stats)
+                      setPayError(
+                        aiLimitError(aiPricing, stats.words, stats.chars) ?? ""
+                      )
                   })
                   .catch((error: unknown) => {
                     if (wordRequest.current === request) {
@@ -472,20 +515,30 @@ export function PlagiarismCheckout({
               </span>
             </span>
           </div>
-          <dl className="flex flex-col gap-3 text-sm tracking-[-0.02em]">
-            <div className="flex items-center justify-between">
-              <dt>Subtotal</dt>
-              <dd>{rupiah(price)}</dd>
-            </div>
-            <div className="flex items-center justify-between font-semibold">
-              <dt>Total Pembayaran</dt>
-              <dd>{rupiah(price)}</dd>
-            </div>
-          </dl>
+          {isAi ? (
+            <AiCheckSummary
+              pricing={aiPricing}
+              words={wordCount}
+              chars={charCount}
+              hasFile={!!file}
+              quote={quote}
+            />
+          ) : (
+            <dl className="flex flex-col gap-3 text-sm tracking-[-0.02em]">
+              <div className="flex items-center justify-between">
+                <dt>Subtotal</dt>
+                <dd>{rupiah(turnitin.startingPrice)}</dd>
+              </div>
+              <div className="flex items-center justify-between font-semibold">
+                <dt>Total Pembayaran</dt>
+                <dd>{rupiah(turnitin.startingPrice)}</dd>
+              </div>
+            </dl>
+          )}
           <Button
             type="submit"
             form={formId}
-            disabled={busy || wordCount === undefined}
+            disabled={busy || wordCount === undefined || !!limitError}
             size="pill-lg"
             className="w-full"
           >
@@ -505,5 +558,59 @@ export function PlagiarismCheckout({
         </aside>
       </section>
     </>
+  )
+}
+
+function AiCheckSummary({
+  pricing,
+  words,
+  chars,
+  hasFile,
+  quote,
+}: {
+  pricing: AiCheckPricing
+  words: number | null | undefined
+  chars: number | null
+  hasFile: boolean
+  quote: ReturnType<typeof quoteAiCheck> | null
+}) {
+  const counting = hasFile && words === undefined
+  const overChars = chars !== null && chars > pricing.maxChars
+  const dash = counting ? "Menghitung…" : "–"
+  return (
+    <div className="flex flex-col gap-4">
+      <dl className="flex flex-col gap-3 text-sm tracking-[-0.02em]">
+        <div className="flex items-center justify-between">
+          <dt>Jumlah kata</dt>
+          <dd>{words ? num(words) : dash}</dd>
+        </div>
+        <div className="flex items-center justify-between">
+          <dt>Karakter</dt>
+          <dd className={overChars ? "font-medium text-red-600" : undefined}>
+            {chars !== null ? `${num(chars)} / ${num(pricing.maxChars)}` : dash}
+          </dd>
+        </div>
+        <div className="flex items-center justify-between">
+          <dt>Cek AI (s.d. {num(pricing.baseWords)} kata)</dt>
+          <dd>{quote ? rupiah(quote.base) : "–"}</dd>
+        </div>
+        {quote && quote.extra > 0 && (
+          <div className="flex items-center justify-between">
+            <dt>Tambahan {num(quote.extraWords)} kata</dt>
+            <dd>{rupiah(quote.extra)}</dd>
+          </div>
+        )}
+        <div className="flex items-center justify-between border-t border-line pt-3 font-semibold">
+          <dt>Total Pembayaran</dt>
+          <dd>{quote ? rupiah(quote.total) : "–"}</dd>
+        </div>
+      </dl>
+      <p className="flex gap-2 text-xs leading-5 tracking-[-0.02em] text-subtle">
+        <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+        {hasFile && !counting && words === null
+          ? "Jumlah kata file DOC dihitung setelah dokumen diunggah; total final mengikuti hitungan tersebut."
+          : `Harga mengikuti jumlah kata: ${rupiah(pricing.startingPrice)} s.d. ${num(pricing.baseWords)} kata, +${rupiah(pricing.stepPrice)} per ${num(pricing.stepWords)} kata berikutnya. Minimal ${num(pricing.minWords)} kata, maksimal ${num(pricing.maxChars)} karakter.`}
+      </p>
+    </div>
   )
 }

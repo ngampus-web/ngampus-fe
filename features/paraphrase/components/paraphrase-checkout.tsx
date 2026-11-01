@@ -24,7 +24,11 @@ import type { ParaphraseDetails, ParaphraseKind, Turnaround } from "../types"
 import { countDocxWords } from "../services/docx-word-count"
 import { validateFile, validateParaphrase } from "../services/validation"
 
-import { calculateParaphrasePrice } from "../services/pricing"
+import {
+  calculateParaphrasePrice,
+  paraphraseRates,
+  type ParaphraseRates,
+} from "../services/pricing"
 import { PriceBreakdown } from "./price-breakdown"
 
 const DOCX_MIME =
@@ -80,11 +84,13 @@ function Section({
 function FilePicker({
   label,
   extension,
+  maxFileMb,
   file,
   onSelect,
 }: {
   label: string
   extension: "docx" | "pdf"
+  maxFileMb: number
   file: File | null
   onSelect: (file: File | null) => void
 }) {
@@ -100,7 +106,7 @@ function FilePicker({
         <span className="max-w-full text-xs leading-5 break-all text-subtle">
           {file
             ? `${file.name} · ${formatFileSize(file.size)}`
-            : `${extension.toUpperCase()} · Maksimal 25 MB`}
+            : `${extension.toUpperCase()} · Maksimal ${maxFileMb} MB`}
         </span>
         <span className="text-xs text-primary">
           {file ? "Ganti file" : "Pilih file"}
@@ -135,8 +141,10 @@ function FilePicker({
 }
 export function ParaphraseCheckout({
   onCheckout,
+  rates = paraphraseRates,
 }: {
   onCheckout: (draft: OrderDraft) => Promise<void>
+  rates?: ParaphraseRates
 }) {
   const id = useId()
   const [service, setService] = useState<ParaphraseKind>("turnitin")
@@ -170,16 +178,19 @@ export function ParaphraseCheckout({
   const selectedTime = turnaroundOptions.find((t) => t.id === turnaround)!
   let price = null
   try {
-    price = calculateParaphrasePrice({
-      wordCount: wordCount ?? 0,
-      service,
-      turnaround,
-      reports: reportTypes.map((type) => ({
-        type,
-        initialScore: scores[type].trim() ? Number(scores[type]) : NaN,
-        targetScore: targets[type].trim() ? Number(targets[type]) : NaN,
-      })),
-    })
+    price = calculateParaphrasePrice(
+      {
+        wordCount: wordCount ?? 0,
+        service,
+        turnaround,
+        reports: reportTypes.map((type) => ({
+          type,
+          initialScore: scores[type].trim() ? Number(scores[type]) : NaN,
+          targetScore: targets[type].trim() ? Number(targets[type]) : NaN,
+        })),
+      },
+      rates
+    )
   } catch {
     /* Incomplete/invalid input has no payable quote. */
   }
@@ -192,7 +203,7 @@ export function ParaphraseCheckout({
     setCounting(false)
     if (!next) return
     try {
-      validateFile(next, "docx")
+      validateFile(next, "docx", rates.maxFileMb)
       setDocument(next)
       setCounting(true)
       const count = await countDocxWords(next)
@@ -207,7 +218,7 @@ export function ParaphraseCheckout({
   function selectReport(type: "turnitin" | "ai", next: File | null) {
     setError("")
     try {
-      if (next) validateFile(next, "pdf")
+      if (next) validateFile(next, "pdf", rates.maxFileMb)
       setReports((prev) => ({ ...prev, [type]: next }))
       setScores((prev) => ({ ...prev, [type]: "" }))
     } catch (e) {
@@ -244,6 +255,7 @@ export function ParaphraseCheckout({
       field: field.trim(),
       customerName: name.trim(),
       turnaround,
+      rates,
     }
     try {
       validateParaphrase(details)
@@ -263,7 +275,7 @@ export function ParaphraseCheckout({
         )
       await onCheckout({
         phone,
-        amount: calculateParaphrasePrice(details).total,
+        amount: calculateParaphrasePrice(details, rates).total,
         details,
         uploadToken: uploaded.current.token,
       })
@@ -343,6 +355,7 @@ export function ParaphraseCheckout({
                   <FilePicker
                     label="Dokumen asli"
                     extension="docx"
+                    maxFileMb={rates.maxFileMb}
                     file={document}
                     onSelect={(next) => {
                       void selectDocument(next)
@@ -353,6 +366,7 @@ export function ParaphraseCheckout({
                       key={type}
                       label={`Laporan ${type === "ai" ? "AI" : "Turnitin"}`}
                       extension="pdf"
+                      maxFileMb={rates.maxFileMb}
                       file={reports[type]}
                       onSelect={(next) => selectReport(type, next)}
                     />
@@ -380,8 +394,8 @@ export function ParaphraseCheckout({
               <Section number={3} title="Kebutuhan Parafrase">
                 <p className="mb-5 text-sm leading-6 text-subtle">
                   Isi skor awal sesuai laporan PDF, lalu tentukan target yang
-                  kamu butuhkan. Target minimal 10% dan harus di bawah skor
-                  awal.
+                  kamu butuhkan. Target minimal {rates.minTarget}% dan harus di
+                  bawah skor awal.
                 </p>
                 <div className="space-y-5">
                   {reportTypes.map((type) => (
@@ -528,8 +542,9 @@ export function ParaphraseCheckout({
                         {option.label}
                       </span>
                       <span className="mt-2 block text-sm text-subtle">
-                        {option.duration} · ×
-                        {option.multiplier.toLocaleString("id-ID")}
+                        {option.duration}
+                        {rates.multipliers[option.id] > 1 &&
+                          ` · +${Math.round((rates.multipliers[option.id] - 1) * 100)}%`}
                       </span>
                     </label>
                   ))}

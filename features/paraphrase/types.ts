@@ -1,3 +1,5 @@
+import type { ParaphraseRates } from "./services/pricing"
+
 export type ParaphraseKind = "turnitin" | "ai" | "combined"
 export type Turnaround = "relaxed" | "regular" | "urgent"
 export type FileMetadata = { name: string; size: number }
@@ -24,6 +26,8 @@ export type ParaphraseDetails = {
   field: string
   customerName: string
   turnaround: Turnaround
+  /** Rates the price was quoted with (from Pengaturan admin). */
+  rates?: ParaphraseRates
   /** Schedule from the API (live orders); deadline is set once paid. */
   schedule?: {
     paidAt: string | null

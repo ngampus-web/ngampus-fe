@@ -14,7 +14,14 @@ import {
   plagiarismServices,
 } from "@/features/plagiarism/data/plagiarism"
 
-export function PlagiarismServices({ slides }: { slides: PromoSlide[] }) {
+export function PlagiarismServices({
+  slides,
+  startPrices,
+}: {
+  slides: PromoSlide[]
+  /** Live "Start Rp …" per service slug (Pengaturan admin). */
+  startPrices: Record<string, number>
+}) {
   return (
     <>
       <Breadcrumb
@@ -72,7 +79,7 @@ export function PlagiarismServices({ slides }: { slides: PromoSlide[] }) {
               </div>
               <div className="flex flex-col items-start gap-4">
                 <p className="text-base font-semibold tracking-[-0.02em]">
-                  {formatStartPrice(service.price)}
+                  {formatStartPrice(startPrices[service.slug] ?? service.price)}
                 </p>
                 <Button asChild size="pill">
                   <Link href={`/cek-plagiarisme/${service.slug}`}>

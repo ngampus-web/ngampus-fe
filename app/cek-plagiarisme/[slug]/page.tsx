@@ -6,6 +6,7 @@ import {
   getPlagiarismService,
   plagiarismServices,
 } from "@/features/plagiarism/data/plagiarism"
+import { getDocumentConfig } from "@/features/plagiarism/services/document-services"
 
 export function generateStaticParams() {
   return plagiarismServices.map((service) => ({ slug: service.slug }))
@@ -34,5 +35,5 @@ export default async function PlagiarismServicePage({
   const service = getPlagiarismService(slug)
   if (!service) notFound()
 
-  return <Checkout service={service} />
+  return <Checkout service={service} config={await getDocumentConfig()} />
 }

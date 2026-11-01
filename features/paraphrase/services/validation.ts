@@ -1,23 +1,25 @@
 import type { FileMetadata, ParaphraseDetails } from "../types"
-import {
-  MAX_FILE_SIZE,
-  paraphraseServices,
-  turnaroundOptions,
-} from "../options"
-export function validateFile(file: FileMetadata, extension: "docx" | "pdf") {
+import { paraphraseServices, turnaroundOptions } from "../options"
+import { paraphraseRates } from "./pricing"
+export function validateFile(
+  file: FileMetadata,
+  extension: "docx" | "pdf",
+  maxFileMb = paraphraseRates.maxFileMb
+) {
   if (
     !file.name.toLowerCase().endsWith(`.${extension}`) ||
     !Number.isSafeInteger(file.size) ||
     file.size <= 0 ||
-    file.size > MAX_FILE_SIZE
+    file.size > maxFileMb * 1024 * 1024
   ) {
     throw new Error(
-      `Gunakan file ${extension.toUpperCase()} yang tidak kosong, maksimal 25 MB.`
+      `Gunakan file ${extension.toUpperCase()} yang tidak kosong, maksimal ${maxFileMb} MB.`
     )
   }
 }
 export function validateParaphrase(d: ParaphraseDetails) {
-  validateFile({ name: d.fileName, size: d.fileSize }, "docx")
+  const { maxFileMb, minTarget } = d.rates ?? paraphraseRates
+  validateFile({ name: d.fileName, size: d.fileSize }, "docx", maxFileMb)
   if (
     d.slug !== "parafrase-manual" ||
     !paraphraseServices.some((s) => s.id === d.service)
@@ -46,20 +48,20 @@ export function validateParaphrase(d: ParaphraseDetails) {
   )
     throw new Error("Lengkapi laporan PDF untuk layanan yang dipilih.")
   for (const report of d.reports) {
-    validateFile(report.file, "pdf")
+    validateFile(report.file, "pdf", maxFileMb)
     if (
       !Number.isFinite(report.initialScore) ||
-      report.initialScore <= 10 ||
+      report.initialScore <= minTarget ||
       report.initialScore > 100
     )
-      throw new Error("Skor awal harus lebih dari 10% hingga 100%.")
+      throw new Error(`Skor awal harus lebih dari ${minTarget}% hingga 100%.`)
     if (
       !Number.isFinite(report.targetScore) ||
-      report.targetScore < 10 ||
+      report.targetScore < minTarget ||
       report.targetScore >= report.initialScore
     )
       throw new Error(
-        "Target minimal 10% dan harus lebih rendah dari skor awal."
+        `Target minimal ${minTarget}% dan harus lebih rendah dari skor awal.`
       )
   }
 }
