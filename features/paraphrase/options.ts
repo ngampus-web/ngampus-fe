@@ -20,4 +20,3 @@ export const turnaroundOptions = [
   { id: "regular", label: "Gaskeun", duration: "24–48 Jam" },
   { id: "urgent", label: "Kejar Deadline", duration: "<24 Jam" },
 ] as const
-export const MAX_FILE_SIZE = 25 * 1024 * 1024

@@ -6,10 +6,7 @@ import {
   getPlagiarismService,
   plagiarismServices,
 } from "@/features/plagiarism/data/plagiarism"
-import {
-  getAiCheckPricing,
-  getParaphraseRates,
-} from "@/features/plagiarism/services/document-services"
+import { getDocumentConfig } from "@/features/plagiarism/services/document-services"
 
 export function generateStaticParams() {
   return plagiarismServices.map((service) => ({ slug: service.slug }))
@@ -38,15 +35,5 @@ export default async function PlagiarismServicePage({
   const service = getPlagiarismService(slug)
   if (!service) notFound()
 
-  const aiPricing =
-    service.slug === "cek-ai" ? await getAiCheckPricing() : undefined
-  const paraphraseRates =
-    service.slug === "parafrase-manual" ? await getParaphraseRates() : undefined
-  return (
-    <Checkout
-      service={service}
-      aiPricing={aiPricing}
-      paraphraseRates={paraphraseRates}
-    />
-  )
+  return <Checkout service={service} config={await getDocumentConfig()} />
 }

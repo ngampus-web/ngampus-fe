@@ -10,6 +10,7 @@ export interface ParaphraseRates {
   multipliers: Record<Turnaround, number>
   minTarget: number
   minPrice: number
+  maxFileMb: number
 }
 
 /** Fallback when the API is unreachable; live rates come from `/services/document`. */
@@ -23,6 +24,7 @@ export const paraphraseRates: ParaphraseRates = {
   multipliers: { relaxed: 1, regular: 1.3, urgent: 1.5 },
   minTarget: 10,
   minPrice: MIN_PARAPHRASE_PRICE,
+  maxFileMb: 25,
 }
 
 type PricingInput = Pick<

@@ -84,11 +84,13 @@ function Section({
 function FilePicker({
   label,
   extension,
+  maxFileMb,
   file,
   onSelect,
 }: {
   label: string
   extension: "docx" | "pdf"
+  maxFileMb: number
   file: File | null
   onSelect: (file: File | null) => void
 }) {
@@ -104,7 +106,7 @@ function FilePicker({
         <span className="max-w-full text-xs leading-5 break-all text-subtle">
           {file
             ? `${file.name} · ${formatFileSize(file.size)}`
-            : `${extension.toUpperCase()} · Maksimal 25 MB`}
+            : `${extension.toUpperCase()} · Maksimal ${maxFileMb} MB`}
         </span>
         <span className="text-xs text-primary">
           {file ? "Ganti file" : "Pilih file"}
@@ -201,7 +203,7 @@ export function ParaphraseCheckout({
     setCounting(false)
     if (!next) return
     try {
-      validateFile(next, "docx")
+      validateFile(next, "docx", rates.maxFileMb)
       setDocument(next)
       setCounting(true)
       const count = await countDocxWords(next)
@@ -216,7 +218,7 @@ export function ParaphraseCheckout({
   function selectReport(type: "turnitin" | "ai", next: File | null) {
     setError("")
     try {
-      if (next) validateFile(next, "pdf")
+      if (next) validateFile(next, "pdf", rates.maxFileMb)
       setReports((prev) => ({ ...prev, [type]: next }))
       setScores((prev) => ({ ...prev, [type]: "" }))
     } catch (e) {
@@ -353,6 +355,7 @@ export function ParaphraseCheckout({
                   <FilePicker
                     label="Dokumen asli"
                     extension="docx"
+                    maxFileMb={rates.maxFileMb}
                     file={document}
                     onSelect={(next) => {
                       void selectDocument(next)
@@ -363,6 +366,7 @@ export function ParaphraseCheckout({
                       key={type}
                       label={`Laporan ${type === "ai" ? "AI" : "Turnitin"}`}
                       extension="pdf"
+                      maxFileMb={rates.maxFileMb}
                       file={reports[type]}
                       onSelect={(next) => selectReport(type, next)}
                     />
@@ -390,8 +394,8 @@ export function ParaphraseCheckout({
               <Section number={3} title="Kebutuhan Parafrase">
                 <p className="mb-5 text-sm leading-6 text-subtle">
                   Isi skor awal sesuai laporan PDF, lalu tentukan target yang
-                  kamu butuhkan. Target minimal 10% dan harus di bawah skor
-                  awal.
+                  kamu butuhkan. Target minimal {rates.minTarget}% dan harus di
+                  bawah skor awal.
                 </p>
                 <div className="space-y-5">
                   {reportTypes.map((type) => (

@@ -1,44 +1,41 @@
-import {
-  paraphraseRates,
-  type ParaphraseRates,
-} from "@/features/paraphrase/services/pricing"
 import type { Turnaround } from "@/features/paraphrase/types"
 import { serverGet } from "@/lib/api/server"
 
-import { aiCheckPricing, type AiCheckPricing } from "./document-file"
+import { type DocumentConfig, documentConfig } from "./document-config"
 
-interface DocumentServices {
-  aiCheck: AiCheckPricing
-  paraphrase: Omit<ParaphraseRates, "multipliers"> & {
-    turnarounds: { id: Turnaround; multiplier: number }[]
+interface DocumentServicesResponse {
+  turnitin: DocumentConfig["turnitin"]
+  aiCheck: DocumentConfig["aiCheck"]
+  paraphrase: Partial<Omit<DocumentConfig["paraphrase"], "multipliers">> & {
+    turnarounds?: { id: Turnaround; multiplier: number }[]
   }
 }
 
-async function load() {
+/** Prices and limits from Pengaturan admin; each value falls back to the defaults. */
+export async function getDocumentConfig(): Promise<DocumentConfig> {
+  let data: DocumentServicesResponse
   try {
-    return (await serverGet<DocumentServices>("/services/document")).data
+    data = (await serverGet<DocumentServicesResponse>("/services/document"))
+      .data
   } catch {
-    return null
+    return documentConfig
   }
-}
-
-/** Cek AI prices and limits from Pengaturan admin; falls back to the defaults. */
-export async function getAiCheckPricing(): Promise<AiCheckPricing> {
-  const data = await load()
-  return { ...aiCheckPricing, ...data?.aiCheck }
-}
-
-/** Paraphrase rates from Pengaturan admin; falls back to the defaults. */
-export async function getParaphraseRates(): Promise<ParaphraseRates> {
-  const p = (await load())?.paraphrase
-  if (!p) return paraphraseRates
+  const fallback = documentConfig.paraphrase
+  const p = data.paraphrase ?? {}
   return {
-    tiers: p.tiers ?? paraphraseRates.tiers,
-    minTarget: p.minTarget ?? paraphraseRates.minTarget,
-    minPrice: p.minPrice ?? paraphraseRates.minPrice,
-    multipliers: {
-      ...paraphraseRates.multipliers,
-      ...Object.fromEntries(p.turnarounds.map((t) => [t.id, t.multiplier])),
+    aiCheck: { ...documentConfig.aiCheck, ...data.aiCheck },
+    turnitin: { ...documentConfig.turnitin, ...data.turnitin },
+    paraphrase: {
+      tiers: p.tiers ?? fallback.tiers,
+      minTarget: p.minTarget ?? fallback.minTarget,
+      minPrice: p.minPrice ?? fallback.minPrice,
+      maxFileMb: p.maxFileMb ?? fallback.maxFileMb,
+      multipliers: {
+        ...fallback.multipliers,
+        ...Object.fromEntries(
+          (p.turnarounds ?? []).map((t) => [t.id, t.multiplier])
+        ),
+      },
     },
   }
 }

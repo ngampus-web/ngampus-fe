@@ -6,17 +6,22 @@ import { useId, useRef, useState } from "react"
 import { Breadcrumb } from "@/components/layout/breadcrumb"
 import { Button } from "@/components/ui/button"
 import {
-  aiCheckNotice,
+  aiCheckNoticeTitle,
   plagiarismCheckout,
   plagiarismFilters,
-  turnitinNotice,
+  turnitinNoticeTitle,
   type PlagiarismService,
 } from "@/features/plagiarism/data/plagiarism"
+import {
+  aiCheckNoticeBody,
+  documentConfig,
+  turnitinNoticeBody,
+  type DocumentConfig,
+} from "@/features/plagiarism/services/document-config"
 
 import { countPdfWords } from "@/features/plagiarism/services/pdf-word-count"
 import {
   AI_CHECK_ACCEPT,
-  aiCheckPricing,
   analyzeDocument,
   documentMime,
   isAiCheckFile,
@@ -57,13 +62,15 @@ function aiLimitError(
 
 export function PlagiarismCheckout({
   service,
-  aiPricing = aiCheckPricing,
+  config = documentConfig,
   onCheckout,
 }: {
   service: PlagiarismService
-  aiPricing?: AiCheckPricing
+  config?: DocumentConfig
   onCheckout: (draft: OrderDraft) => Promise<void>
 }) {
+  const aiPricing = config.aiCheck
+  const turnitin = config.turnitin
   const uploadId = useId()
   const formId = useId()
   const inFlight = useRef(false)
@@ -71,7 +78,7 @@ export function PlagiarismCheckout({
   const [payError, setPayError] = useState("")
   const [promoNote, setPromoNote] = useState("")
   const isAi = service.slug === "cek-ai"
-  const maxWords = service.slug === "turnitin" ? 60000 : Infinity
+  const maxWords = service.slug === "turnitin" ? turnitin.maxWords : Infinity
   // Uploaded once per picked file, so a retried checkout reuses it; guests
   // keep the upload token that proves the file.
   const uploaded = useRef(new WeakMap<File, string>())
@@ -189,12 +196,12 @@ export function PlagiarismCheckout({
     isAi && wordCount ? aiLimitError(aiPricing, wordCount, charCount) : null
   const quote =
     isAi && wordCount && !limitError ? quoteAiCheck(aiPricing, wordCount) : null
-  const price = isAi ? (quote?.total ?? null) : service.price
+  const price = isAi ? (quote?.total ?? null) : turnitin.startingPrice
   const notice =
     service.slug === "turnitin"
-      ? turnitinNotice
+      ? { title: turnitinNoticeTitle, body: turnitinNoticeBody(turnitin) }
       : service.slug === "cek-ai"
-        ? aiCheckNotice
+        ? { title: aiCheckNoticeTitle, body: aiCheckNoticeBody(aiPricing) }
         : null
 
   return (
@@ -429,7 +436,7 @@ export function PlagiarismCheckout({
                 const request = wordRequest.current + 1
                 wordRequest.current = request
                 setPayError("")
-                const maxMb = isAi ? aiPricing.maxSizeMb : 10
+                const maxMb = isAi ? aiPricing.maxSizeMb : turnitin.maxSizeMb
                 if (
                   next &&
                   (!(isAi
@@ -443,7 +450,7 @@ export function PlagiarismCheckout({
                   setPayError(
                     isAi
                       ? `Gunakan file PDF, DOCX, DOC, atau TXT yang tidak kosong dengan ukuran maksimal ${aiPricing.maxSizeMb} MB.`
-                      : "Gunakan PDF yang tidak kosong dengan ukuran maksimal 10 MB."
+                      : `Gunakan PDF yang tidak kosong dengan ukuran maksimal ${turnitin.maxSizeMb} MB.`
                   )
                   event.target.value = ""
                   return
@@ -520,11 +527,11 @@ export function PlagiarismCheckout({
             <dl className="flex flex-col gap-3 text-sm tracking-[-0.02em]">
               <div className="flex items-center justify-between">
                 <dt>Subtotal</dt>
-                <dd>{rupiah(service.price)}</dd>
+                <dd>{rupiah(turnitin.startingPrice)}</dd>
               </div>
               <div className="flex items-center justify-between font-semibold">
                 <dt>Total Pembayaran</dt>
-                <dd>{rupiah(service.price)}</dd>
+                <dd>{rupiah(turnitin.startingPrice)}</dd>
               </div>
             </dl>
           )}

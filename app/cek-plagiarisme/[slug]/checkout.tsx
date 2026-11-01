@@ -3,26 +3,23 @@ import { ParaphraseCheckout } from "@/features/paraphrase/components/paraphrase-
 import { PlagiarismCheckout } from "@/features/plagiarism/components/plagiarism-checkout"
 import type { PlagiarismService } from "@/features/plagiarism/data/plagiarism"
 import { useCheckoutPayment } from "@/features/payment/components/checkout-entry"
-import type { ParaphraseRates } from "@/features/paraphrase/services/pricing"
-import type { AiCheckPricing } from "@/features/plagiarism/services/document-file"
+import type { DocumentConfig } from "@/features/plagiarism/services/document-config"
 export function Checkout({
   service,
-  aiPricing,
-  paraphraseRates,
+  config,
 }: {
   service: PlagiarismService
-  aiPricing?: AiCheckPricing
-  paraphraseRates?: ParaphraseRates
+  config: DocumentConfig
 }) {
   const onCheckout = useCheckoutPayment()
   if (service.slug === "parafrase-manual")
     return (
-      <ParaphraseCheckout onCheckout={onCheckout} rates={paraphraseRates} />
+      <ParaphraseCheckout onCheckout={onCheckout} rates={config.paraphrase} />
     )
   return (
     <PlagiarismCheckout
       service={service}
-      aiPricing={aiPricing}
+      config={config}
       onCheckout={onCheckout}
     />
   )

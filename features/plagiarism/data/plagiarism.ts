@@ -86,15 +86,8 @@ export function formatStartPrice(price: number) {
   return `Start Rp ${price.toLocaleString("id-ID")}/file`
 }
 
-export const turnitinNotice = {
-  title: "Ketentuan Similarity Check",
-  body: "Dokumen yang kamu cek maksimal 10 MB, 200 halaman, atau 60.000 kata. Tenang, dokumenmu dijamin 100% No-Repository dan tidak tersimpan di database Turnitin.",
-}
-
-export const aiCheckNotice = {
-  title: "Ketentuan Cek AI",
-  body: "Dokumen PDF, DOCX, DOC, atau TXT maksimal 50 MB, minimal 250 kata & maksimal 50.000 karakter. Rp6.000 untuk 6.000 kata pertama, lalu Rp1.000 per 1.000 kata. Pengecekan menggunakan GPTZero untuk mendeteksi tulisan ChatGPT, Claude, Gemini, DeepSeek, dan AI lainnya, serta dokumen tidak tersimpan di database.",
-}
+export const turnitinNoticeTitle = "Ketentuan Similarity Check"
+export const aiCheckNoticeTitle = "Ketentuan Cek AI"
 
 export const plagiarismCheckout = {
   summaryTitle: "Ringkasan Pembayaran",
@@ -125,24 +118,30 @@ export const plagiarismFilters = [
   },
 ] as const
 
+const rp = (value: number) => `Rp${value.toLocaleString("id-ID")}`
+
 /** Shown when the banner API is unavailable or has no live banners. */
-export const fallbackPlagiarismSlides: PromoSlide[] = [
-  {
-    image: "/images/plagiarism/banner-paraphrase-481e56460a.png",
-    href: "/cek-plagiarisme/parafrase-manual",
-    label: "Parafrase",
-    alt: "Jasa parafrase bergaransi dan cepat, mulai dari Rp25.000 per file",
-  },
-  {
-    image: "/images/plagiarism/banner-turnitin-770cddf96c.png",
-    href: "/cek-plagiarisme/turnitin",
-    label: "Turnitin",
-    alt: "Cek persentase plagiarisme murah, mulai dari Rp7.000 per file",
-  },
-  {
-    image: "/images/plagiarism/banner-ai-fc01e12299.png",
-    href: "/cek-plagiarisme/cek-ai",
-    label: "Cek AI",
-    alt: "Cek persentase AI 24 jam non-stop, mulai dari Rp6.000 per file",
-  },
-]
+export function fallbackPlagiarismSlides(
+  prices: Record<string, number>
+): PromoSlide[] {
+  return [
+    {
+      image: "/images/plagiarism/banner-paraphrase-481e56460a.png",
+      href: "/cek-plagiarisme/parafrase-manual",
+      label: "Parafrase",
+      alt: `Jasa parafrase bergaransi dan cepat, mulai dari ${rp(prices["parafrase-manual"])} per file`,
+    },
+    {
+      image: "/images/plagiarism/banner-turnitin-770cddf96c.png",
+      href: "/cek-plagiarisme/turnitin",
+      label: "Turnitin",
+      alt: `Cek persentase plagiarisme murah, mulai dari ${rp(prices.turnitin)} per file`,
+    },
+    {
+      image: "/images/plagiarism/banner-ai-fc01e12299.png",
+      href: "/cek-plagiarisme/cek-ai",
+      label: "Cek AI",
+      alt: `Cek persentase AI 24 jam non-stop, mulai dari ${rp(prices["cek-ai"])} per file`,
+    },
+  ]
+}
