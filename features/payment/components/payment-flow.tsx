@@ -165,12 +165,12 @@ export function PaymentFlow({
       setBusy(false)
     }
   }
-  async function downloadResult() {
+  async function downloadResult(file: "document" | "report" = "document") {
     setBusy(true)
     setError("")
     try {
       // Presigned with an attachment name: the browser downloads it.
-      window.location.assign(await apiGateway.resultUrl(orderId))
+      window.location.assign(await apiGateway.resultUrl(orderId, file))
     } catch (e) {
       setError(e instanceof Error ? e.message : "Hasil belum dapat diunduh.")
     } finally {
@@ -596,6 +596,18 @@ export function PaymentFlow({
                       ? "Unduh Laporan AI"
                       : "Unduh Hasil Parafrase"}
                 </Button>
+                {live &&
+                  details.kind === "paraphrase" &&
+                  details.hasResultReport && (
+                    <Button
+                      disabled={busy}
+                      variant="outline"
+                      onClick={() => void downloadResult("report")}
+                      className="h-12 w-full rounded-full"
+                    >
+                      Unduh Laporan Pengecekan Akhir
+                    </Button>
+                  )}
                 {!canDownload && (
                   <p className="-mt-3 text-center text-xs text-subtle">
                     {live && details.kind === "document"

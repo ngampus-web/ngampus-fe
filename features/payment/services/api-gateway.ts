@@ -43,6 +43,7 @@ function paraphraseDetails(
       startedAt: d.startedAt,
     },
     hasResult: d.hasResult,
+    hasResultReport: d.hasResultReport,
   }
 }
 
@@ -197,8 +198,11 @@ export const apiGateway = {
     if (!res.success) fail(res.error.message)
   },
 
-  async resultUrl(code: string): Promise<string> {
-    const res = await ordersApi.result(code)
+  async resultUrl(
+    code: string,
+    file: "document" | "report" = "document"
+  ): Promise<string> {
+    const res = await ordersApi.result(code, file)
     if (!res.success) return fail(res.error.message)
     return res.data.url
   },

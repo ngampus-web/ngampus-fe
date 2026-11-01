@@ -123,9 +123,9 @@ export const ordersApi = {
   },
 
   /** Presigned download of a completed order's result. */
-  result(code: string) {
+  result(code: string, file: "document" | "report" = "document") {
     return apiClient.get<{ url: string; expiresAt: string }>(
-      `/orders/${encodeURIComponent(code)}/result`,
+      `/orders/${encodeURIComponent(code)}/result?file=${file}`,
       tokenOf(code)
     )
   },

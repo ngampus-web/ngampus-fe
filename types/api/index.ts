@@ -135,6 +135,7 @@ export interface MarketplaceOrderDetails {
 }
 
 export interface ParaphraseOrderDetails {
+  hasResultReport: boolean
   kind: "paraphrase"
   service: "turnitin" | "ai" | "combined"
   fileName: string
