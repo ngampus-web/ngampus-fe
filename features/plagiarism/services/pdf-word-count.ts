@@ -1,5 +1,25 @@
+const WORD = /[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*/gu
+
+export const countWords = (text: string) =>
+  (text.normalize("NFKC").match(WORD) ?? []).length
+
+/** Characters as the server (and GPTZero) count them: spaces collapsed. */
+export const countChars = (text: string) =>
+  text.normalize("NFKC").replace(/\s+/g, " ").trim().length
+
 /** Extract locally: file contents never leave the browser. */
 export async function countPdfWords(file: Blob): Promise<number> {
+  const total = countWords(await extractPdfText(file))
+  if (total === 0) {
+    throw new Error(
+      "Tidak ada teks yang dapat dihitung. Jika PDF berupa hasil scan atau gambar, lakukan OCR terlebih dahulu."
+    )
+  }
+  return total
+}
+
+/** Text of every page, joined like the server's analyzer. */
+export async function extractPdfText(file: Blob): Promise<string> {
   const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs")
   const assets = `/pdfjs/${pdfjs.version}`
   if (typeof window !== "undefined") {
@@ -19,7 +39,7 @@ export async function countPdfWords(file: Blob): Promise<number> {
   })
   try {
     const pdf = await task.promise
-    let total = 0
+    let all = ""
     for (let number = 1; number <= pdf.numPages; number += 1) {
       const page = await pdf.getPage(number)
       const content = await page.getTextContent()
@@ -30,19 +50,10 @@ export async function countPdfWords(file: Blob): Promise<number> {
           "str" in item ? item.str + (item.hasEOL ? "\n" : "") : ""
         )
         .join("")
-      total += (
-        text
-          .normalize("NFKC")
-          .match(/[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*/gu) ?? []
-      ).length
+      all += text + "\n"
       page.cleanup()
     }
-    if (total === 0) {
-      throw new Error(
-        "Tidak ada teks yang dapat dihitung. Jika PDF berupa hasil scan atau gambar, lakukan OCR terlebih dahulu."
-      )
-    }
-    return total
+    return all
   } catch (error) {
     if (error instanceof Error && error.name === "PasswordException") {
       throw new Error(

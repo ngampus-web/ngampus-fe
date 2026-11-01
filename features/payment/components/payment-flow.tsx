@@ -120,7 +120,9 @@ export function PaymentFlow({
     "WhatsApp/Email"
   // A failed live document check keeps its payment; the file can be replaced.
   const docFailed = live && details.kind === "document" && status === "failed"
-  const statusLabel = docFailed ? "Dokumen Gagal Diproses" : statusLabels[status]
+  const statusLabel = docFailed
+    ? "Dokumen Gagal Diproses"
+    : statusLabels[status]
   const activeStep =
     status === "completed" ? 2 : status === "processing" || docFailed ? 1 : 0
   const seconds = Math.max(
@@ -639,7 +641,9 @@ export function PaymentFlow({
             <h2 className="font-semibold">Ringkasan pembayaran</h2>
           </div>
           {details.kind === "paraphrase" && (
-            <PriceBreakdown price={calculateParaphrasePrice(details)} />
+            <PriceBreakdown
+              price={calculateParaphrasePrice(details, details.rates)}
+            />
           )}
           <dl className="space-y-4 text-sm">
             <div className="flex justify-between gap-4">

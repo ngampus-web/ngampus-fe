@@ -1,20 +1,21 @@
-export async function countDocxWords(file: Blob) {
+import { countWords } from "@/features/plagiarism/services/pdf-word-count"
+
+export async function extractDocxText(file: Blob): Promise<string> {
   const { default: mammoth } = await import("mammoth/mammoth.browser.js")
-  let text: string
   try {
     const result = await mammoth.extractRawText({
       arrayBuffer: await file.arrayBuffer(),
     })
-    text = result.value
+    return result.value
   } catch {
     throw new Error(
       "DOCX tidak dapat dibaca. Pastikan file tidak rusak atau dilindungi kata sandi, lalu ekspor ulang sebagai DOCX."
     )
   }
-  const count = (
-    text.normalize("NFKC").match(/[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*/gu) ??
-    []
-  ).length
+}
+
+export async function countDocxWords(file: Blob) {
+  const count = countWords(await extractDocxText(file))
   if (!count)
     throw new Error(
       "Tidak ada teks dalam DOCX. Gunakan dokumen yang berisi tulisan, bukan hanya gambar."

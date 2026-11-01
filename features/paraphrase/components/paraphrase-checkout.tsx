@@ -24,7 +24,11 @@ import type { ParaphraseDetails, ParaphraseKind, Turnaround } from "../types"
 import { countDocxWords } from "../services/docx-word-count"
 import { validateFile, validateParaphrase } from "../services/validation"
 
-import { calculateParaphrasePrice } from "../services/pricing"
+import {
+  calculateParaphrasePrice,
+  paraphraseRates,
+  type ParaphraseRates,
+} from "../services/pricing"
 import { PriceBreakdown } from "./price-breakdown"
 
 const DOCX_MIME =
@@ -135,8 +139,10 @@ function FilePicker({
 }
 export function ParaphraseCheckout({
   onCheckout,
+  rates = paraphraseRates,
 }: {
   onCheckout: (draft: OrderDraft) => Promise<void>
+  rates?: ParaphraseRates
 }) {
   const id = useId()
   const [service, setService] = useState<ParaphraseKind>("turnitin")
@@ -170,16 +176,19 @@ export function ParaphraseCheckout({
   const selectedTime = turnaroundOptions.find((t) => t.id === turnaround)!
   let price = null
   try {
-    price = calculateParaphrasePrice({
-      wordCount: wordCount ?? 0,
-      service,
-      turnaround,
-      reports: reportTypes.map((type) => ({
-        type,
-        initialScore: scores[type].trim() ? Number(scores[type]) : NaN,
-        targetScore: targets[type].trim() ? Number(targets[type]) : NaN,
-      })),
-    })
+    price = calculateParaphrasePrice(
+      {
+        wordCount: wordCount ?? 0,
+        service,
+        turnaround,
+        reports: reportTypes.map((type) => ({
+          type,
+          initialScore: scores[type].trim() ? Number(scores[type]) : NaN,
+          targetScore: targets[type].trim() ? Number(targets[type]) : NaN,
+        })),
+      },
+      rates
+    )
   } catch {
     /* Incomplete/invalid input has no payable quote. */
   }
@@ -244,6 +253,7 @@ export function ParaphraseCheckout({
       field: field.trim(),
       customerName: name.trim(),
       turnaround,
+      rates,
     }
     try {
       validateParaphrase(details)
@@ -263,7 +273,7 @@ export function ParaphraseCheckout({
         )
       await onCheckout({
         phone,
-        amount: calculateParaphrasePrice(details).total,
+        amount: calculateParaphrasePrice(details, rates).total,
         details,
         uploadToken: uploaded.current.token,
       })
@@ -528,8 +538,9 @@ export function ParaphraseCheckout({
                         {option.label}
                       </span>
                       <span className="mt-2 block text-sm text-subtle">
-                        {option.duration} · ×
-                        {option.multiplier.toLocaleString("id-ID")}
+                        {option.duration}
+                        {rates.multipliers[option.id] > 1 &&
+                          ` · +${Math.round((rates.multipliers[option.id] - 1) * 100)}%`}
                       </span>
                     </label>
                   ))}

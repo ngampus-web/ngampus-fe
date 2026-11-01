@@ -8,12 +8,14 @@ export function applyPriceFormula({
   ratePerWord,
   ratePerPoint,
   multiplier,
+  minPrice = MIN_PARAPHRASE_PRICE,
 }: {
   wordCount: number
   reduction: number
   ratePerWord: number
   ratePerPoint: number
   multiplier: number
+  minPrice?: number
 }) {
   if (
     !Number.isSafeInteger(wordCount) ||
@@ -32,7 +34,7 @@ export function applyPriceFormula({
   )
   if (!Number.isSafeInteger(formulaTotal) || formulaTotal <= 0)
     throw new Error("Total harga tidak valid.")
-  const total = Math.max(formulaTotal, MIN_PARAPHRASE_PRICE)
+  const total = Math.max(formulaTotal, minPrice)
   return {
     wordCount,
     reduction,
@@ -42,6 +44,8 @@ export function applyPriceFormula({
     wordCost: wordCostMinor / 100,
     reductionCost: reductionCostMinor / 100,
     basePrice: baseMinor / 100,
+    /** Turnaround surcharge in rupiah (0 for ×1). */
+    surcharge: formulaTotal - Math.round(baseMinor / 100),
     /** Added to reach the minimum price (0 when the formula is above it). */
     minimumTopUp: total - formulaTotal,
     total,

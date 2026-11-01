@@ -24,10 +24,14 @@ export function PriceBreakdown({ price }: { price: ParaphrasePrice }) {
         <span>Harga dasar</span>
         <span>Rp {number(price.basePrice)}</span>
       </div>
-      <div className="flex justify-between gap-3">
-        <span>Multiplier pengerjaan</span>
-        <span>×{number(price.multiplier)}</span>
-      </div>
+      {price.surcharge > 0 && (
+        <div className="flex justify-between gap-3">
+          <span>
+            Biaya percepatan (+{Math.round((price.multiplier - 1) * 100)}%)
+          </span>
+          <span>Rp {number(price.surcharge)}</span>
+        </div>
+      )}
       {price.minimumTopUp > 0 && (
         <div className="flex justify-between gap-3">
           <span>Penyesuaian harga minimum</span>

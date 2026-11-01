@@ -62,7 +62,7 @@ export function validateDraft(draft: OrderDraft) {
       throw new Error("Filter dokumen tidak valid.")
   } else if (d.kind === "paraphrase") {
     validateParaphrase(d)
-    if (draft.amount !== calculateParaphrasePrice(d).total)
+    if (draft.amount !== calculateParaphrasePrice(d, d.rates).total)
       throw new Error(
         "Harga parafrase tidak sesuai rincian pesanan. Buat ulang pesanan."
       )
