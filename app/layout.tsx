@@ -1,6 +1,8 @@
 import type { Metadata } from "next"
 import { Geist_Mono, Inter } from "next/font/google"
 import { SiteChrome } from "@/components/layout/site-chrome"
+import { Footer } from "@/components/layout/footer"
+import { getGlobalContent } from "@/features/content/global"
 import "./globals.css"
 
 const inter = Inter({
@@ -22,14 +24,15 @@ export const metadata: Metadata = {
     "Platform kuliah all-in-one: cek plagiasi, deteksi AI, akses AI premium, dan file tools untuk mahasiswa Indonesia.",
 }
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const global = await getGlobalContent()
   return (
     <html
       lang="id"
       className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
-        <SiteChrome>{children}</SiteChrome>
+        <SiteChrome footer={<Footer content={global} />}>{children}</SiteChrome>
       </body>
     </html>
   )

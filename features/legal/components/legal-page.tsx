@@ -5,10 +5,14 @@ export function LegalPage({
   title,
   sections,
   description,
+  contentHtml,
+  effectiveDate,
 }: {
   title: string
   sections: LegalSection[]
   description: string
+  contentHtml?: string
+  effectiveDate?: string
 }) {
   return (
     <>
@@ -19,30 +23,40 @@ export function LegalPage({
             {title}
           </h1>
           <p className="tracking-[-0.02em]">{description}</p>
+          {effectiveDate && (
+            <p className="text-sm text-subtle">Berlaku sejak {effectiveDate}</p>
+          )}
         </header>
         <div className="flex max-w-[860px] flex-col gap-8">
-          {sections.map((section) => (
-            <section key={section.title} className="flex flex-col gap-2">
-              <h2 className="text-base font-semibold tracking-[-0.02em]">
-                {section.title}
-              </h2>
-              {section.paragraphs?.map((paragraph) => (
-                <p
-                  key={paragraph}
-                  className="text-base leading-7 tracking-[-0.02em]"
-                >
-                  {paragraph}
-                </p>
-              ))}
-              {section.items && (
-                <ul className="list-disc space-y-1 pl-5 text-base leading-7 tracking-[-0.02em]">
-                  {section.items.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-              )}
-            </section>
-          ))}
+          {contentHtml ? (
+            <div
+              className="space-y-4 [&_a]:text-primary [&_a]:underline [&_h2]:text-xl [&_h2]:font-semibold [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5"
+              dangerouslySetInnerHTML={{ __html: contentHtml }}
+            />
+          ) : (
+            sections.map((section) => (
+              <section key={section.title} className="flex flex-col gap-2">
+                <h2 className="text-base font-semibold tracking-[-0.02em]">
+                  {section.title}
+                </h2>
+                {section.paragraphs?.map((paragraph) => (
+                  <p
+                    key={paragraph}
+                    className="text-base leading-7 tracking-[-0.02em]"
+                  >
+                    {paragraph}
+                  </p>
+                ))}
+                {section.items && (
+                  <ul className="list-disc space-y-1 pl-5 text-base leading-7 tracking-[-0.02em]">
+                    {section.items.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+            ))
+          )}
         </div>
       </article>
     </>

@@ -5,6 +5,7 @@ import { SectionHeading } from "@/components/shared/section-heading"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { toolCategories } from "@/features/home/data/home"
+import type { PageContent } from "@/features/content/api"
 
 const categoryMascots: Record<
   string,
@@ -27,19 +28,20 @@ const categoryMascots: Record<
   },
 }
 
-export function ToolCategories() {
+export function ToolCategories({
+  content = toolCategories,
+}: {
+  content?: PageContent<"home">["toolCategories"]
+}) {
   return (
     <section
       id="tools"
       className="mx-auto flex w-full max-w-[1280px] scroll-mt-20 flex-col gap-10 px-5 py-16 text-black md:px-10 lg:gap-15 lg:p-20"
     >
-      <SectionHeading
-        title={toolCategories.title}
-        description={toolCategories.description}
-      />
+      <SectionHeading title={content.title} description={content.description} />
       <div className="grid items-stretch gap-4 md:grid-cols-3">
-        {toolCategories.items.map((item) => {
-          const mascot = categoryMascots[item.title]
+        {content.items.map((item, index) => {
+          const mascot = Object.values(categoryMascots)[index]
           return (
             <Card
               key={item.title}

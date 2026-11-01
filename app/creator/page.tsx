@@ -1,13 +1,13 @@
-import type { Metadata } from "next"
 import { CreatorLanding } from "@/features/creator/components/creator-landing"
 import { contentApi } from "@/lib/api/endpoints/content"
+import { getPageContent, pageMetadata } from "@/features/content/api"
 
-export const metadata: Metadata = {
-  title: "Ngampus Creator",
-  description:
-    "Syarat social media, fee, dan cara submit untuk campaign UGC Ngampus.",
-}
+export const generateMetadata = () => pageMetadata("creator")
 
 export default async function CreatorPage() {
-  return <CreatorLanding examples={await contentApi.creatorExamples()} />
+  const [examples, content] = await Promise.all([
+    contentApi.creatorExamples(),
+    getPageContent("creator"),
+  ])
+  return <CreatorLanding examples={examples} content={content} />
 }

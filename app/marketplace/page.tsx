@@ -1,5 +1,3 @@
-import type { Metadata } from "next"
-
 import {
   getMarketplaceCategories,
   getMarketplaceProducts,
@@ -8,25 +6,25 @@ import { bannersToSlides } from "@/components/shared/promo-slides"
 import { MarketplaceCatalog } from "@/features/marketplace/components/marketplace-catalog"
 import { fallbackMarketplaceSlides } from "@/features/marketplace/data/marketplace"
 import { contentApi } from "@/lib/api/endpoints/content"
+import { getPageContent, pageMetadata } from "@/features/content/api"
 
-export const metadata: Metadata = {
-  title: "Marketplace",
-  description:
-    "Beli akses ChatGPT, Claude, Gemini, Canva, CapCut, dan Spotify.",
-}
+export const generateMetadata = () => pageMetadata("marketplace")
 
 export default async function MarketplacePage() {
-  const [categories, products, banners] = await Promise.all([
+  const [categories, products, banners, content] = await Promise.all([
     getMarketplaceCategories(),
     getMarketplaceProducts(),
-    contentApi.banners("marketplace", []),
+    contentApi.banners("marketplace", null),
+    getPageContent("marketplace"),
   ])
-  const slides = bannersToSlides(banners)
+  const slides =
+    banners === null ? fallbackMarketplaceSlides : bannersToSlides(banners)
   return (
     <MarketplaceCatalog
       initialProducts={products}
       categories={categories}
-      promoSlides={slides.length ? slides : fallbackMarketplaceSlides}
+      promoSlides={slides}
+      content={content}
     />
   )
 }

@@ -1,18 +1,17 @@
-import type { Metadata } from "next"
-
 import { LegalPage } from "@/features/legal/components/legal-page"
-import { privacyIntro, privacySections } from "@/features/legal/data/legal"
+import { privacySections } from "@/features/legal/data/legal"
+import { getPageContent, pageMetadata } from "@/features/content/api"
 
-export const metadata: Metadata = {
-  title: "Kebijakan Privasi",
-  description: privacyIntro,
-}
+export const generateMetadata = () => pageMetadata("privacy")
 
-export default function PrivacyPage() {
+export default async function PrivacyPage() {
+  const content = await getPageContent("privacy")
   return (
     <LegalPage
-      title="Kebijakan Privasi"
-      description={privacyIntro}
+      title={content.title}
+      description={content.description}
+      contentHtml={content.contentHtml}
+      effectiveDate={content.effectiveDate}
       sections={privacySections}
     />
   )

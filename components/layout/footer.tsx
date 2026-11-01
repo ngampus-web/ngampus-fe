@@ -2,8 +2,8 @@ import { Mail, Phone } from "lucide-react"
 import Link from "next/link"
 
 import { Logo } from "@/components/layout/logo"
-import { footer } from "@/config/site"
 import { footerColumns, type NavLink } from "@/config/navigation"
+import type { GlobalContent } from "@/lib/api/endpoints/content"
 
 function ContactIcon({ icon }: { icon: NavLink["icon"] }) {
   if (icon === "phone") {
@@ -47,7 +47,36 @@ function ContactIcon({ icon }: { icon: NavLink["icon"] }) {
   return null
 }
 
-export function Footer() {
+export function Footer({ content }: { content: GlobalContent }) {
+  const { footer, contacts } = content
+  const contactsLinks: NavLink[] = [
+    {
+      label: `+${contacts.whatsapp}`,
+      href: `https://wa.me/${contacts.whatsapp}`,
+      icon: "phone",
+    },
+    { label: contacts.email, href: `mailto:${contacts.email}`, icon: "email" },
+    ...(contacts.tiktok
+      ? [{ label: "TikTok", href: contacts.tiktok, icon: "tiktok" as const }]
+      : []),
+    ...(contacts.instagram
+      ? [
+          {
+            label: "Instagram",
+            href: contacts.instagram,
+            icon: "instagram" as const,
+          },
+        ]
+      : []),
+  ]
+  const columns: { title: string; links: NavLink[] }[] = [
+    {
+      title: footer.menuTitle,
+      links: [...footerColumns[0].links, ...footer.links],
+    },
+    { title: footer.servicesTitle, links: footerColumns[1].links },
+    { title: footer.contactsTitle, links: contactsLinks },
+  ]
   return (
     <footer id="kontak" className="bg-surface-footer">
       <div className="mx-auto flex max-w-[1280px] flex-col px-5 py-15 md:px-10">
@@ -62,10 +91,10 @@ export function Footer() {
           </div>
 
           <div className="grid grid-cols-2 gap-10 sm:grid-cols-3 lg:gap-15">
-            {footerColumns.map((column) => (
+            {columns.map((column, index) => (
               <div
                 key={column.title}
-                className={`flex min-w-0 flex-col gap-4 ${column.title === "KONTAK KAMI" ? "col-span-2 sm:col-span-1" : ""}`}
+                className={`flex min-w-0 flex-col gap-4 ${index === 2 ? "col-span-2 sm:col-span-1" : ""}`}
               >
                 <p className="font-semibold tracking-[-0.02em] text-black">
                   {column.title}
@@ -100,15 +129,18 @@ export function Footer() {
                     )
                   })}
                 </ul>
-                {column.title === "KONTAK KAMI" && (
+                {index === 2 && (
                   <div className="flex max-w-[220px] items-start gap-2 text-black">
                     <div className="min-w-0">
                       <p className="font-semibold tracking-[-0.02em]">
-                        ALAMAT KAMI
+                        {footer.addressTitle}
                       </p>
                       <address className="mt-1 text-sm leading-6 tracking-[-0.02em] not-italic">
                         {footer.address}
                       </address>
+                      {contacts.supportHours && (
+                        <p className="mt-2 text-sm">{contacts.supportHours}</p>
+                      )}
                     </div>
                   </div>
                 )}

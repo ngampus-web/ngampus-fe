@@ -11,6 +11,7 @@ import {
 import { SectionHeading } from "@/components/shared/section-heading"
 import { Card } from "@/components/ui/card"
 import { whyNgampus } from "@/features/home/data/home"
+import type { PageContent } from "@/features/content/api"
 
 const benefitIcons: Record<string, LucideIcon> = {
   "Harga Bersahabat": Wallet,
@@ -21,14 +22,18 @@ const benefitIcons: Record<string, LucideIcon> = {
   "Lengkap dalam satu tempat": Layers,
 }
 
-export function WhyNgampus() {
+export function WhyNgampus({
+  content = whyNgampus,
+}: {
+  content?: PageContent<"home">["whyNgampus"]
+}) {
   return (
     <section className="bg-plum-700 text-white">
       <div className="mx-auto flex max-w-[1280px] flex-col gap-12 px-5 py-16 md:px-10 lg:gap-[85px] lg:p-20">
-        <SectionHeading title={whyNgampus.title} />
+        <SectionHeading title={content.title} />
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {whyNgampus.items.map((item) => {
-            const Icon = benefitIcons[item.title]
+          {content.items.map((item, index) => {
+            const Icon = Object.values(benefitIcons)[index]
             return (
               <Card
                 key={item.title}
