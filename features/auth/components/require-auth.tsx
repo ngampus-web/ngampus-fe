@@ -30,7 +30,16 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
   return children
 }
 
-/** Only allow internal paths as post-login destinations. */
+const BASE = "http://ngampus.invalid"
+
+/**
+ * Only allow internal paths as post-login destinations. Browsers read `/\x`
+ * and `/<tab>/x` as `//x`, so backslashes and control characters are refused
+ * and the result must stay on the same origin.
+ */
 export function safeNext(next: string | null): string {
-  return next && next.startsWith("/") && !next.startsWith("//") ? next : "/"
+  if (!next || !next.startsWith("/") || /[\\\u0000-\u001f\u007f]/.test(next))
+    return "/"
+  const url = new URL(next, BASE)
+  return url.origin === BASE ? url.pathname + url.search + url.hash : "/"
 }
