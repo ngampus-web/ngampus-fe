@@ -1,6 +1,7 @@
 import { serverGet } from "@/lib/api/server"
 import { PAGE_DEFAULTS } from "./defaults"
 import type { GlobalContent } from "@/lib/api/endpoints/content"
+import { readContentDraft } from "./preview"
 
 export const GLOBAL_DEFAULTS: GlobalContent = {
   announcement: {
@@ -18,9 +19,14 @@ export const GLOBAL_DEFAULTS: GlobalContent = {
   footer: PAGE_DEFAULTS.footer,
 }
 export async function getGlobalContent(): Promise<GlobalContent> {
+  const draft = await readContentDraft()
+  let content: GlobalContent
   try {
-    return (await serverGet<GlobalContent>("/content/settings")).data
+    content = (await serverGet<GlobalContent>("/content/settings")).data
   } catch {
-    return GLOBAL_DEFAULTS
+    content = GLOBAL_DEFAULTS
   }
+  return draft?.page === "footer"
+    ? { ...content, footer: draft.value as GlobalContent["footer"] }
+    : content
 }

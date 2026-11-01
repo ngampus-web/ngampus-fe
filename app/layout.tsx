@@ -3,6 +3,7 @@ import { Geist_Mono, Inter } from "next/font/google"
 import { SiteChrome } from "@/components/layout/site-chrome"
 import { Footer } from "@/components/layout/footer"
 import { getGlobalContent } from "@/features/content/global"
+import { PreviewBanner } from "@/features/content/preview-banner"
 import "./globals.css"
 
 const inter = Inter({
@@ -32,6 +33,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
+        <PreviewBanner />
         <SiteChrome footer={<Footer content={global} />}>{children}</SiteChrome>
       </body>
     </html>
