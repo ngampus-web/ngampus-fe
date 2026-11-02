@@ -159,6 +159,7 @@ export interface ParaphraseOrderDetails {
 }
 
 export interface OrderDetail extends OrderSummary {
+  ownership?: "guest" | "mine" | "other"
   customerName: string
   customerEmail?: string | null
   whatsapp: string

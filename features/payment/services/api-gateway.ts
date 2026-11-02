@@ -93,6 +93,7 @@ function fromApi(o: OrderDetail): PaymentOrder {
   return {
     id: o.code,
     mode: "live",
+    ownership: o.ownership,
     phone: o.whatsapp,
     amount: o.total,
     status: o.status === "refunded" ? "completed" : o.status,

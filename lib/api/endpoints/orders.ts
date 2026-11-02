@@ -1,5 +1,5 @@
 /**
- * Orders API — docs/API-CONTRACT.md §6–§7. Login is optional except for the
+ * Orders API. Login is optional except for the
  * account list; guests open an order with its access token (`X-Order-Token`).
  */
 
@@ -29,6 +29,9 @@ export interface OrdersQuery {
 }
 
 export const ordersApi = {
+  link(order: { code: string; token: string }) {
+    return apiClient.post<{ linked: boolean }>("/orders/link", order)
+  },
   list(query: OrdersQuery = {}) {
     const params = new URLSearchParams()
     for (const [key, value] of Object.entries(query)) {

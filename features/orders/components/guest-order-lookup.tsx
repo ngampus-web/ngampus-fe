@@ -3,40 +3,24 @@
 import { Loader2, Search } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 
 import { Breadcrumb } from "@/components/layout/breadcrumb"
 import { Button } from "@/components/ui/button"
 import { loginHref } from "@/features/auth/components/require-auth"
 import { ordersApi } from "@/lib/api/endpoints/orders"
 import { orderTokens } from "@/lib/orders/order-tokens"
-import type { OrderSummary } from "@/types/api"
-
-import { OrderCard } from "./order-history"
 
 const inputStyle =
   "h-12 w-full rounded-xl border border-line bg-white px-4 text-base tracking-[-0.02em] outline-none placeholder:text-subtle focus-visible:border-primary md:text-sm"
 
-/** Guests: find one order by invoice + WhatsApp, and see orders opened in this browser. */
+/** Guests find one order by invoice + WhatsApp. */
 export function GuestOrderLookup() {
   const router = useRouter()
   const [code, setCode] = useState("")
   const [whatsapp, setWhatsapp] = useState("")
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState("")
-  const [recent, setRecent] = useState<OrderSummary[] | null>(null)
-
-  useEffect(() => {
-    let cancelled = false
-    const codes = orderTokens.codes().slice(0, 10)
-    void Promise.all(codes.map((c) => ordersApi.get(c))).then((results) => {
-      if (cancelled) return
-      setRecent(results.flatMap((r) => (r.success ? [r.data] : [])))
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [])
 
   async function submit(event: React.FormEvent) {
     event.preventDefault()
@@ -124,17 +108,6 @@ export function GuestOrderLookup() {
             </Button>
           </div>
         </form>
-
-        {recent === null ? null : recent.length > 0 ? (
-          <div className="flex flex-col gap-4">
-            <h2 className="font-semibold">Pesanan di browser ini</h2>
-            <ul className="flex flex-col gap-4">
-              {recent.map((order) => (
-                <OrderCard key={order.code} order={order} />
-              ))}
-            </ul>
-          </div>
-        ) : null}
       </section>
     </>
   )

@@ -56,6 +56,7 @@ export type OrderDraft = {
 }
 
 export type PaymentOrder = OrderDraft & {
+  ownership?: "guest" | "mine" | "other"
   id: string
   /** `live`: order from the API (id = order code); `preview`: browser-only demo. */
   mode: "preview" | "live"

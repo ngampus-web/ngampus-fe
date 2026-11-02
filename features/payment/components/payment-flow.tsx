@@ -17,6 +17,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
+import { LinkGuestOrders } from "@/features/orders/components/link-guest-orders"
 import { usePaymentOrder } from "../hooks/use-payment-order"
 import { QrisPanel } from "./qris-panel"
 import {
@@ -236,6 +237,14 @@ export function PaymentFlow({
 
   return (
     <section className="mx-auto w-full max-w-[1060px] px-5 py-10 md:px-10 lg:py-14">
+      {live && !gateway && (
+        <LinkGuestOrders
+          key={orderId}
+          code={orderId}
+          ownership={order.ownership}
+          onLinked={refresh}
+        />
+      )}
       <Link
         href={gateway ? `/pembayaran/${orderId}` : orderBackHref(order)}
         className="mb-6 inline-flex items-center gap-2 text-sm text-subtle hover:text-primary"
