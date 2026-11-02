@@ -43,6 +43,7 @@ function load(relative) {
       module: loadedModule,
       exports: loadedModule.exports,
       require,
+      URL,
       URLSearchParams,
       window: events,
       sessionStorage,
@@ -765,4 +766,254 @@ assert.equal(creatorOutcomes.length, 2)
 assert.equal(creatorOutcomes[1].kind, "error")
 console.log(
   "PASS: independent creator sections, retained stale data, targeted retries and quiet automatic reads."
+)
+
+const popupRules = load("features/promo-popup/rules.ts")
+for (const pathname of [
+  "/",
+  "/marketplace",
+  "/marketplace/chatgpt",
+  "/cek-plagiarisme/cek-ai",
+  "/blog/post",
+  "/creator",
+]) {
+  assert.equal(popupRules.isPopupRoute(pathname), true)
+}
+for (const pathname of [
+  "/masuk",
+  "/pembayaran/MKT-1",
+  "/marketplace/a/checkout",
+  "/creator/dashboard",
+  "/klaim-garansi",
+  "/file-tools",
+  "/marketplace-evil",
+]) {
+  assert.equal(popupRules.isPopupRoute(pathname), false)
+}
+for (const destination of [
+  null,
+  "",
+  "//evil.test",
+  "/\\\\evil.test",
+  "javascript:alert(1)",
+  "https://evil.test",
+]) {
+  assert.equal(popupRules.isPopupDestination(destination), false)
+}
+const poster = {
+  id: "one",
+  title: "ChatGPT",
+  imageUrl: "https://cdn.test/poster.png",
+  linkUrl: "/marketplace/chatgpt",
+}
+assert.equal(
+  popupRules.popupPosters([
+    poster,
+    { ...poster, linkUrl: "//evil.test" },
+    { ...poster, imageUrl: null },
+  ]).length,
+  1
+)
+assert.equal(popupRules.popupWasShown(sessionStorage), false)
+popupRules.markPopupShown(sessionStorage)
+assert.equal(sessionStorage.getItem(popupRules.POPUP_SESSION_KEY), "1")
+assert.equal(popupRules.popupWasShown(sessionStorage), true)
+assert.equal(
+  popupRules.popupWasShown({
+    getItem: () => {
+      throw new Error("blocked")
+    },
+  }),
+  true
+)
+cache.delete(path.resolve(root, "features/promo-popup/rules.ts"))
+const restoredPopup = load("features/promo-popup/rules.ts")
+assert.equal(restoredPopup.popupWasShown(sessionStorage), true)
+cache.delete(path.resolve(root, "features/promo-popup/rules.ts"))
+const unavailablePopup = load("features/promo-popup/rules.ts")
+const deniedStorage = {
+  getItem() {
+    throw new Error("blocked")
+  },
+  setItem() {
+    throw new Error("blocked")
+  },
+}
+assert.equal(unavailablePopup.popupWasShown(deniedStorage), false)
+unavailablePopup.markPopupShown(deniedStorage)
+assert.equal(unavailablePopup.popupWasShown(deniedStorage), true)
+const { firstUsablePoster } = load("features/promo-popup/load-poster.ts")
+const candidates = [
+  poster,
+  {
+    ...poster,
+    id: "two",
+    imageUrl: "https://cdn.test/two.png",
+    linkUrl: "/cek-plagiarisme",
+  },
+]
+const attempts = []
+const usable = await firstUsablePoster(
+  candidates,
+  { aborted: false },
+  async (url) => {
+    attempts.push(url)
+    return url.endsWith("two.png")
+  }
+)
+assert.equal(usable.length, 1)
+assert.equal(usable[0].id, "two")
+assert.equal(attempts.length, 2)
+assert.equal(
+  (await firstUsablePoster(candidates, { aborted: false }, async () => false))
+    .length,
+  0
+)
+assert.equal(
+  (
+    await firstUsablePoster(candidates, { aborted: true }, async () => {
+      throw new Error("should not load")
+    })
+  ).length,
+  0
+)
+console.log(
+  "PASS: popup route safety, poster filtering, per-tab persistence, storage-denied fallback, failed-image fallback and aborted loading."
+)
+let previewPopup = false
+let popupFetchFails = false
+let popupFetchCalls = 0
+const popupRoute = loadComponent("app/api/promo-popup/route.ts", {
+  "next/headers": { draftMode: async () => ({ isEnabled: previewPopup }) },
+  "next/server": {
+    NextResponse: { json: (body, options) => ({ body, options }) },
+  },
+  "@/lib/api/server": {
+    serverGet: async () => {
+      popupFetchCalls++
+      if (popupFetchFails) throw new Error("unavailable")
+      return { data: [poster] }
+    },
+  },
+  "@/features/promo-popup/rules": popupRules,
+})
+assert.equal((await popupRoute.GET()).body.data.length, 1)
+previewPopup = true
+assert.equal((await popupRoute.GET()).body.data.length, 0)
+assert.equal(
+  popupFetchCalls,
+  1,
+  "Preview must not request production popup content"
+)
+previewPopup = false
+popupFetchFails = true
+assert.equal((await popupRoute.GET()).body.data.length, 0)
+
+const popupJsx = (type, props) => ({ type, props })
+const popupDialogState = []
+let popupDialogHook = 0
+let popupClosed = 0
+const dialog = loadComponent("features/promo-popup/poster-dialog.tsx", {
+  react: {
+    useState: (initial) => {
+      const id = popupDialogHook++
+      if (!(id in popupDialogState)) popupDialogState[id] = initial
+      return [
+        popupDialogState[id],
+        (value) => {
+          popupDialogState[id] =
+            typeof value === "function" ? value(popupDialogState[id]) : value
+        },
+      ]
+    },
+    useRef: (initial) => ({ current: initial }),
+  },
+  "react/jsx-runtime": { jsx: popupJsx, jsxs: popupJsx },
+  "radix-ui": {
+    Dialog: {
+      Root: "root",
+      Portal: "portal",
+      Content: "content",
+      Title: "title",
+      Close: "close",
+      Overlay: "overlay",
+    },
+  },
+  "lucide-react": { ChevronLeft: "previous", ChevronRight: "next", X: "x" },
+  "next/link": { default: "link" },
+})
+const renderPopup = (items = candidates) => {
+  popupDialogHook = 0
+  return dialog.PosterDialog({
+    posters: items,
+    onClose: () => popupClosed++,
+    restoreFocus: { current: null },
+  })
+}
+const flattenPopup = (node) => {
+  if (!node || typeof node !== "object") return []
+  return [node, ...[node.props?.children].flat(Infinity).flatMap(flattenPopup)]
+}
+let popupTree = flattenPopup(renderPopup())
+assert.equal(
+  popupTree.filter((node) => node.type === "img").length,
+  1,
+  "Only the active poster image is mounted"
+)
+const nextPromo = popupTree.find(
+  (node) => node.props?.["aria-label"] === "Promo berikutnya"
+)
+nextPromo.props.onClick()
+assert.equal(popupDialogState[0], 1)
+popupTree = flattenPopup(renderPopup())
+const popupLink = popupTree.find((node) => node.props?.href)
+assert.equal(popupLink.props.href, candidates[1].linkUrl)
+popupLink.props.onClick({ preventDefault() {} })
+assert.equal(popupClosed, 1)
+popupTree.find((node) => node.type === "root").props.onOpenChange(false)
+assert.equal(popupClosed, 2)
+popupDialogState.length = 0
+popupTree = flattenPopup(renderPopup([poster]))
+assert.equal(
+  popupTree.some((node) => node.props?.["aria-label"] === "Promo berikutnya"),
+  false
+)
+console.log(
+  "PASS: popup preview suppression, quiet fetch failures, deferred poster images, navigation target, dismissal and single-slide controls."
+)
+popupDialogState.length = 0
+popupTree = flattenPopup(renderPopup())
+const touchSurface = popupTree.find((node) => node.props?.onTouchStart)
+touchSurface.props.onTouchStart({ touches: [{ clientX: 200, clientY: 100 }] })
+touchSurface.props.onTouchEnd({
+  changedTouches: [{ clientX: 80, clientY: 110 }],
+})
+assert.equal(popupDialogState[0], 1, "Horizontal swipe selects the next poster")
+let preventedSwipeClick = false
+const closedBeforeSwipe = popupClosed
+popupTree
+  .find((node) => node.props?.href)
+  .props.onClick({
+    preventDefault() {
+      preventedSwipeClick = true
+    },
+  })
+assert.equal(preventedSwipeClick, true)
+assert.equal(
+  popupClosed,
+  closedBeforeSwipe,
+  "Swiping must not accidentally follow the poster link"
+)
+let preventedArrow = false
+popupTree
+  .find((node) => node.type === "content")
+  .props.onKeyDown({
+    key: "ArrowRight",
+    preventDefault() {
+      preventedArrow = true
+    },
+  })
+assert.equal(preventedArrow, true)
+console.log(
+  "PASS: popup swipe and keyboard handlers navigate slides without accidental link activation."
 )
