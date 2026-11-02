@@ -5,6 +5,7 @@ import { Footer } from "@/components/layout/footer"
 import { getGlobalContent } from "@/features/content/global"
 import { PreviewBanner } from "@/features/content/preview-banner"
 import "./globals.css"
+import { PromoPopup } from "@/features/promo-popup/promo-popup"
 import { Toaster } from "@/components/ui/toaster"
 
 const inter = Inter({
@@ -36,6 +37,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex min-h-full flex-col">
         <PreviewBanner />
         <SiteChrome footer={<Footer content={global} />}>{children}</SiteChrome>
+        <PromoPopup />
         <Toaster />
       </body>
     </html>
