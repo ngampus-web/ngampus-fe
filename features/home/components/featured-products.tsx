@@ -1,14 +1,11 @@
 import Link from "next/link"
 
 import { SectionHeading } from "@/components/shared/section-heading"
-import { getMarketplaceProducts } from "@/features/marketplace/api"
 
 import { ProductCard } from "@/features/marketplace/components/product-card"
 import { featuredCatalogProducts } from "@/features/home/data/featured-catalog"
 
-export async function FeaturedProducts() {
-  const products = await getMarketplaceProducts()
-
+export function FeaturedProducts() {
   return (
     <section
       aria-label="Produk marketplace"
@@ -27,16 +24,9 @@ export async function FeaturedProducts() {
         </Link>
       </div>
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {featuredCatalogProducts.map((fallback) => {
-          const product = products.find((item) => item.slug === fallback.slug)
-          return (
-            <ProductCard
-              key={fallback.slug}
-              app={product ?? fallback}
-              catalogFallback={!product}
-            />
-          )
-        })}
+        {featuredCatalogProducts.map((product) => (
+          <ProductCard key={product.slug} app={product} catalogFallback />
+        ))}
       </div>
     </section>
   )

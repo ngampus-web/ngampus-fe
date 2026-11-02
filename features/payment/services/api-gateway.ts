@@ -43,6 +43,7 @@ function paraphraseDetails(
       startedAt: d.startedAt,
     },
     hasResult: d.hasResult,
+    hasResultReport: d.hasResultReport,
   }
 }
 
@@ -92,6 +93,7 @@ function fromApi(o: OrderDetail): PaymentOrder {
   return {
     id: o.code,
     mode: "live",
+    ownership: o.ownership,
     phone: o.whatsapp,
     amount: o.total,
     status: o.status === "refunded" ? "completed" : o.status,
@@ -197,8 +199,11 @@ export const apiGateway = {
     if (!res.success) fail(res.error.message)
   },
 
-  async resultUrl(code: string): Promise<string> {
-    const res = await ordersApi.result(code)
+  async resultUrl(
+    code: string,
+    file: "document" | "report" = "document"
+  ): Promise<string> {
+    const res = await ordersApi.result(code, file)
     if (!res.success) return fail(res.error.message)
     return res.data.url
   },

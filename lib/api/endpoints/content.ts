@@ -46,11 +46,30 @@ export interface SiteSettings {
   announcement: { text: string; url: string | null; active: boolean }
 }
 
+export interface GlobalContent extends SiteSettings {
+  contacts: {
+    whatsapp: string
+    email: string
+    instagram: string | null
+    tiktok: string | null
+    supportHours: string
+  }
+  footer: {
+    address: string
+    description: string
+    menuTitle: string
+    servicesTitle: string
+    contactsTitle: string
+    addressTitle: string
+    links: { label: string; href: string }[]
+  }
+}
+
 const get = async <T>(path: string, query?: Record<string, string>) =>
   (await serverGet<T>(path, { query })).data
 
 export const contentApi = {
-  banners: (placement: BannerPlacement, fallback: ContentBanner[]) =>
+  banners: (placement: BannerPlacement, fallback: ContentBanner[] | null) =>
     withFallback(
       () => get<ContentBanner[]>("/content/banners", { placement }),
       fallback

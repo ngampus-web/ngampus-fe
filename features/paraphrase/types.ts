@@ -35,4 +35,5 @@ export type ParaphraseDetails = {
     startedAt: string | null
   }
   hasResult?: boolean
+  hasResultReport?: boolean
 }

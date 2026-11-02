@@ -1,18 +1,17 @@
-import type { Metadata } from "next"
-
 import { LegalPage } from "@/features/legal/components/legal-page"
-import { termsIntro, termsSections } from "@/features/legal/data/legal"
+import { termsSections } from "@/features/legal/data/legal"
+import { getPageContent, pageMetadata } from "@/features/content/api"
 
-export const metadata: Metadata = {
-  title: "Syarat & Ketentuan",
-  description: termsIntro,
-}
+export const generateMetadata = () => pageMetadata("terms")
 
-export default function TermsPage() {
+export default async function TermsPage() {
+  const content = await getPageContent("terms")
   return (
     <LegalPage
-      title="Syarat & Ketentuan"
-      description={termsIntro}
+      title={content.title}
+      description={content.description}
+      contentHtml={content.contentHtml}
+      effectiveDate={content.effectiveDate}
       sections={termsSections}
     />
   )

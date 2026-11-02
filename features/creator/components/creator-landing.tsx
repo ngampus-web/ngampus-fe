@@ -3,21 +3,11 @@ import Image from "next/image"
 import { CreatorBannerSubmit } from "@/features/creator/components/creator-banner-submit"
 import { CreatorExamples } from "@/features/creator/components/creator-examples"
 import { CreatorHeader } from "@/features/creator/components/creator-header"
-import {
-  campaignContentRules,
-  campaignFeeNote,
-  campaignFees,
-  campaignPlatforms,
-  campaignSections,
-  creatorJoinSteps,
-} from "@/features/creator/data/campaign"
+import { PAGE_DEFAULTS } from "@/features/content/defaults"
+import type { PageContent } from "@/features/content/api"
 import type { CreatorExample } from "@/lib/api/endpoints/content"
 
-function PlatformIcon({
-  icon,
-}: {
-  icon: (typeof campaignPlatforms)[number]["icon"]
-}) {
+function PlatformIcon({ icon }: { icon: string }) {
   if (icon === "instagram") {
     return (
       <svg
@@ -57,9 +47,19 @@ function PlatformIcon({
 
 export function CreatorLanding({
   examples,
+  content = PAGE_DEFAULTS.creator,
 }: {
   examples: { video: CreatorExample[]; post: CreatorExample[] }
+  content?: PageContent<"creator">
 }) {
+  const {
+    contentRules: campaignContentRules,
+    feeNote: campaignFeeNote,
+    fees: campaignFees,
+    platforms: campaignPlatforms,
+    sections: campaignSections,
+    joinSteps: creatorJoinSteps,
+  } = content
   return (
     <div className="flex min-h-svh flex-col bg-white">
       <CreatorHeader />
@@ -67,18 +67,18 @@ export function CreatorLanding({
         <div className="relative flex min-h-[220px] items-center overflow-hidden rounded-[24px] bg-plum-700 px-6 py-8 text-white md:px-10 lg:min-h-[260px]">
           <div className="relative z-10 flex max-w-[520px] flex-col gap-4">
             <h1 className="text-[32px] leading-[1.15] font-medium tracking-[-0.02em] md:text-[44px]">
-              Ngampus Creator
+              {content.title}
             </h1>
             <p className="text-sm leading-6 tracking-[-0.02em] text-white/80 md:text-base">
-              Daftar atau masuk untuk membuka dashboard creator, lalu submit
-              konten kampanye kamu.
+              {content.description}
             </p>
             <div className="flex flex-wrap gap-2">
-              <CreatorBannerSubmit />
+              <CreatorBannerSubmit label={content.submitLabel} />
             </div>
           </div>
           <Image
-            src="/images/mascot-creator.png"
+            src={content.imageUrl || "/images/mascot-creator.png"}
+            unoptimized={!!content.imageUrl}
             alt=""
             width={655}
             height={961}
@@ -88,7 +88,7 @@ export function CreatorLanding({
         </div>
         <section className="flex flex-col gap-6 py-4">
           <h2 className="text-[32px] leading-[1.2] font-medium tracking-[-0.02em]">
-            Gimana Cara Ikutan Jadi Ngampus Creator?
+            {content.joinTitle}
           </h2>
           <ol className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {creatorJoinSteps.map((step, index) => (

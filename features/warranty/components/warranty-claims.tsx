@@ -8,8 +8,6 @@ import { Breadcrumb } from "@/components/layout/breadcrumb"
 import { Button } from "@/components/ui/button"
 import { warrantyClaimsPage } from "@/features/warranty/data/warranty-claims"
 import { warrantyApi } from "@/lib/api/endpoints/warranty"
-import { orderTokens } from "@/lib/orders/order-tokens"
-import { useAuthStore } from "@/lib/stores/auth"
 import { cn } from "@/lib/utils"
 import type { ClaimSummary } from "@/types/api"
 
@@ -21,7 +19,6 @@ import {
   formatClaimTime,
   toneClass,
 } from "../services/claims"
-import { guestClaims } from "../services/guest-claims"
 import { ClaimDetailModal } from "./claim-detail-modal"
 import { ClaimForm } from "./claim-form"
 
@@ -36,19 +33,14 @@ interface ListState {
 }
 
 /**
- * Pusat Klaim Garansi: the account's claims from the API, or for guests the
- * claims opened in this browser.
+ * Pusat Klaim Garansi: the signed-in account's claims from the API.
  */
 export function WarrantyClaims() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const signedIn = useAuthStore((s) => s.status === "authenticated")
-  // `?klaim=CLM-…&t=…` (link in the WhatsApp message) opens that claim.
   const selected = searchParams.get("klaim")
   const linkToken = searchParams.get("t")
-  if (selected && linkToken && typeof window !== "undefined")
-    orderTokens.save(selected, linkToken)
   useEffect(() => {
     if (!selected || !linkToken) return
     // Keep the token out of history and screenshots.
@@ -65,29 +57,16 @@ export function WarrantyClaims() {
     hasMore: false,
   })
   const [formOpen, setFormOpen] = useState(false)
-  const requestKey = `${filter}|${page}|${reloadKey}|${signedIn}`
+  const requestKey = `${filter}|${page}|${reloadKey}`
   const loading = state.key !== requestKey
 
   useEffect(() => {
     let cancelled = false
-    const load = signedIn
-      ? warrantyApi.list({
-          status: filter === "semua" ? undefined : filter,
-          page,
-          perPage: PER_PAGE,
-        })
-      : guestClaims().then((items) => ({
-          success: true as const,
-          data: items.filter(
-            (c) =>
-              filter === "semua" ||
-              filter ===
-                (c.status === "resolved" || c.status === "rejected"
-                  ? c.status
-                  : "in_progress")
-          ),
-          meta: undefined,
-        }))
+    const load = warrantyApi.list({
+      status: filter === "semua" ? undefined : filter,
+      page,
+      perPage: PER_PAGE,
+    })
     void load.then((res) => {
       if (cancelled) return
       setState((s) =>
@@ -108,7 +87,7 @@ export function WarrantyClaims() {
     return () => {
       cancelled = true
     }
-  }, [filter, page, requestKey, signedIn])
+  }, [filter, page, requestKey])
 
   function openClaim(code: string | null) {
     const next = new URLSearchParams(searchParams.toString())

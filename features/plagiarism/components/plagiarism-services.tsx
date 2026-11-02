@@ -8,20 +8,25 @@ import type { PromoSlide } from "@/components/shared/promo-carousel"
 import { PromoBanner } from "./promo-banner"
 import {
   formatStartPrice,
-  plagiarismBenefits,
-  plagiarismFlowSteps,
-  plagiarismHub,
   plagiarismServices,
 } from "@/features/plagiarism/data/plagiarism"
+import { PAGE_DEFAULTS } from "@/features/content/defaults"
+import type { PageContent } from "@/features/content/api"
 
 export function PlagiarismServices({
   slides,
   startPrices,
+  content = PAGE_DEFAULTS.plagiarism,
 }: {
   slides: PromoSlide[]
   /** Live "Start Rp …" per service slug (Pengaturan admin). */
   startPrices: Record<string, number>
+  content?: PageContent<"plagiarism">
 }) {
+  const services = plagiarismServices.map((service, index) => ({
+    ...service,
+    ...content.services[index],
+  }))
   return (
     <>
       <Breadcrumb
@@ -31,10 +36,11 @@ export function PlagiarismServices({
         ]}
       />
       <section className="mx-auto flex w-full max-w-[1120px] flex-col gap-8 px-5 py-12 md:px-10 lg:py-16">
-        <h1 className="sr-only">{plagiarismHub.title.join(" ")}</h1>
-        <PromoBanner slides={slides} />
+        <h1 className="sr-only">{content.title}</h1>
+        <p>{content.description}</p>
+        {slides.length > 0 && <PromoBanner slides={slides} />}
         <div className="grid items-start gap-4 md:grid-cols-3">
-          {plagiarismServices.map((service) => (
+          {services.map((service) => (
             <article
               key={service.slug}
               className="flex flex-col justify-between gap-6 rounded-2xl border border-line bg-white p-6"
@@ -83,7 +89,7 @@ export function PlagiarismServices({
                 </p>
                 <Button asChild size="pill">
                   <Link href={`/cek-plagiarisme/${service.slug}`}>
-                    Klik di sini
+                    {service.cta}
                   </Link>
                 </Button>
               </div>
@@ -93,10 +99,10 @@ export function PlagiarismServices({
       </section>
       <section className="mx-auto flex w-full max-w-[1120px] flex-col gap-8 px-5 pb-16 md:px-10 lg:pb-20">
         <h2 className="text-[32px] leading-[1.2] font-medium tracking-[-0.02em]">
-          Mau Check Plagiarisme? Nih caranya
+          {content.stepsTitle}
         </h2>
         <ol className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {plagiarismFlowSteps.map((step, index) => (
+          {content.steps.map((step, index) => (
             <li
               key={step.title}
               className="flex flex-col gap-3 rounded-2xl border border-line bg-white p-5"
@@ -116,16 +122,11 @@ export function PlagiarismServices({
       </section>
       <section className="mx-auto flex w-full max-w-[1120px] flex-col gap-8 px-5 pb-16 md:px-10 lg:pb-20">
         <h2 className="text-[32px] leading-[1.2] font-medium tracking-[-0.02em]">
-          Kenapa Sih Harus Cek Plagiarisme di Ngampus?
+          {content.benefitsTitle}
         </h2>
         <ul className="grid gap-4 md:grid-cols-3">
-          {plagiarismBenefits.map((item) => {
-            const Icon =
-              item.title === "Cepat & Nggak Ribet"
-                ? Timer
-                : item.title === "Akses 24 Jam"
-                  ? Clock
-                  : BadgeCheck
+          {content.benefits.map((item, index) => {
+            const Icon = index === 0 ? Timer : index === 1 ? Clock : BadgeCheck
             return (
               <li
                 key={item.title}

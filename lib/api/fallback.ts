@@ -1,8 +1,7 @@
 // Pure helper (no "@/" imports): loaded by scripts/verify-features.mjs.
 
 /**
- * Landing sections must never render empty: use the bundled static content
- * when the API fails, or when it answers with an empty list.
+ * Use bundled content only on failure; successful empty responses are authoritative.
  */
 export async function withFallback<T>(
   fetcher: () => Promise<T>,
@@ -10,7 +9,6 @@ export async function withFallback<T>(
 ): Promise<T> {
   try {
     const data = await fetcher()
-    if (Array.isArray(data) && data.length === 0) return fallback
     return data
   } catch {
     return fallback

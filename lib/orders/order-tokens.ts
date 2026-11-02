@@ -40,11 +40,6 @@ export const orderTokens = {
     const rest = read().filter((e) => e.code !== upper)
     write([{ code: upper, token, at: Date.now() }, ...rest].slice(0, MAX))
   },
-
-  /** Order codes opened in this browser, newest first. */
-  codes(): string[] {
-    return read().map((e) => e.code)
-  },
 }
 
 /** Header for order endpoints; empty when this browser has no token. */

@@ -16,11 +16,8 @@ import {
   type ProductSummary,
   searchMarketplaceProducts,
 } from "@/features/marketplace/api"
-import {
-  marketplaceBenefits,
-  marketplaceOrderSteps,
-  marketplaceWarrantyBanner,
-} from "@/features/marketplace/data/marketplace"
+import { PAGE_DEFAULTS } from "@/features/content/defaults"
+import type { PageContent } from "@/features/content/api"
 import { cn } from "@/lib/utils"
 
 import { ProductCard } from "./product-card"
@@ -30,11 +27,16 @@ export function MarketplaceCatalog({
   initialProducts,
   categories,
   promoSlides,
+  content = PAGE_DEFAULTS.marketplace,
 }: {
   initialProducts: ProductSummary[]
   categories: CategoryItem[]
   promoSlides: PromoSlide[]
+  content?: PageContent<"marketplace">
 }) {
+  const marketplaceBenefits = content.benefits
+  const marketplaceOrderSteps = content.steps
+  const marketplaceWarrantyBanner = content.warranty
   const [query, setQuery] = useState("")
   const [category, setCategory] = useState("semua")
   const [apps, setApps] = useState(initialProducts)
@@ -77,8 +79,14 @@ export function MarketplaceCatalog({
         items={[{ label: "Beranda", href: "/" }, { label: "Marketplace" }]}
       />
       <section className="mx-auto flex w-full max-w-[1120px] flex-col gap-6 px-5 py-12 md:px-10 lg:py-16">
-        <h1 className="sr-only">Marketplace: akun premium, harga mahasiswa</h1>
-        <PromoCarousel slides={promoSlides} label="Promo marketplace Ngampus" />
+        <h1 className="sr-only">{content.title}</h1>
+        {content.description && <p>{content.description}</p>}
+        {promoSlides.length > 0 && (
+          <PromoCarousel
+            slides={promoSlides}
+            label="Promo marketplace Ngampus"
+          />
+        )}
         <label className="sr-only" htmlFor="marketplace-search">
           Cari aplikasi
         </label>
@@ -138,7 +146,7 @@ export function MarketplaceCatalog({
       </section>
       <section className="mx-auto flex w-full max-w-[1120px] flex-col gap-8 px-5 pb-16 md:px-10 lg:pb-20">
         <h2 className="text-[32px] leading-[1.2] font-medium tracking-[-0.02em]">
-          Mau Beli Akun? Gini Caranya di Ngampus
+          {content.stepsTitle}
         </h2>
         <ol className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {marketplaceOrderSteps.map((step, index) => (
@@ -161,16 +169,11 @@ export function MarketplaceCatalog({
       </section>
       <section className="mx-auto flex w-full max-w-[1120px] flex-col gap-8 px-5 pb-16 md:px-10 lg:pb-20">
         <h2 className="text-[32px] leading-[1.2] font-medium tracking-[-0.02em]">
-          Keunggulan Marketplace Account di Ngampus
+          {content.benefitsTitle}
         </h2>
         <ul className="grid gap-4 md:grid-cols-3">
-          {marketplaceBenefits.map((item) => {
-            const Icon =
-              item.title === "Akun Lengkap, Harga Ramah"
-                ? Layers
-                : item.title === "Proses Mudah & Nggak Ribet"
-                  ? Timer
-                  : BadgeCheck
+          {marketplaceBenefits.map((item, index) => {
+            const Icon = index === 0 ? Layers : index === 1 ? Timer : BadgeCheck
             return (
               <li
                 key={item.title}

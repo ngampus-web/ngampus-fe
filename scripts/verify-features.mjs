@@ -470,9 +470,9 @@ assert.equal(
   )[0].id,
   "static-0"
 )
-assert.equal(
-  (await fallback.withFallback(() => Promise.resolve([]), staticFaq))[0].id,
-  "static-0"
+assert.deepEqual(
+  await fallback.withFallback(() => Promise.resolve([]), staticFaq),
+  []
 )
 assert.equal(
   (
@@ -493,5 +493,5 @@ const slides = slidesHelper.bannersToSlides([
 assert.equal(slides.length, 1)
 assert.equal(`${slides[0].href}|${slides[0].alt}`, "#|Promo")
 console.log(
-  "PASS: content fallback when the API fails or is empty, avatar initials, banner slides."
+  "PASS: content fallback on failure, authoritative empty lists, avatar initials, banner slides."
 )

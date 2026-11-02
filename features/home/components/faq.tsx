@@ -34,15 +34,24 @@ function ToggleIcon() {
   )
 }
 
-export function Faq({ items }: { items: ContentFaq[] }) {
+export function Faq({
+  items,
+  title = faq.title,
+  description = faq.description,
+}: {
+  items: ContentFaq[]
+  title?: string
+  description?: string
+}) {
+  if (!items.length) return null
   return (
     <section
       id="faq"
       className="mx-auto flex w-full max-w-[1080px] scroll-mt-20 flex-col items-center gap-10 px-5 py-16 text-black md:px-10 lg:gap-15 lg:py-25"
     >
       <SectionHeading
-        title={faq.title}
-        description={faq.description}
+        title={title}
+        description={description}
         align="center"
         className="max-w-[601px]"
       />

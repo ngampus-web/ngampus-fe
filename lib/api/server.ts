@@ -16,6 +16,7 @@ export class ApiNotFoundError extends Error {}
  * show at once; the timed revalidate below is only the fallback.
  */
 const TAGS: [prefix: string, tag: string, fallbackSeconds: number][] = [
+  ["/content/pages/", "page-content", 300],
   // Banners and blog posts also go live on a schedule, without an admin write.
   ["/content/banners", "banners", 60],
   ["/blog/", "blog", 60],
