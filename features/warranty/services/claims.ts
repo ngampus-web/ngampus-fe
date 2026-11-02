@@ -84,7 +84,7 @@ export function claimSteps(status: Status, timeline: Event[]): ClaimStep[] {
   return steps
 }
 
-/** Screenshot rules (docs/API-CONTRACT.md §3 claim_evidence). */
+/** Allowed screenshot types, sizes and count. */
 export const EVIDENCE_TYPES = ["image/jpeg", "image/png", "image/webp"]
 export const EVIDENCE_MAX_BYTES = 5 * 1024 * 1024
 export const EVIDENCE_MAX_FILES = 3

@@ -1,7 +1,7 @@
 "use client"
 
 import { Loader2 } from "lucide-react"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useEffect } from "react"
 
 import { useAuthStore } from "@/lib/stores/auth"
@@ -15,10 +15,14 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
   const status = useAuthStore((s) => s.status)
   const router = useRouter()
   const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const query = new URLSearchParams(searchParams.toString())
+  query.delete("t")
+  const next = pathname + (query.size ? `?${query}` : "")
 
   useEffect(() => {
-    if (status === "guest") router.replace(loginHref(pathname))
-  }, [status, router, pathname])
+    if (status === "guest") router.replace(loginHref(next))
+  }, [status, router, next])
 
   if (status !== "authenticated") {
     return (

@@ -2,7 +2,7 @@
 
 import { ImagePlus, Loader2, Plus, X } from "lucide-react"
 import Link from "next/link"
-import { type FormEvent, useEffect, useId, useRef, useState } from "react"
+import { type FormEvent, useEffect, useId, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -15,8 +15,6 @@ import {
 import { warrantyClaimForm } from "@/features/warranty/data/warranty-claims"
 import { filesApi } from "@/lib/api/endpoints/files"
 import { warrantyApi } from "@/lib/api/endpoints/warranty"
-import { useAuthStore } from "@/lib/stores/auth"
-import { guestEligibleOrders } from "../services/guest-claims"
 import { cn } from "@/lib/utils"
 import type { ClaimCategory, EligibleOrder } from "@/types/api"
 
@@ -66,18 +64,9 @@ export function ClaimForm({
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
 
-  // Guest screenshots share one upload token per form.
-  const uploadToken = useRef<string | undefined>(undefined)
-  const signedIn = useAuthStore((s) => s.status === "authenticated")
-
   useEffect(() => {
     let cancelled = false
-    const load = signedIn
-      ? warrantyApi.eligibleOrders()
-      : guestEligibleOrders().then((orders) => ({
-          success: true as const,
-          data: orders,
-        }))
+    const load = warrantyApi.eligibleOrders()
     void load.then((res) => {
       if (cancelled) return
       setEligible(
@@ -89,7 +78,7 @@ export function ClaimForm({
     return () => {
       cancelled = true
     }
-  }, [signedIn])
+  }, [])
 
   // Release preview object URLs when the form closes.
   useEffect(
@@ -120,13 +109,7 @@ export function ClaimForm({
           status: "uploading",
         },
       ])
-      const res = await filesApi.upload(
-        file,
-        "claim_evidence",
-        file.type,
-        uploadToken.current
-      )
-      if (res.success) uploadToken.current ??= res.data.uploadToken
+      const res = await filesApi.upload(file, "claim_evidence", file.type)
       setEvidence((current) =>
         current.map((e) =>
           e.key !== key
@@ -163,15 +146,12 @@ export function ClaimForm({
     if (Object.keys(next).length || uploading || !category) return
 
     setSubmitting(true)
-    const res = await warrantyApi.create(
-      {
-        orderCode,
-        category,
-        description: description.trim(),
-        evidenceFileIds: ready.map((e) => e.fileId!),
-      },
-      uploadToken.current
-    )
+    const res = await warrantyApi.create({
+      orderCode,
+      category,
+      description: description.trim(),
+      evidenceFileIds: ready.map((e) => e.fileId!),
+    })
     setSubmitting(false)
     if (res.success) {
       onCreated(res.data.code)
@@ -206,7 +186,9 @@ export function ClaimForm({
           <p className="font-medium">Belum ada pesanan yang bisa diklaim.</p>
           <p className="text-sm leading-6 text-subtle">
             Klaim hanya untuk akun marketplace yang sudah dikirim dan masih
-            dalam masa garansi, serta belum punya klaim yang sedang diproses.
+            dalam masa garansi, serta belum pernah diklaim. Satu invoice hanya
+            bisa diklaim satu kali. Untuk pesanan guest, buka tautan pesanan
+            lalu pilih “Simpan pesanan ke akun”.
           </p>
           <Button asChild variant="outline" size="pill">
             <Link href="/riwayat-pesanan">Lihat riwayat pesanan</Link>
