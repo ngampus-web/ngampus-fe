@@ -1,4 +1,7 @@
 "use client"
+import { RequestNotice } from "@/components/shared/request-notice"
+import { notify } from "@/lib/toast"
+import { UserFacingError } from "@/lib/errors"
 
 import {
   ArrowLeft,
@@ -78,7 +81,12 @@ export function PaymentFlow({
         role="alert"
         className="mx-auto max-w-3xl px-5 py-24 text-center text-subtle"
       >
-        {loadError}
+        <RequestNotice
+          message={loadError}
+          onRetry={() => {
+            void refresh(true)
+          }}
+        />
       </div>
     )
   if (order === undefined)
@@ -149,8 +157,11 @@ export function PaymentFlow({
     try {
       await apiGateway.resendDelivery(orderId)
       setResent(true)
+      notify.success(
+        "Permintaan kirim ulang diterima. Notifikasi sedang dikirim."
+      )
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Gagal mengirim ulang.")
+      setError(notify.error(e, "Gagal mengirim ulang."))
     } finally {
       setBusy(false)
     }
@@ -160,8 +171,9 @@ export function PaymentFlow({
     setError("")
     try {
       setOrder(await apiGateway.resubmit(orderId, file))
+      notify.success("Dokumen berhasil dikirim ulang untuk diproses.")
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Dokumen gagal diunggah.")
+      setError(notify.error(e, "Dokumen gagal diunggah."))
     } finally {
       setBusy(false)
     }
@@ -172,8 +184,9 @@ export function PaymentFlow({
     try {
       // Presigned with an attachment name: the browser downloads it.
       window.location.assign(await apiGateway.resultUrl(orderId, file))
+      notify.success("Unduhan dimulai.")
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Hasil belum dapat diunduh.")
+      setError(notify.error(e, "Hasil belum dapat diunduh."))
     } finally {
       setBusy(false)
     }
@@ -189,9 +202,7 @@ export function PaymentFlow({
       const { checkoutUrl } = await previewGateway.startPayment(orderId)
       router.push(checkoutUrl)
     } catch (e) {
-      setError(
-        e instanceof Error ? e.message : "Pembayaran belum dapat dibuka."
-      )
+      setError(notify.error(e, "Pembayaran belum dapat dibuka."))
     } finally {
       setBusy(false)
     }
@@ -201,10 +212,9 @@ export function PaymentFlow({
     setError("")
     try {
       setOrder(await apiGateway.cancel(orderId))
+      notify.success("Pesanan berhasil dibatalkan.")
     } catch (e) {
-      setError(
-        e instanceof Error ? e.message : "Pesanan tidak dapat dibatalkan."
-      )
+      setError(notify.error(e, "Pesanan tidak dapat dibatalkan."))
     } finally {
       setBusy(false)
     }
@@ -219,24 +229,36 @@ export function PaymentFlow({
       simulateStatus(orderId, next)
       if (gateway) router.replace(`/pembayaran/${orderId}`)
     } catch (e) {
-      setError(
-        e instanceof Error ? e.message : "Status tidak dapat diperbarui."
-      )
+      setError(notify.error(e, "Status tidak dapat diperbarui."))
     }
   }
   async function copyId() {
     try {
       await navigator.clipboard.writeText(orderId)
       setCopied(true)
+      notify.success("Nomor invoice disalin.")
     } catch {
       setError(
-        "Tidak dapat menyalin otomatis. Pilih dan salin ID pesanan secara manual."
+        notify.error(
+          new UserFacingError(
+            "Tidak dapat menyalin otomatis. Pilih dan salin ID pesanan secara manual."
+          )
+        )
       )
     }
   }
 
   return (
     <section className="mx-auto w-full max-w-[1060px] px-5 py-10 md:px-10 lg:py-14">
+      {loadError && (
+        <RequestNotice
+          message={loadError}
+          onRetry={() => {
+            void refresh(true)
+          }}
+          stale
+        />
+      )}
       {live && !gateway && (
         <LinkGuestOrders
           key={orderId}

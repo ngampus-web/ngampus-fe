@@ -1,4 +1,6 @@
 "use client"
+import { notify } from "@/lib/toast"
+import { RequestNotice } from "@/components/shared/request-notice"
 
 import {
   ArrowUpRight,
@@ -9,7 +11,7 @@ import {
   ShoppingBag,
 } from "lucide-react"
 import Link from "next/link"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 import { Breadcrumb } from "@/components/layout/breadcrumb"
 import { Button } from "@/components/ui/button"
@@ -64,6 +66,7 @@ export function OrderHistory() {
   const [page, setPage] = useState(1)
   const [state, setState] = useState<HistoryState>(initial)
   const [reloadKey, setReloadKey] = useState(0)
+  const manual = useRef(false)
   const requestKey = `${section}|${search}|${page}|${reloadKey}`
   const loading = state.key !== requestKey
 
@@ -82,6 +85,12 @@ export function OrderHistory() {
       .list({ kind: section, q: search || undefined, page, perPage: PER_PAGE })
       .then((res) => {
         if (cancelled) return
+        if (manual.current) {
+          manual.current = false
+          if (res.success)
+            notify.success("Riwayat pesanan berhasil diperbarui.")
+          else notify.error(res.error)
+        }
         setState((s) =>
           res.success
             ? {
@@ -93,7 +102,7 @@ export function OrderHistory() {
             : {
                 ...s,
                 key: requestKey,
-                items: page === 1 ? [] : s.items,
+                items: s.key.startsWith(`${section}|${search}|`) ? s.items : [],
                 error: res.error.message,
               }
         )
@@ -110,13 +119,17 @@ export function OrderHistory() {
   }
 
   function reload() {
+    manual.current = true
     setPage(1)
     setReloadKey((k) => k + 1)
   }
 
   const sectionLabel = sections.find((s) => s.id === section)!.label
   // A new section, search or reload replaces the list; "load more" appends.
-  const firstLoad = loading && page === 1
+  const firstLoad =
+    loading &&
+    page === 1 &&
+    (!state.items.length || !state.key.startsWith(`${section}|${search}|`))
   const failed = !loading && !!state.error
 
   return (
@@ -204,6 +217,14 @@ export function OrderHistory() {
           </label>
         </div>
 
+        {failed && state.items.length > 0 && (
+          <RequestNotice
+            message={state.error!}
+            onRetry={reload}
+            stale
+            pending={loading}
+          />
+        )}
         <div aria-live="polite" aria-busy={loading}>
           {firstLoad ? (
             <HistorySkeleton />
@@ -233,11 +254,7 @@ export function OrderHistory() {
                   <OrderCard key={order.code} order={order} />
                 ))}
               </ul>
-              {failed && (
-                <p className="mt-4 text-center text-sm text-red-600">
-                  {state.error}
-                </p>
-              )}
+
               {state.hasMore && (
                 <div className="mt-6 flex justify-center">
                   <Button

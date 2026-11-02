@@ -1,3 +1,4 @@
+import { UserFacingError } from "../../../lib/errors"
 import { loadPdf } from "./pdf"
 
 export async function mergePdfs(
@@ -5,7 +6,7 @@ export async function mergePdfs(
   onProgress?: (done: number, total: number) => void
 ): Promise<Uint8Array> {
   if (files.length < 2)
-    throw new Error("Unggah minimal 2 file PDF untuk digabung.")
+    throw new UserFacingError("Unggah minimal 2 file PDF untuk digabung.")
   const { PDFDocument } = await import("pdf-lib")
   const out = await PDFDocument.create()
   out.setTitle("Gabungan PDF")

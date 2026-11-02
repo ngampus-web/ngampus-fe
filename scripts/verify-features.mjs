@@ -495,3 +495,274 @@ assert.equal(`${slides[0].href}|${slides[0].alt}`, "#|Promo")
 console.log(
   "PASS: content fallback on failure, authoritative empty lists, avatar initials, banner slides."
 )
+
+const feedback = load("lib/errors.ts")
+assert.equal(
+  feedback.errorMessage({ code: "INVALID_CREDENTIALS", status: 401 }),
+  "Email atau password belum cocok."
+)
+assert.match(
+  feedback.errorMessage({ code: "UNAUTHENTICATED", status: 401 }),
+  /Sesi masukmu/
+)
+assert.match(
+  feedback.errorMessage({ code: "RATE_LIMITED", status: 429 }),
+  /Tunggu sebentar/
+)
+assert.equal(feedback.errorMessage({ name: "AbortError" }), "")
+assert.equal(feedback.errorMessage({ code: "ABORTED", status: 0 }), "")
+assert.equal(
+  feedback.errorMessage(
+    new Error("secret stack / vendor failure"),
+    "File belum dapat diproses."
+  ),
+  "File belum dapat diproses."
+)
+assert.equal(
+  feedback.errorMessage(
+    new feedback.UserFacingError("Izinkan pop-up untuk membuka preview.")
+  ),
+  "Izinkan pop-up untuk membuka preview."
+)
+assert.match(
+  feedback.errorMessage({
+    code: "INTERNAL_ERROR",
+    status: 500,
+    message: "SQL credential leak",
+  }),
+  /gangguan/
+)
+assert.match(
+  feedback.errorMessage({
+    code: "VALIDATION_ERROR",
+    details: { fieldErrors: { password: ["Rahasia"] } },
+  }),
+  /isian/
+)
+const uncertain = new feedback.RequestError(
+  { code: "NETWORK_ERROR", status: 0, details: { rule: "x" } },
+  "Periksa riwayat pesanan sebelum mencoba lagi."
+)
+assert.equal(uncertain.status, 0)
+assert.equal(uncertain.details.rule, "x")
+assert.equal(
+  feedback.errorMessage(uncertain),
+  "Periksa riwayat pesanan sebelum mencoba lagi."
+)
+console.log(
+  "PASS: safe feedback, credential/session distinction, explicit local errors, abort suppression and uncertain requests."
+)
+
+// Exercise action boundaries with small dependency doubles, without a browser.
+function loadComponent(relative, dependencies, globals = {}) {
+  const filename = path.resolve(root, relative)
+  const loadedModule = { exports: {} }
+  const source = ts.transpileModule(readFileSync(filename, "utf8"), {
+    compilerOptions: {
+      module: ts.ModuleKind.CommonJS,
+      target: ts.ScriptTarget.ES2022,
+      jsx: ts.JsxEmit.ReactJSX,
+    },
+  }).outputText
+  vm.runInNewContext(
+    source,
+    {
+      module: loadedModule,
+      exports: loadedModule.exports,
+      ...globals,
+      require: (name) => {
+        assert.ok(name in dependencies, `Missing test dependency: ${name}`)
+        return dependencies[name]
+      },
+    },
+    { filename }
+  )
+  return loadedModule.exports
+}
+const outcomes = []
+const redirects = []
+let creationError = null
+let creationCalls = 0
+const gatewayDouble = {
+  createMarketplaceOrder: async () => {
+    creationCalls++
+    if (creationError) throw creationError
+    return { id: "MKT-TEST0001" }
+  },
+}
+const checkout = loadComponent(
+  "features/payment/components/checkout-entry.tsx",
+  {
+    "next/navigation": {
+      useRouter: () => ({ push: (href) => redirects.push(href) }),
+    },
+    "@/lib/toast": { notify: { success: (message) => outcomes.push(message) } },
+    "../services/api-gateway": { apiGateway: gatewayDouble },
+    "../services/preview-gateway": { previewGateway: {} },
+  }
+)
+const submitCheckout = checkout.useCheckoutPayment()
+await submitCheckout({
+  ...draft,
+  details: { ...draft.details, offerId: "offer" },
+})
+assert.equal(creationCalls, 1)
+assert.equal(outcomes.length, 1)
+assert.equal(redirects.at(-1), "/pembayaran/MKT-TEST0001")
+creationError = new feedback.RequestError(
+  { code: "NETWORK_ERROR", status: 0 },
+  "Periksa riwayat pesanan sebelum mencoba lagi."
+)
+await assert.rejects(
+  submitCheckout({ ...draft, details: { ...draft.details, offerId: "offer" } })
+)
+assert.equal(creationCalls, 2, "A lost response must not replay order creation")
+assert.equal(
+  outcomes.length,
+  1,
+  "A failed creation must not emit a success toast"
+)
+assert.equal(redirects.length, 1)
+assert.equal(
+  feedback.errorMessage(
+    new feedback.RequestError({ code: "ABORTED", status: 0 }, "uncertain")
+  ),
+  ""
+)
+
+const eventsByName = new Map()
+const visibleToasts = new Map()
+const nativeModule = loadComponent(
+  "components/ui/toaster.tsx",
+  {
+    react: { useEffect: (effect) => effect() },
+    "react/jsx-runtime": { jsx: (type, props) => ({ type, props }) },
+    sonner: {
+      Toaster: "toaster",
+      toast: {
+        error: (message, options) => visibleToasts.set(options.id, message),
+      },
+    },
+  },
+  {
+    document: {
+      addEventListener: (name, listener) => eventsByName.set(name, listener),
+      removeEventListener: (name) => eventsByName.delete(name),
+    },
+  }
+)
+const host = nativeModule.Toaster()
+assert.equal(host.props.closeButton, true)
+assert.equal(host.props.position, "top-right")
+eventsByName.get("invalid")()
+eventsByName.get("invalid")()
+assert.equal(
+  visibleToasts.size,
+  1,
+  "Multiple invalid fields must share one summary toast"
+)
+console.log(
+  "PASS: one checkout outcome, redirect intent, no mutation replay and deduplicated native validation feedback."
+)
+
+const creatorState = []
+let creatorHook = 0
+let creatorEffects = []
+let historyFails = true
+let meCalls = 0
+let historyCalls = 0
+const creatorOutcomes = []
+const creatorData = loadComponent(
+  "features/creator/hooks/use-creator-data.ts",
+  {
+    react: {
+      useState: (initial) => {
+        const index = creatorHook++
+        if (!(index in creatorState)) creatorState[index] = initial
+        return [
+          creatorState[index],
+          (next) => {
+            creatorState[index] =
+              typeof next === "function" ? next(creatorState[index]) : next
+          },
+        ]
+      },
+      useRef: (initial) => {
+        const index = creatorHook++
+        if (!(index in creatorState)) creatorState[index] = { current: initial }
+        return creatorState[index]
+      },
+      useCallback: (callback) => callback,
+      useEffect: (effect) => creatorEffects.push(effect),
+    },
+    "@/lib/api": {
+      creatorApi: {
+        me: async () => {
+          meCalls++
+          return { success: true, data: { stats: { balance: 75000 } } }
+        },
+        submissions: async () => {
+          historyCalls++
+          return historyFails
+            ? {
+                success: false,
+                error: { message: "Riwayat belum bisa dimuat." },
+              }
+            : { success: true, data: [{ code: "UGC-TEST0001" }] }
+        },
+        withdrawals: async () => ({ success: true, data: [] }),
+      },
+    },
+    "@/lib/errors": feedback,
+    "@/lib/toast": {
+      notify: {
+        success: (message) =>
+          creatorOutcomes.push({ kind: "success", message }),
+        error: (error) => creatorOutcomes.push({ kind: "error", error }),
+      },
+    },
+  }
+)
+function renderCreatorData() {
+  creatorHook = 0
+  creatorEffects = []
+  return creatorData.useCreatorData(true)
+}
+renderCreatorData()
+creatorEffects[0]()
+await new Promise((resolve) => setImmediate(resolve))
+let creatorView = renderCreatorData()
+assert.equal(creatorView.data.me.stats.balance, 75000)
+assert.equal(
+  creatorView.data.submissions,
+  null,
+  "Failed initial history must not become an empty list"
+)
+assert.equal(
+  creatorView.sectionErrors.submissions,
+  "Riwayat belum bisa dimuat."
+)
+assert.equal(creatorOutcomes.length, 0, "Initial reads must stay silent")
+historyFails = false
+creatorView.retrySection("submissions")
+await new Promise((resolve) => setImmediate(resolve))
+creatorView = renderCreatorData()
+assert.equal(creatorView.data.submissions[0].code, "UGC-TEST0001")
+assert.equal(meCalls, 1, "Retrying history must not reload the profile")
+assert.equal(creatorOutcomes.length, 1)
+historyFails = true
+creatorView.retrySection("submissions")
+await new Promise((resolve) => setImmediate(resolve))
+creatorView = renderCreatorData()
+assert.equal(
+  creatorView.data.submissions[0].code,
+  "UGC-TEST0001",
+  "Refresh failure must retain prior history"
+)
+assert.equal(creatorView.data.me.stats.balance, 75000)
+assert.equal(historyCalls, 3)
+assert.equal(creatorOutcomes.length, 2)
+assert.equal(creatorOutcomes[1].kind, "error")
+console.log(
+  "PASS: independent creator sections, retained stale data, targeted retries and quiet automatic reads."
+)

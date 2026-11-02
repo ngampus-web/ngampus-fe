@@ -1,7 +1,9 @@
 "use client"
+import { RequestNotice } from "@/components/shared/request-notice"
+import { notify } from "@/lib/toast"
 
 import { Check, Loader2, X } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { warrantyApi } from "@/lib/api/endpoints/warranty"
@@ -30,11 +32,18 @@ export function ClaimDetailModal({
   onClose: () => void
 }) {
   const [loaded, setLoaded] = useState<Loaded | null>(null)
+  const [revision, setRevision] = useState(0)
+  const manual = useRef(false)
 
   useEffect(() => {
     let cancelled = false
     warrantyApi.get(code).then((res) => {
       if (cancelled) return
+      if (manual.current) {
+        manual.current = false
+        if (res.success) notify.success("Detail klaim berhasil dimuat.")
+        else notify.error(res.error)
+      }
       setLoaded(
         res.success
           ? { code, claim: res.data }
@@ -50,7 +59,7 @@ export function ClaimDetailModal({
     return () => {
       cancelled = true
     }
-  }, [code])
+  }, [code, revision])
 
   const current = loaded?.code === code ? loaded : null
   const claim = current && "claim" in current ? current.claim : null
@@ -70,9 +79,18 @@ export function ClaimDetailModal({
           <Loader2 className="size-6 animate-spin" aria-label="Memuat" />
         </div>
       ) : !claim ? (
-        <p className="py-6 text-center text-sm text-subtle">
-          {"error" in current ? current.error : ""}
-        </p>
+        <RequestNotice
+          message={
+            "error" in current
+              ? current.error
+              : "Detail klaim belum dapat dimuat."
+          }
+          onRetry={() => {
+            manual.current = true
+            setLoaded(null)
+            setRevision((value) => value + 1)
+          }}
+        />
       ) : (
         <ClaimBody claim={claim} />
       )}

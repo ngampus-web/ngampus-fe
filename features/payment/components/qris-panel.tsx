@@ -1,4 +1,6 @@
 "use client"
+import { notify } from "@/lib/toast"
+import { errorMessage } from "@/lib/errors"
 
 import { ExternalLink, LoaderCircle, RefreshCw } from "lucide-react"
 import QRCode from "qrcode"
@@ -27,23 +29,29 @@ export function QrisPanel({
   const [loading, setLoading] = useState(true)
   const [simulating, setSimulating] = useState(false)
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    setError("")
-    try {
-      const s = await apiGateway.startPayment(code)
-      setSession(s)
-      setQr(
-        s.qrString
-          ? await QRCode.toDataURL(s.qrString, { margin: 1, width: 280 })
-          : ""
-      )
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "QRIS belum dapat dibuat.")
-    } finally {
-      setLoading(false)
-    }
-  }, [code])
+  const load = useCallback(
+    async (manual = false) => {
+      setLoading(true)
+      setError("")
+      try {
+        const s = await apiGateway.startPayment(code)
+        setSession(s)
+        setQr(
+          s.qrString
+            ? await QRCode.toDataURL(s.qrString, { margin: 1, width: 280 })
+            : ""
+        )
+        if (manual) notify.success("Kode pembayaran berhasil dimuat.")
+      } catch (e) {
+        setError(errorMessage(e, "QRIS belum dapat dibuat. Silakan coba lagi."))
+        if (manual)
+          notify.error(e, "QRIS belum dapat dibuat. Silakan coba lagi.")
+      } finally {
+        setLoading(false)
+      }
+    },
+    [code]
+  )
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- start loading the session on mount
@@ -56,7 +64,7 @@ export function QrisPanel({
       await apiGateway.simulate(code, result)
       onChanged()
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Simulasi gagal.")
+      setError(notify.error(e, "Simulasi gagal."))
     } finally {
       setSimulating(false)
     }
@@ -77,7 +85,7 @@ export function QrisPanel({
       ) : error ? (
         <div role="alert" className="flex flex-col items-center gap-3 py-6">
           <p className="max-w-sm text-sm leading-6 text-subtle">{error}</p>
-          <Button variant="outline" size="pill" onClick={() => void load()}>
+          <Button variant="outline" size="pill" onClick={() => void load(true)}>
             <RefreshCw className="size-4" /> Coba lagi
           </Button>
         </div>

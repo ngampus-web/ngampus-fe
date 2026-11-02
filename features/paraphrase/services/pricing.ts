@@ -1,3 +1,4 @@
+import { UserFacingError } from "../../../lib/errors"
 import type { ParaphraseDetails, Turnaround } from "../types"
 import { applyPriceFormula, MIN_PARAPHRASE_PRICE } from "./price-formula"
 
@@ -42,14 +43,14 @@ export function calculateParaphrasePrice(
 ) {
   const { wordCount, service, turnaround, reports } = input
   if (!Number.isSafeInteger(wordCount) || wordCount <= 0)
-    throw new Error("Jumlah kata belum tersedia.")
+    throw new UserFacingError("Jumlah kata belum tersedia.")
   const required = service === "combined" ? ["turnitin", "ai"] : [service]
   if (
     !["turnitin", "ai", "combined"].includes(service) ||
     reports.length !== required.length ||
     !required.every((type) => reports.some((r) => r.type === type))
   )
-    throw new Error("Lengkapi skor layanan yang dipilih.")
+    throw new UserFacingError("Lengkapi skor layanan yang dipilih.")
   let reductionHundredths = 0
   for (const report of reports) {
     const { initialScore, targetScore } = report
@@ -63,7 +64,7 @@ export function calculateParaphrasePrice(
         0.000001 ||
       Math.abs(targetScore * 100 - Math.round(targetScore * 100)) > 0.000001
     ) {
-      throw new Error(
+      throw new UserFacingError(
         `Isi skor dan target yang valid (maksimal dua angka desimal). Target minimal ${rates.minTarget}% dan di bawah skor awal.`
       )
     }
@@ -71,7 +72,7 @@ export function calculateParaphrasePrice(
       Math.round(initialScore * 100) - Math.round(targetScore * 100)
   }
   const multiplier = rates.multipliers[turnaround]
-  if (!multiplier) throw new Error("Pilih paket pengerjaan.")
+  if (!multiplier) throw new UserFacingError("Pilih paket pengerjaan.")
   // Same rule as the server: the first tier whose limit covers the document.
   const tier =
     rates.tiers.find((t) => t.maxWords === null || wordCount <= t.maxWords) ??

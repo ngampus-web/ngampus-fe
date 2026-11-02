@@ -1,4 +1,5 @@
 "use client"
+import { notify } from "@/lib/toast"
 
 import { Check, Mail, Phone, Star } from "lucide-react"
 import Image from "next/image"
@@ -134,9 +135,11 @@ export function MarketplaceCheckout({
     })
     setPromoBusy(false)
     if (!res.success) {
+      notify.error(res.error)
       setPromoError(res.error.message)
       return
     }
+    notify.success("Kode promo berhasil digunakan.")
     setPromo({
       code,
       discount: res.data.discount,
@@ -146,6 +149,7 @@ export function MarketplaceCheckout({
   }
 
   function removePromo() {
+    notify.success("Kode promo dilepas.")
     setPromo(null)
     setPromoError("")
   }
@@ -266,9 +270,10 @@ export function MarketplaceCheckout({
               })
             } catch (error) {
               setPayNote(
-                error instanceof Error
-                  ? error.message
-                  : "Pesanan tidak dapat dibuat."
+                notify.error(
+                  error,
+                  "Pesanan tidak dapat dibuat. Silakan periksa kembali data pesanan."
+                )
               )
             } finally {
               inFlight.current = false

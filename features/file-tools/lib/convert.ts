@@ -1,3 +1,4 @@
+import { UserFacingError } from "../../../lib/errors"
 import type { PDFDocument, PDFFont } from "pdf-lib"
 
 import { extOf } from "./files"
@@ -111,14 +112,14 @@ async function imageBytes(file: File) {
       const el = new Image()
       el.onload = () => resolve(el)
       el.onerror = () =>
-        reject(new Error(`${file.name}: gambar tidak bisa dibaca.`))
+        reject(new UserFacingError(`${file.name}: gambar tidak bisa dibaca.`))
       el.src = url
     })
     const canvas = document.createElement("canvas")
     canvas.width = Math.max(1, img.naturalWidth || img.width)
     canvas.height = Math.max(1, img.naturalHeight || img.height)
     const ctx = canvas.getContext("2d")
-    if (!ctx) throw new Error("Browser ini tidak mendukung canvas.")
+    if (!ctx) throw new UserFacingError("Browser ini tidak mendukung canvas.")
     ctx.fillStyle = "#ffffff"
     ctx.fillRect(0, 0, canvas.width, canvas.height)
     ctx.drawImage(img, 0, 0)
@@ -127,7 +128,9 @@ async function imageBytes(file: File) {
         (b) =>
           b
             ? resolve(b)
-            : reject(new Error(`${file.name}: gambar tidak bisa diproses.`)),
+            : reject(
+                new UserFacingError(`${file.name}: gambar tidak bisa diproses.`)
+              ),
         "image/jpeg",
         0.92
       )
@@ -147,7 +150,7 @@ async function addImage(doc: PDFDocument, file: File) {
   try {
     img = kind === "jpg" ? await doc.embedJpg(bytes) : await doc.embedPng(bytes)
   } catch {
-    throw new Error(`${file.name}: gambar rusak atau tidak valid.`)
+    throw new UserFacingError(`${file.name}: gambar rusak atau tidak valid.`)
   }
   const landscape = img.width > img.height
   const [pageW, pageH] = landscape ? [A4[1], A4[0]] : A4
@@ -158,14 +161,12 @@ async function addImage(doc: PDFDocument, file: File) {
   )
   const w = img.width * scale
   const h = img.height * scale
-  doc
-    .addPage([pageW, pageH])
-    .drawImage(img, {
-      x: (pageW - w) / 2,
-      y: (pageH - h) / 2,
-      width: w,
-      height: h,
-    })
+  doc.addPage([pageW, pageH]).drawImage(img, {
+    x: (pageW - w) / 2,
+    y: (pageH - h) / 2,
+    width: w,
+    height: h,
+  })
 }
 
 async function addDocx(doc: PDFDocument, file: File, font: PDFFont) {
@@ -176,7 +177,7 @@ async function addDocx(doc: PDFDocument, file: File, font: PDFFont) {
       await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() })
     ).value
   } catch {
-    throw new Error(
+    throw new UserFacingError(
       `${file.name}: DOCX tidak bisa dibaca. Pastikan file tidak rusak atau terkunci.`
     )
   }
@@ -194,10 +195,11 @@ export async function convertToPdf(
   files: File[],
   onProgress?: (done: number, total: number) => void
 ): Promise<Uint8Array> {
-  if (!files.length) throw new Error("Pilih file yang mau dikonversi.")
+  if (!files.length)
+    throw new UserFacingError("Pilih file yang mau dikonversi.")
   const unsupported = files.find((f) => !canConvert(f))
   if (unsupported)
-    throw new Error(`${unsupported.name}: format ini belum didukung.`)
+    throw new UserFacingError(`${unsupported.name}: format ini belum didukung.`)
 
   const { PDFDocument, StandardFonts } = await import("pdf-lib")
   const out = await PDFDocument.create()

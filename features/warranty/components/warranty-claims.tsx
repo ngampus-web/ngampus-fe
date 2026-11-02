@@ -1,8 +1,10 @@
 "use client"
+import { notify } from "@/lib/toast"
+import { RequestNotice } from "@/components/shared/request-notice"
 
 import { Loader2, Plus } from "lucide-react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 import { Breadcrumb } from "@/components/layout/breadcrumb"
 import { Button } from "@/components/ui/button"
@@ -51,6 +53,12 @@ export function WarrantyClaims() {
   const [filter, setFilter] = useState<ClaimFilter>("semua")
   const [page, setPage] = useState(1)
   const [reloadKey, setReloadKey] = useState(0)
+  const manual = useRef(false)
+  function retry() {
+    manual.current = true
+    setPage(1)
+    setReloadKey((key) => key + 1)
+  }
   const [state, setState] = useState<ListState>({
     key: "",
     items: [],
@@ -69,6 +77,11 @@ export function WarrantyClaims() {
     })
     void load.then((res) => {
       if (cancelled) return
+      if (manual.current) {
+        manual.current = false
+        if (res.success) notify.success("Daftar klaim berhasil diperbarui.")
+        else notify.error(res.error)
+      }
       setState((s) =>
         res.success
           ? {
@@ -79,7 +92,7 @@ export function WarrantyClaims() {
           : {
               ...s,
               key: requestKey,
-              items: page === 1 ? [] : s.items,
+              items: s.key.startsWith(`${filter}|`) ? s.items : [],
               error: res.error.message,
             }
       )
@@ -102,11 +115,22 @@ export function WarrantyClaims() {
     setPage(1)
   }
 
-  const firstLoad = loading && page === 1
+  const firstLoad =
+    loading &&
+    page === 1 &&
+    (!state.items.length || !state.key.startsWith(`${filter}|`))
   const failed = !loading && !!state.error
 
   return (
     <>
+      {failed && state.items.length > 0 && (
+        <RequestNotice
+          message={state.error!}
+          onRetry={retry}
+          stale
+          pending={loading}
+        />
+      )}
       <Breadcrumb
         items={[
           { label: "Beranda", href: "/" },
@@ -200,10 +224,7 @@ export function WarrantyClaims() {
                       variant="outline"
                       size="pill"
                       className="mt-3"
-                      onClick={() => {
-                        setPage(1)
-                        setReloadKey((k) => k + 1)
-                      }}
+                      onClick={retry}
                     >
                       Coba lagi
                     </Button>

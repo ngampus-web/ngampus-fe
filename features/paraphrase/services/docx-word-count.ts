@@ -1,3 +1,4 @@
+import { UserFacingError } from "../../../lib/errors"
 import { countWords } from "@/features/plagiarism/services/pdf-word-count"
 
 export async function extractDocxText(file: Blob): Promise<string> {
@@ -8,7 +9,7 @@ export async function extractDocxText(file: Blob): Promise<string> {
     })
     return result.value
   } catch {
-    throw new Error(
+    throw new UserFacingError(
       "DOCX tidak dapat dibaca. Pastikan file tidak rusak atau dilindungi kata sandi, lalu ekspor ulang sebagai DOCX."
     )
   }
@@ -17,7 +18,7 @@ export async function extractDocxText(file: Blob): Promise<string> {
 export async function countDocxWords(file: Blob) {
   const count = countWords(await extractDocxText(file))
   if (!count)
-    throw new Error(
+    throw new UserFacingError(
       "Tidak ada teks dalam DOCX. Gunakan dokumen yang berisi tulisan, bukan hanya gambar."
     )
   return count

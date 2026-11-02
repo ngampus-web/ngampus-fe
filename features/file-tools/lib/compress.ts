@@ -1,3 +1,4 @@
+import { UserFacingError } from "../../../lib/errors"
 import type { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist"
 
 import { loadPdf, loadPdfjs, LOCKED_PDF } from "./pdf"
@@ -31,14 +32,17 @@ const SEARCH_STEPS = 3
 async function canvasToJpeg(canvas: HTMLCanvasElement, quality: number) {
   const blob = await new Promise<Blob>((resolve, reject) =>
     canvas.toBlob(
-      (b) => (b ? resolve(b) : reject(new Error("Gagal membuat gambar."))),
+      (b) =>
+        b ? resolve(b) : reject(new UserFacingError("Gagal membuat gambar.")),
       "image/jpeg",
       quality
     )
   )
   const bytes = new Uint8Array(await blob.arrayBuffer())
   if (bytes.length < 4 || bytes[0] !== 0xff || bytes[1] !== 0xd8) {
-    throw new Error("Browser ini tidak bisa mengompres PDF. Coba browser lain.")
+    throw new UserFacingError(
+      "Browser ini tidak bisa mengompres PDF. Coba browser lain."
+    )
   }
   return bytes
 }
@@ -48,7 +52,7 @@ function newCanvas(width: number, height: number) {
   canvas.width = Math.max(1, Math.round(width))
   canvas.height = Math.max(1, Math.round(height))
   const ctx = canvas.getContext("2d")
-  if (!ctx) throw new Error("Browser ini tidak mendukung canvas.")
+  if (!ctx) throw new UserFacingError("Browser ini tidak mendukung canvas.")
   ctx.fillStyle = "#ffffff"
   ctx.fillRect(0, 0, canvas.width, canvas.height)
   return { canvas, ctx }
@@ -251,7 +255,7 @@ async function rasterCompress(
     return best && best.byteLength < data.byteLength ? best : null
   } catch (error) {
     if (error instanceof Error && error.name === "PasswordException")
-      throw new Error(LOCKED_PDF)
+      throw new UserFacingError(LOCKED_PDF)
     throw error
   } finally {
     await task.destroy()

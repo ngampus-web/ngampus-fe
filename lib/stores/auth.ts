@@ -5,14 +5,20 @@
 
 "use client"
 
+import { RequestError } from "@/lib/errors"
 import { create } from "zustand"
 import { apiClient, authApi } from "@/lib/api"
-import type { RegisterRequest, User } from "@/types/api"
+import type { ApiError, RegisterRequest, User } from "@/types/api"
 
 type Status = "idle" | "loading" | "authenticated" | "guest"
 type Result =
   | { success: true }
-  | { success: false; error: string; fieldErrors?: Record<string, string[]> }
+  | {
+      success: false
+      error: string
+      cause: ApiError
+      fieldErrors?: Record<string, string[]>
+    }
 
 interface AuthState {
   user: User | null
@@ -54,12 +60,10 @@ export const useAuthStore = create<AuthState>()((set, get) => {
 
   apiClient.setTokenProvider({ getToken: () => get().token, refresh })
 
-  const fail = (error: {
-    message: string
-    details?: Record<string, unknown>
-  }): Result => ({
+  const fail = (error: ApiError): Result => ({
     success: false,
     error: error.message,
+    cause: error,
     fieldErrors: error.details?.fieldErrors as
       Record<string, string[]> | undefined,
   })
@@ -92,7 +96,8 @@ export const useAuthStore = create<AuthState>()((set, get) => {
     },
 
     logout: async () => {
-      await authApi.logout()
+      const res = await authApi.logout()
+      if (!res.success) throw new RequestError(res.error)
       set({ user: null, token: null, status: "guest" })
     },
 

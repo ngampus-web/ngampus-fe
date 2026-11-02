@@ -1,4 +1,6 @@
 "use client"
+import { notify } from "@/lib/toast"
+import { RequestError, UserFacingError, errorMessage } from "@/lib/errors"
 
 import { useState } from "react"
 import Link from "next/link"
@@ -73,7 +75,7 @@ export function WithdrawForm() {
           balance: creatorBalance,
         })
         if (precheck) {
-          setNote(precheck)
+          setNote(notify.error(new UserFacingError(precheck)))
           return
         }
         setNote("")
@@ -87,12 +89,22 @@ export function WithdrawForm() {
         })
         setSubmitting(false)
         if (res.success) {
+          notify.success(
+            "Pengajuan penarikan diterima. Pantau statusnya di dashboard."
+          )
           setSubmitted(true)
           return
         }
         const fields = res.error.details?.fieldErrors as
           Record<string, string[]> | undefined
-        setNote((fields && Object.values(fields)[0]?.[0]) ?? res.error.message)
+        const failure = new RequestError(
+          res.error,
+          "Status pengajuan penarikan belum bisa dipastikan. Periksa riwayat penarikan sebelum mengajukan lagi."
+        )
+        notify.error(failure)
+        setNote(
+          (fields && Object.values(fields)[0]?.[0]) ?? errorMessage(failure)
+        )
       }}
     >
       <div className="flex flex-col gap-1">

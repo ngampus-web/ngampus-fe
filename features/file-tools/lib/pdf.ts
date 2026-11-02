@@ -1,3 +1,4 @@
+import { UserFacingError } from "../../../lib/errors"
 import type { PDFDocument } from "pdf-lib"
 
 export const LOCKED_PDF =
@@ -14,8 +15,8 @@ export async function loadPdf(
   } catch (error) {
     // pdf-lib's ES5 build breaks `instanceof EncryptedPDFError`; match its message.
     if (error instanceof Error && /is encrypted/i.test(error.message))
-      throw new Error(`${name}: ${LOCKED_PDF}`)
-    throw new Error(
+      throw new UserFacingError(`${name}: ${LOCKED_PDF}`)
+    throw new UserFacingError(
       `${name}: file PDF rusak atau tidak valid. Ekspor ulang sebagai PDF lalu coba lagi.`
     )
   }

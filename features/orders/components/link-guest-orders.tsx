@@ -1,4 +1,6 @@
 "use client"
+import { notify } from "@/lib/toast"
+import { UserFacingError } from "@/lib/errors"
 
 import Link from "next/link"
 import { useState } from "react"
@@ -39,20 +41,31 @@ export function LinkGuestOrders({
     try {
       const res = await ordersApi.link({ code, token })
       if (!res.success) {
+        notify.error(res.error)
         setMessage(res.error.message)
         return
       }
       setToken(null)
       if (res.data.linked) {
+        notify.success("Pesanan tersimpan ke akunmu.")
         setSaved(true)
         await onLinked()
       }
+      if (!res.data.linked)
+        notify.error(
+          new UserFacingError(
+            "Tautan pesanan tidak berlaku atau pesanan sudah terhubung ke akun lain."
+          )
+        )
       setMessage(
         res.data.linked
           ? "Pesanan tersimpan ke akun."
-          : "Pesanan tidak dapat ditautkan karena token tidak berlaku atau sudah dimiliki akun lain."
+          : "Tautan pesanan tidak berlaku atau pesanan sudah terhubung ke akun lain."
       )
     } catch {
+      notify.error(
+        new UserFacingError("Gagal menautkan pesanan. Silakan coba lagi.")
+      )
       setMessage("Gagal menautkan pesanan. Silakan coba lagi.")
     } finally {
       setBusy(false)

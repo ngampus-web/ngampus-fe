@@ -1,4 +1,7 @@
 "use client"
+import { useValidationFocus } from "@/lib/use-validation-focus"
+import { notify } from "@/lib/toast"
+import { UserFacingError } from "@/lib/errors"
 
 import { Eye, EyeOff } from "lucide-react"
 import Image from "next/image"
@@ -194,6 +197,7 @@ export function RegisterForm() {
   const next = safeNext(useSearchParams().get("next"))
   const [note, setNote] = useState("")
   const [errors, setErrors] = useState<FieldErrors>()
+  useValidationFocus(errors)
   const [turnstileToken, setTurnstileToken] = useState<string>()
   const [resetCaptcha, setResetCaptcha] = useState(0)
   const [submitting, setSubmitting] = useSubmitting()
@@ -208,6 +212,7 @@ export function RegisterForm() {
         const confirmPassword = String(data.get("confirm-password"))
         if (password !== confirmPassword) {
           setErrors({ confirmPassword: ["Konfirmasi password belum sama."] })
+          notify.error(new UserFacingError("Konfirmasi password belum sama."))
           return
         }
         setSubmitting(true)
@@ -222,10 +227,12 @@ export function RegisterForm() {
         })
         setSubmitting(false)
         if (result.success) {
+          notify.success("Akun berhasil dibuat.")
           router.replace(next)
           return
         }
         setErrors(result.fieldErrors)
+        notify.error(result.cause)
         setNote(result.error)
         setResetCaptcha((n) => n + 1)
       }}
@@ -294,6 +301,7 @@ export function LoginForm() {
   const next = safeNext(useSearchParams().get("next"))
   const [note, setNote] = useState("")
   const [errors, setErrors] = useState<FieldErrors>()
+  useValidationFocus(errors)
   const [submitting, setSubmitting] = useSubmitting()
 
   return (
@@ -312,10 +320,12 @@ export function LoginForm() {
         )
         setSubmitting(false)
         if (result.success) {
+          notify.success("Berhasil masuk. Selamat datang kembali!")
           router.replace(next)
           return
         }
         setErrors(result.fieldErrors)
+        notify.error(result.cause)
         setNote(result.error)
       }}
     >
@@ -378,6 +388,7 @@ export function ForgotPasswordForm() {
   const [note, setNote] = useState("")
   const [tone, setTone] = useState<"muted" | "error">("muted")
   const [errors, setErrors] = useState<FieldErrors>()
+  useValidationFocus(errors)
   const [turnstileToken, setTurnstileToken] = useState<string>()
   const [resetCaptcha, setResetCaptcha] = useState(0)
   const [submitting, setSubmitting] = useSubmitting()
@@ -394,6 +405,9 @@ export function ForgotPasswordForm() {
         setSubmitting(false)
         setResetCaptcha((n) => n + 1)
         if (res.success) {
+          notify.success(
+            "Jika email terdaftar, tautan reset sudah dikirim. Cek inbox atau spam."
+          )
           setTone("muted")
           setNote(
             "Jika email terdaftar, link reset password sudah dikirim. Cek inbox atau folder spam."
@@ -402,6 +416,7 @@ export function ForgotPasswordForm() {
         }
         setTone("error")
         setErrors(res.error.details?.fieldErrors as FieldErrors)
+        notify.error(res.error)
         setNote(res.error.message)
       }}
     >
@@ -438,6 +453,7 @@ export function ResetPasswordForm() {
       : "Link reset tidak valid. Minta link baru dari halaman lupa password."
   )
   const [errors, setErrors] = useState<FieldErrors>()
+  useValidationFocus(errors)
   const [submitting, setSubmitting] = useSubmitting()
 
   return (
@@ -449,6 +465,7 @@ export function ResetPasswordForm() {
         const newPassword = String(data.get("password"))
         if (newPassword !== data.get("confirm-password")) {
           setErrors({ confirmPassword: ["Konfirmasi password belum sama."] })
+          notify.error(new UserFacingError("Konfirmasi password belum sama."))
           return
         }
         setSubmitting(true)
@@ -456,10 +473,12 @@ export function ResetPasswordForm() {
         const res = await authApi.resetPassword(token, newPassword)
         setSubmitting(false)
         if (res.success) {
+          notify.success("Password berhasil diperbarui. Silakan masuk.")
           router.replace("/masuk?reset=1")
           return
         }
         setErrors(res.error.details?.fieldErrors as FieldErrors)
+        notify.error(res.error)
         setNote(res.error.message)
       }}
     >

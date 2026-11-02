@@ -6,6 +6,7 @@
  */
 
 import { config } from "@/lib/config"
+import { errorMessage } from "@/lib/errors"
 import type { ApiError, ApiResponse, PaginationMeta } from "@/types/api"
 
 type TokenProvider = {
@@ -55,11 +56,14 @@ export class ApiClient {
       return {
         success: false,
         error: {
-          message:
-            error instanceof Error && error.message !== "Failed to fetch"
-              ? error.message
-              : "Tidak dapat terhubung ke server. Periksa koneksi kamu.",
-          code: "NETWORK_ERROR",
+          message: errorMessage(
+            error,
+            "Tidak dapat terhubung ke server. Periksa koneksi kamu."
+          ),
+          code:
+            error instanceof Error && error.name === "AbortError"
+              ? "ABORTED"
+              : "NETWORK_ERROR",
           status: 0,
         },
       }
@@ -79,7 +83,7 @@ export class ApiClient {
 
     if (!response.ok) {
       const error: ApiError = {
-        message: body?.error?.message || "Terjadi kesalahan, coba lagi.",
+        message: errorMessage({ ...body?.error, status: response.status }),
         code: body?.error?.code || "UNKNOWN_ERROR",
         status: response.status,
         details: body?.error?.details,

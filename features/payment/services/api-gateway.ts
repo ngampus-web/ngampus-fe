@@ -1,5 +1,6 @@
 import { type CreatedOrder, ordersApi } from "@/lib/api/endpoints/orders"
 import { orderTokens } from "@/lib/orders/order-tokens"
+import { RequestError, UserFacingError } from "@/lib/errors"
 import type { OrderDetail, PaymentSession } from "@/types/api"
 
 import { filesApi } from "@/lib/api/endpoints/files"
@@ -105,7 +106,7 @@ function fromApi(o: OrderDetail): PaymentOrder {
 }
 
 const fail = (message: string): never => {
-  throw new Error(message)
+  throw new UserFacingError(message)
 }
 
 /** Keeps the order openable from this browser without login. */
@@ -127,7 +128,11 @@ export const apiGateway = {
       whatsapp: draft.phone,
       promoCode: draft.promoCode,
     })
-    if (!res.success) return fail(res.error.message)
+    if (!res.success)
+      throw new RequestError(
+        res.error,
+        "Status pembuatan pesanan belum bisa dipastikan. Periksa riwayat pesanan sebelum mencoba lagi."
+      )
     return remember(res.data)
   },
 
@@ -159,7 +164,11 @@ export const apiGateway = {
       },
       draft.uploadToken
     )
-    if (!res.success) return fail(res.error.message)
+    if (!res.success)
+      throw new RequestError(
+        res.error,
+        "Status pembuatan pesanan belum bisa dipastikan. Periksa riwayat pesanan sebelum mencoba lagi."
+      )
     return remember(res.data)
   },
 
@@ -178,7 +187,11 @@ export const apiGateway = {
       },
       draft.uploadToken
     )
-    if (!res.success) return fail(res.error.message)
+    if (!res.success)
+      throw new RequestError(
+        res.error,
+        "Status pembuatan pesanan belum bisa dipastikan. Periksa riwayat pesanan sebelum mencoba lagi."
+      )
     return remember(res.data)
   },
 
@@ -190,13 +203,13 @@ export const apiGateway = {
     )
     if (!up.success) return fail(up.error.message)
     const res = await ordersApi.resubmit(code, up.data.id, up.data.uploadToken)
-    if (!res.success) return fail(res.error.message)
+    if (!res.success) throw new RequestError(res.error)
     return fromApi(res.data)
   },
 
   async resendDelivery(code: string): Promise<void> {
     const res = await ordersApi.resendDelivery(code)
-    if (!res.success) fail(res.error.message)
+    if (!res.success) throw new RequestError(res.error)
   },
 
   async resultUrl(
@@ -204,7 +217,7 @@ export const apiGateway = {
     file: "document" | "report" = "document"
   ): Promise<string> {
     const res = await ordersApi.result(code, file)
-    if (!res.success) return fail(res.error.message)
+    if (!res.success) throw new RequestError(res.error)
     return res.data.url
   },
 
@@ -213,23 +226,23 @@ export const apiGateway = {
     const res = await ordersApi.get(code)
     if (res.success) return fromApi(res.data)
     if (res.error.status === 404) return null
-    return fail(res.error.message)
+    throw new RequestError(res.error)
   },
 
   async startPayment(code: string): Promise<PaymentSession> {
     const res = await ordersApi.pay(code)
-    if (!res.success) return fail(res.error.message)
+    if (!res.success) throw new RequestError(res.error)
     return res.data
   },
 
   async simulate(code: string, result: "paid" | "failed") {
     const res = await ordersApi.simulatePayment(code, result)
-    if (!res.success) return fail(res.error.message)
+    if (!res.success) throw new RequestError(res.error)
   },
 
   async cancel(code: string): Promise<PaymentOrder> {
     const res = await ordersApi.cancel(code)
-    if (!res.success) return fail(res.error.message)
+    if (!res.success) throw new RequestError(res.error)
     return fromApi(res.data)
   },
 }

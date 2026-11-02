@@ -1,8 +1,9 @@
+import { UserFacingError } from "../../../lib/errors"
 import { extractDocxText } from "@/features/paraphrase/services/docx-word-count"
 
 import { countChars, countWords, extractPdfText } from "./pdf-word-count"
 
-// Cek AI accepts the formats GPTZero reads (docs/prd/07-document-check.md).
+// Cek AI accepts the formats GPTZero reads.
 const MIME: Record<string, string> = {
   pdf: "application/pdf",
   docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -43,7 +44,7 @@ export async function analyzeDocument(
   if (text === null) return null
   const words = countWords(text)
   if (!words)
-    throw new Error(
+    throw new UserFacingError(
       ext === "pdf"
         ? "Tidak ada teks yang dapat dihitung. Jika PDF berupa hasil scan atau gambar, lakukan OCR terlebih dahulu."
         : "Tidak ada teks dalam dokumen. Gunakan dokumen yang berisi tulisan, bukan hanya gambar."

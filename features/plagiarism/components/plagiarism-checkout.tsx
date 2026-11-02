@@ -1,4 +1,6 @@
 "use client"
+import { notify } from "@/lib/toast"
+import { RequestError, UserFacingError } from "@/lib/errors"
 
 import { FileText, Info, Phone, TicketPercent } from "lucide-react"
 import { useId, useRef, useState } from "react"
@@ -83,11 +85,13 @@ export function PlagiarismCheckout({
   // keep the upload token that proves the file.
   const uploaded = useRef(new WeakMap<File, string>())
   const uploadToken = useRef<string | undefined>(undefined)
+  const showPayError = (message: string) =>
+    setPayError(notify.error(new UserFacingError(message)))
   async function checkout() {
     if (inFlight.current) return
     setPayError("")
     if (!file) {
-      setPayError(
+      showPayError(
         isAi
           ? "Pilih dokumen terlebih dahulu."
           : "Pilih dokumen PDF terlebih dahulu."
@@ -95,18 +99,20 @@ export function PlagiarismCheckout({
       return
     }
     if (wordCount === undefined) {
-      setPayError("Tunggu pemeriksaan dokumen selesai.")
+      setPayError(
+        notify.error(new UserFacingError("Tunggu pemeriksaan dokumen selesai."))
+      )
       return
     }
     if (wordCount && wordCount > maxWords) {
-      setPayError(
+      showPayError(
         `Dokumen melebihi batas ${maxWords.toLocaleString("id-ID")} kata.`
       )
       return
     }
     const limit = isAi ? aiLimitError(aiPricing, wordCount, charCount) : null
     if (limit) {
-      setPayError(limit)
+      setPayError(notify.error(new UserFacingError(limit)))
       return
     }
     const slug = service.slug
@@ -119,7 +125,7 @@ export function PlagiarismCheckout({
         Number(excludeAmount) <= 0 ||
         (excludeUnit === "persentase" && Number(excludeAmount) > 100))
     ) {
-      setPayError(
+      showPayError(
         "Isi batas Exclude Small Matches yang valid (persentase 1–100)."
       )
       return
@@ -137,7 +143,7 @@ export function PlagiarismCheckout({
             documentMime(file),
             uploadToken.current
           )
-          if (!res.success) throw new Error(res.error.message)
+          if (!res.success) throw new RequestError(res.error)
           fileId = res.data.id
           uploadToken.current = res.data.uploadToken ?? uploadToken.current
           uploaded.current.set(file, fileId)
@@ -168,7 +174,10 @@ export function PlagiarismCheckout({
       })
     } catch (error) {
       setPayError(
-        error instanceof Error ? error.message : "Pesanan tidak dapat dibuat."
+        notify.error(
+          error,
+          "Pesanan tidak dapat dibuat. Periksa kembali data pesanan."
+        )
       )
     } finally {
       inFlight.current = false
@@ -283,9 +292,11 @@ export function PlagiarismCheckout({
                   type="button"
                   onClick={() =>
                     setPromoNote(
-                      isAi
-                        ? "Kode promo dicek saat pesanan dibuat."
-                        : "Kode promo belum tersedia pada pratinjau. Total tetap mengikuti harga layanan."
+                      notify.info(
+                        isAi
+                          ? "Kode promo dicek saat pesanan dibuat."
+                          : "Kode promo belum tersedia pada pratinjau. Total tetap mengikuti harga layanan."
+                      )
                     )
                   }
                   size="pill"
@@ -482,11 +493,10 @@ export function PlagiarismCheckout({
                     if (wordRequest.current === request) {
                       setWordCount(null)
                       setPayError(
-                        error instanceof Error
-                          ? error.message
-                          : isAi
-                            ? "Dokumen tidak dapat dibaca. Coba gunakan file lain."
-                            : "PDF tidak dapat dibaca. Coba gunakan file PDF lain."
+                        notify.error(
+                          error,
+                          "Dokumen tidak dapat dibaca. Coba gunakan file lain."
+                        )
                       )
                     }
                   })

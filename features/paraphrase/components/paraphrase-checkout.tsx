@@ -1,4 +1,6 @@
 "use client"
+import { notify } from "@/lib/toast"
+import { RequestError, UserFacingError } from "@/lib/errors"
 
 import { useId, useRef, useState, type ReactNode } from "react"
 import { FileText, Upload, Clock3, MessageCircle } from "lucide-react"
@@ -52,7 +54,7 @@ async function uploadOnce(
       (purpose === "paraphrase_source" ? DOCX_MIME : "application/pdf"),
     session.token
   )
-  if (!res.success) throw new Error(res.error.message)
+  if (!res.success) throw new RequestError(res.error)
   session.token = res.data.uploadToken ?? session.token
   session.files.set(file, res.data.id)
   return res.data.id
@@ -210,7 +212,7 @@ export function ParaphraseCheckout({
       if (current === request.current) setWordCount(count)
     } catch (e) {
       if (current === request.current)
-        setDocError(e instanceof Error ? e.message : "DOCX tidak dapat dibaca.")
+        setDocError(notify.error(e, "DOCX tidak dapat dibaca."))
     } finally {
       if (current === request.current) setCounting(false)
     }
@@ -222,18 +224,30 @@ export function ParaphraseCheckout({
       setReports((prev) => ({ ...prev, [type]: next }))
       setScores((prev) => ({ ...prev, [type]: "" }))
     } catch (e) {
-      setError(e instanceof Error ? e.message : "PDF tidak valid.")
+      setError(notify.error(e, "PDF tidak valid."))
     }
   }
   async function submit() {
     if (inFlight.current) return
     setError("")
     if (!document || !wordCount || counting || docError) {
-      setError("Pilih DOCX dan tunggu jumlah kata selesai dihitung.")
+      setError(
+        notify.error(
+          new UserFacingError(
+            "Pilih DOCX dan tunggu jumlah kata selesai dihitung."
+          )
+        )
+      )
       return
     }
     if (reportTypes.some((type) => !reports[type])) {
-      setError("Lengkapi laporan PDF untuk layanan yang dipilih.")
+      setError(
+        notify.error(
+          new UserFacingError(
+            "Lengkapi laporan PDF untuk layanan yang dipilih."
+          )
+        )
+      )
       return
     }
     const details: ParaphraseDetails = {
@@ -280,7 +294,7 @@ export function ParaphraseCheckout({
         uploadToken: uploaded.current.token,
       })
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Pesanan belum dapat dibuat.")
+      setError(notify.error(e, "Pesanan belum dapat dibuat."))
     } finally {
       inFlight.current = false
       setBusy(false)
