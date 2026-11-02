@@ -1,5 +1,6 @@
 "use client"
 
+import { UserFacingError } from "../../../lib/errors"
 import type {
   OrderDraft,
   PaymentGateway,
@@ -52,7 +53,7 @@ function save(order: PaymentOrder) {
   try {
     sessionStorage.setItem(key(order.id), JSON.stringify(order))
   } catch {
-    throw new Error(
+    throw new UserFacingError(
       "Pratinjau membutuhkan penyimpanan sesi browser. Aktifkan penyimpanan lalu coba lagi."
     )
   }
@@ -85,7 +86,7 @@ export const previewGateway: PaymentGateway = {
   async startPayment(id) {
     const order = read(id)
     if (!order || effectiveStatus(order) !== "pending")
-      throw new Error(
+      throw new UserFacingError(
         "Pesanan ini sudah tidak dapat dibayar. Buat pesanan baru."
       )
     return { checkoutUrl: `/pembayaran/${encodeURIComponent(id)}/qris` }
@@ -95,9 +96,9 @@ export const previewGateway: PaymentGateway = {
 /** Preview-only controls. Never use client-side transitions to confirm real payments. */
 export function simulateStatus(id: string, status: PaymentStatus) {
   const order = read(id)
-  if (!order) throw new Error("Pesanan tidak ditemukan di sesi ini.")
+  if (!order) throw new UserFacingError("Pesanan tidak ditemukan di sesi ini.")
   if (!canTransition(effectiveStatus(order), status))
-    throw new Error(
+    throw new UserFacingError(
       "Status pesanan telah berubah. Muat ulang halaman untuk melanjutkan."
     )
   return save({ ...order, status, updatedAt: new Date().toISOString() })

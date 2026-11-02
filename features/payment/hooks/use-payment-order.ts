@@ -1,4 +1,6 @@
 "use client"
+import { notify } from "@/lib/toast"
+import { errorMessage } from "@/lib/errors"
 import {
   useCallback,
   useEffect,
@@ -57,14 +59,27 @@ function useLiveOrder(code: string, enabled: boolean, pollMs: number) {
   const [order, setOrder] = useState<PaymentOrder | null | undefined>(undefined)
   const [error, setError] = useState("")
 
-  const refresh = useCallback(async () => {
-    try {
-      setOrder(await apiGateway.getOrder(code))
-      setError("")
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Gagal memuat pesanan.")
-    }
-  }, [code])
+  const refresh = useCallback(
+    async (manual = false) => {
+      try {
+        const next = await apiGateway.getOrder(code)
+        setOrder(next)
+        setError("")
+        if (manual) {
+          if (next) notify.success("Data pesanan berhasil diperbarui.")
+          else
+            notify.error({
+              code: "NOT_FOUND",
+              message: "Pesanan tidak ditemukan atau tautannya tidak berlaku.",
+            })
+        }
+      } catch (e) {
+        setError(errorMessage(e, "Gagal memuat pesanan."))
+        if (manual) notify.error(e, "Gagal memuat pesanan.")
+      }
+    },
+    [code]
+  )
 
   useEffect(() => {
     if (!enabled || !session) return
@@ -72,11 +87,14 @@ function useLiveOrder(code: string, enabled: boolean, pollMs: number) {
     let cancelled = false
     void apiGateway
       .getOrder(code)
-      .then((o) => !cancelled && setOrder(o))
+      .then((o) => {
+        if (!cancelled) {
+          setOrder(o)
+          setError("")
+        }
+      })
       .catch(
-        (e) =>
-          !cancelled &&
-          setError(e instanceof Error ? e.message : "Gagal memuat pesanan.")
+        (e) => !cancelled && setError(errorMessage(e, "Gagal memuat pesanan."))
       )
     return () => {
       cancelled = true
@@ -100,5 +118,12 @@ export function usePaymentOrder(id: string, { pollMs = POLL_MS } = {}) {
   const api = useLiveOrder(id, live, pollMs)
   return live
     ? api
-    : { order: preview, error: "", refresh: async () => {}, setOrder: () => {} }
+    : {
+        order: preview,
+        error: "",
+        refresh: async (manual = false) => {
+          if (manual) notify.success("Data pratinjau dimuat.")
+        },
+        setOrder: () => {},
+      }
 }

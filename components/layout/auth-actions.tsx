@@ -1,4 +1,5 @@
 "use client"
+import { notify } from "@/lib/toast"
 
 import { History, LogOut, ShieldCheck, UserRound } from "lucide-react"
 import Link from "next/link"
@@ -25,8 +26,13 @@ function useLogout() {
   const logout = useAuthStore((s) => s.logout)
   const router = useRouter()
   return async () => {
-    await logout()
-    router.replace("/")
+    try {
+      await logout()
+      notify.success("Kamu sudah keluar.")
+      router.replace("/")
+    } catch (error) {
+      notify.error(error)
+    }
   }
 }
 

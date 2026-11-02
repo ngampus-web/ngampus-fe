@@ -1,4 +1,5 @@
 "use client"
+import { notify } from "@/lib/toast"
 
 import {
   ArrowDown,
@@ -134,12 +135,9 @@ function FileToolsPanel({ initialTool }: { initialTool?: string }) {
           setProgress(`Memproses ${done} dari ${total}…`)
         )
       )
+      notify.success("File berhasil diproses. Hasilnya siap diunduh.")
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "File tidak bisa diproses. Coba lagi."
-      )
+      setError(notify.error(err, "File tidak bisa diproses. Coba lagi."))
     } finally {
       setBusy(false)
       setProgress(null)
@@ -328,7 +326,19 @@ function FileToolsPanel({ initialTool }: { initialTool?: string }) {
             <Button
               type="button"
               className="h-11 rounded-3xl px-8 text-sm"
-              onClick={() => downloadPdf(result.bytes, result.name)}
+              onClick={() => {
+                try {
+                  downloadPdf(result.bytes, result.name)
+                  notify.success("Unduhan dimulai.")
+                } catch (error) {
+                  setError(
+                    notify.error(
+                      error,
+                      "Unduhan belum dapat dimulai. Silakan coba lagi."
+                    )
+                  )
+                }
+              }}
             >
               <Download aria-hidden /> Unduh PDF
             </Button>

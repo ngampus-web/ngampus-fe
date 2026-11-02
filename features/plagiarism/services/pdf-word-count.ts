@@ -1,3 +1,4 @@
+import { UserFacingError } from "../../../lib/errors"
 const WORD = /[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*/gu
 
 export const countWords = (text: string) =>
@@ -11,7 +12,7 @@ export const countChars = (text: string) =>
 export async function countPdfWords(file: Blob): Promise<number> {
   const total = countWords(await extractPdfText(file))
   if (total === 0) {
-    throw new Error(
+    throw new UserFacingError(
       "Tidak ada teks yang dapat dihitung. Jika PDF berupa hasil scan atau gambar, lakukan OCR terlebih dahulu."
     )
   }
@@ -56,12 +57,12 @@ export async function extractPdfText(file: Blob): Promise<string> {
     return all
   } catch (error) {
     if (error instanceof Error && error.name === "PasswordException") {
-      throw new Error(
+      throw new UserFacingError(
         "PDF dilindungi kata sandi. Buka proteksinya lalu pilih ulang file."
       )
     }
     if (error instanceof Error && error.name === "InvalidPDFException") {
-      throw new Error(
+      throw new UserFacingError(
         "File PDF rusak atau tidak valid. Ekspor ulang sebagai PDF lalu coba lagi."
       )
     }

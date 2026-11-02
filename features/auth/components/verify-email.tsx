@@ -1,4 +1,5 @@
 "use client"
+import { notify } from "@/lib/toast"
 
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
@@ -19,8 +20,11 @@ export function VerifyEmail() {
     if (!token || sent.current) return
     sent.current = true
     void authApi.verifyEmail(token).then((res) => {
-      if (res.success) setState("ok")
-      else {
+      if (res.success) {
+        setState("ok")
+        notify.success("Email berhasil diverifikasi.")
+      } else {
+        notify.error(res.error)
         setMessage(res.error.message)
         setState("error")
       }

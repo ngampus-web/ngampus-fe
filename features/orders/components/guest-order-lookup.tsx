@@ -1,4 +1,6 @@
 "use client"
+import { notify } from "@/lib/toast"
+import { UserFacingError } from "@/lib/errors"
 
 import { Loader2, Search } from "lucide-react"
 import Link from "next/link"
@@ -27,6 +29,9 @@ export function GuestOrderLookup() {
     const invoice = code.trim().toUpperCase()
     if (!/^[A-Z]{3}-[0-9A-Z]{8}$/.test(invoice)) {
       setError("Nomor invoice tidak valid. Contoh: MKT-7K2M9QXA.")
+      notify.error(
+        new UserFacingError("Periksa nomor invoice yang kamu masukkan.")
+      )
       return
     }
     setBusy(true)
@@ -34,9 +39,11 @@ export function GuestOrderLookup() {
     const res = await ordersApi.lookup(invoice, whatsapp)
     if (!res.success) {
       setBusy(false)
+      notify.error(res.error)
       setError(res.error.message)
       return
     }
+    notify.success("Pesanan ditemukan.")
     orderTokens.save(res.data.code, res.data.accessToken)
     router.push(`/pembayaran/${res.data.code}`)
   }

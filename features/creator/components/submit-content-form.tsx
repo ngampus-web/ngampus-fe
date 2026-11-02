@@ -1,4 +1,6 @@
 "use client"
+import { notify } from "@/lib/toast"
+import { UserFacingError } from "@/lib/errors"
 
 import { ChevronDown } from "lucide-react"
 import Link from "next/link"
@@ -83,22 +85,30 @@ export function SubmitContentForm() {
         const data = new FormData(event.currentTarget)
         const file = fileRef.current?.files?.[0]
         if (!file) {
-          setNote("Pilih screenshot jumlah views.")
+          setNote(
+            notify.error(new UserFacingError("Pilih screenshot jumlah views."))
+          )
           return
         }
         if (!allowedTypes.has(file.type)) {
-          setNote("Format file harus JPG, PNG, atau WEBP.")
+          setNote(
+            notify.error(
+              new UserFacingError("Format file harus JPG, PNG, atau WEBP.")
+            )
+          )
           return
         }
         if (file.size > maxFileBytes) {
-          setNote("Ukuran file maksimal 5MB.")
+          setNote(
+            notify.error(new UserFacingError("Ukuran file maksimal 5MB."))
+          )
           return
         }
         const platform = PLATFORM_OPTIONS.find(
           (p) => p.label === data.get("platform")
         )
         if (!platform) {
-          setNote("Pilih platform.")
+          setNote(notify.error(new UserFacingError("Pilih platform.")))
           return
         }
         setNote("")
@@ -106,6 +116,7 @@ export function SubmitContentForm() {
         const upload = await filesApi.upload(file, "submission_proof")
         if (!upload.success) {
           setSubmitting(false)
+          notify.error(upload.error)
           setNote(upload.error.message)
           return
         }
@@ -119,9 +130,13 @@ export function SubmitContentForm() {
         })
         setSubmitting(false)
         if (res.success) {
+          notify.success(
+            "Konten berhasil diajukan. Kamu bisa memantau statusnya di dashboard."
+          )
           setSubmitted(true)
           return
         }
+        notify.error(res.error)
         setNote(firstFieldError(res.error.details) ?? res.error.message)
       }}
     >

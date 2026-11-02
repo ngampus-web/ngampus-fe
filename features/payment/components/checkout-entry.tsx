@@ -1,4 +1,5 @@
 "use client"
+import { notify } from "@/lib/toast"
 import { useRouter } from "next/navigation"
 import type { OrderDraft } from "../types"
 import { apiGateway } from "../services/api-gateway"
@@ -20,6 +21,7 @@ export function useCheckoutPayment() {
           : draft.details.kind === "document" && draft.details.fileId
             ? await apiGateway.createAiCheckOrder(draft)
             : await previewGateway.createOrder(draft)
+    notify.success("Pesanan berhasil dibuat.")
     router.push(`/pembayaran/${order.id}`)
   }
 }

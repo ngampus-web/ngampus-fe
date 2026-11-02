@@ -1,3 +1,4 @@
+import { UserFacingError } from "../../../lib/errors"
 import { calculateParaphrasePrice } from "../../paraphrase/services/pricing"
 import { validateParaphrase } from "../../paraphrase/services/validation"
 import type { OrderDraft, PaymentOrder, PaymentStatus } from "../types"
@@ -16,7 +17,7 @@ export function normalizePhone(input: string) {
   const compact = input.trim().replace(/[\s()-]/g, "")
   const phone = compact.replace(/^\+62/, "62").replace(/^0/, "62")
   if (!/^628\d{7,11}$/.test(phone))
-    throw new Error(
+    throw new UserFacingError(
       "Masukkan nomor WhatsApp Indonesia yang valid, misalnya 081234567890."
     )
   return phone
@@ -25,17 +26,17 @@ export function normalizePhone(input: string) {
 export function validateMarketplaceEmail(value: string | undefined) {
   const email = value?.trim() ?? ""
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
-    throw new Error("Masukkan alamat email yang valid.")
+    throw new UserFacingError("Masukkan alamat email yang valid.")
   return email
 }
 
 export function validateDraft(draft: OrderDraft) {
   normalizePhone(draft.phone)
   if (!Number.isSafeInteger(draft.amount) || draft.amount <= 0)
-    throw new Error("Total pembayaran tidak valid.")
+    throw new UserFacingError("Total pembayaran tidak valid.")
   const d = draft.details
   if (!d || !d.title?.trim() || !d.slug?.trim())
-    throw new Error("Detail pesanan tidak lengkap.")
+    throw new UserFacingError("Detail pesanan tidak lengkap.")
   if (d.kind === "marketplace") {
     if (d.customerEmail !== undefined) validateMarketplaceEmail(d.customerEmail)
     if (
@@ -43,30 +44,32 @@ export function validateDraft(draft: OrderDraft) {
       !d.plan?.trim() ||
       !d.duration?.trim()
     )
-      throw new Error("Lengkapi data pembeli, paket, dan durasi produk.")
+      throw new UserFacingError(
+        "Lengkapi data pembeli, paket, dan durasi produk."
+      )
   } else if (d.kind === "document") {
     if (!["turnitin", "cek-ai", "parafrase-manual"].includes(d.slug))
-      throw new Error("Layanan dokumen tidak valid.")
+      throw new UserFacingError("Layanan dokumen tidak valid.")
     if (
       !d.fileName?.toLowerCase().endsWith(".pdf") ||
       !Number.isSafeInteger(d.fileSize) ||
       d.fileSize <= 0
     )
-      throw new Error("Pilih dokumen PDF yang valid.")
+      throw new UserFacingError("Pilih dokumen PDF yang valid.")
     if (d.fileSize > 10 * 1024 * 1024)
-      throw new Error("Ukuran dokumen maksimal 10 MB.")
+      throw new UserFacingError("Ukuran dokumen maksimal 10 MB.")
     if (
       !Array.isArray(d.filters) ||
       !d.filters.every((f) => typeof f === "string")
     )
-      throw new Error("Filter dokumen tidak valid.")
+      throw new UserFacingError("Filter dokumen tidak valid.")
   } else if (d.kind === "paraphrase") {
     validateParaphrase(d)
     if (draft.amount !== calculateParaphrasePrice(d, d.rates).total)
-      throw new Error(
+      throw new UserFacingError(
         "Harga parafrase tidak sesuai rincian pesanan. Buat ulang pesanan."
       )
-  } else throw new Error("Jenis pesanan tidak valid.")
+  } else throw new UserFacingError("Jenis pesanan tidak valid.")
 }
 
 export function effectiveStatus(

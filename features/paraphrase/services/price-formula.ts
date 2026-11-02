@@ -1,3 +1,4 @@
+import { UserFacingError } from "../../../lib/errors"
 /** Brief "Pricing NGAMPUS": every order costs at least this much. */
 export const MIN_PARAPHRASE_PRICE = 25000
 
@@ -24,7 +25,9 @@ export function applyPriceFormula({
       (value) => Number.isFinite(value) && value > 0
     )
   ) {
-    throw new Error("Data perhitungan harga belum lengkap atau tidak valid.")
+    throw new UserFacingError(
+      "Data perhitungan harga belum lengkap atau tidak valid."
+    )
   }
   const wordCostMinor = wordCount * Math.round(ratePerWord * 100)
   const reductionCostMinor = Math.round(reduction * 100) * ratePerPoint
@@ -33,7 +36,7 @@ export function applyPriceFormula({
     (baseMinor * Math.round(multiplier * 100)) / 10000
   )
   if (!Number.isSafeInteger(formulaTotal) || formulaTotal <= 0)
-    throw new Error("Total harga tidak valid.")
+    throw new UserFacingError("Total harga tidak valid.")
   const total = Math.max(formulaTotal, minPrice)
   return {
     wordCount,

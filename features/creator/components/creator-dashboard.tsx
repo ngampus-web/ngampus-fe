@@ -1,4 +1,5 @@
 "use client"
+import { RequestNotice } from "@/components/shared/request-notice"
 
 import {
   Clapperboard,
@@ -68,7 +69,8 @@ function PlatformMark({ platform }: { platform: CreatorPlatform }) {
 
 export function CreatorDashboard() {
   const allowed = useCreatorGate()
-  const { data, error, reload } = useCreatorData(allowed)
+  const { data, error, reload, sectionErrors, retrySection, loading } =
+    useCreatorData(allowed)
 
   if (!data) {
     return (
@@ -92,14 +94,14 @@ export function CreatorDashboard() {
 
   const MIN_WITHDRAWAL = data.me.withdraw.min
   const saldo = data.me.stats.balance
-  const creatorSubmissions = data.submissions.map((item) => ({
+  const creatorSubmissions = (data.submissions ?? []).map((item) => ({
     link: item.contentUrl,
     platform: platformLabel(item.platform),
     submittedAt: wibDateTime(item.createdAt),
     status: SUBMISSION_STATUS[item.status].label,
     reward: item.rewardAmount ?? 0,
   }))
-  const creatorWithdrawals = data.withdrawals.map((item) => ({
+  const creatorWithdrawals = (data.withdrawals ?? []).map((item) => ({
     at: wibDateTime(item.createdAt),
     amount: item.amount,
     status: WITHDRAWAL_STATUS[item.status].label,
@@ -114,9 +116,12 @@ export function CreatorDashboard() {
     },
     {
       label: "Total diproses",
-      value: String(
-        creatorSubmissions.filter((item) => item.status === "Diproses").length
-      ),
+      value: data.submissions
+        ? String(
+            creatorSubmissions.filter((item) => item.status === "Diproses")
+              .length
+          )
+        : "—",
       icon: Timer,
     },
     { label: "Withdraw saldo", value: rupiah(saldo), icon: Wallet },
@@ -125,6 +130,14 @@ export function CreatorDashboard() {
   return (
     <div className="flex min-h-svh flex-col bg-white">
       <CreatorHeader />
+      {error && (
+        <RequestNotice
+          message={error}
+          onRetry={() => retrySection("me")}
+          stale
+          pending={loading}
+        />
+      )}
       <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-8 px-5 py-10 md:px-10">
         <div className="flex flex-col gap-2">
           <h1 className="text-[32px] leading-[1.2] font-medium tracking-[-0.02em]">
@@ -191,6 +204,14 @@ export function CreatorDashboard() {
           <h2 className="px-5 pt-5 pb-2 text-base font-semibold tracking-[-0.02em] text-[#1b2559]">
             Riwayat Submit Video
           </h2>
+          {sectionErrors.submissions && (
+            <RequestNotice
+              message={sectionErrors.submissions}
+              onRetry={() => retrySection("submissions")}
+              stale={!!data.submissions}
+              pending={loading}
+            />
+          )}
           <div className="overflow-x-auto">
             <table className="w-full min-w-[760px] text-left text-sm tracking-[-0.02em]">
               <thead>
@@ -213,7 +234,8 @@ export function CreatorDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {creatorSubmissions.length === 0 ? (
+                {sectionErrors.submissions &&
+                !data.submissions ? null : creatorSubmissions.length === 0 ? (
                   <tr className="border-t border-line">
                     <td colSpan={6} className="px-5 py-4 text-subtle">
                       Belum ada submit video.
@@ -271,6 +293,14 @@ export function CreatorDashboard() {
           <h2 className="px-5 pt-5 pb-2 text-base font-semibold tracking-[-0.02em] text-[#1b2559]">
             Riwayat withdraw
           </h2>
+          {sectionErrors.withdrawals && (
+            <RequestNotice
+              message={sectionErrors.withdrawals}
+              onRetry={() => retrySection("withdrawals")}
+              stale={!!data.withdrawals}
+              pending={loading}
+            />
+          )}
           <div className="overflow-x-auto">
             <table className="w-full min-w-[760px] text-left text-sm tracking-[-0.02em]">
               <thead>
@@ -288,7 +318,8 @@ export function CreatorDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {creatorWithdrawals.length === 0 ? (
+                {sectionErrors.withdrawals &&
+                !data.withdrawals ? null : creatorWithdrawals.length === 0 ? (
                   <tr className="border-t border-line">
                     <td colSpan={5} className="px-5 py-4 text-subtle">
                       Belum ada withdraw.

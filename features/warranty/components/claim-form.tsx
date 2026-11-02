@@ -1,4 +1,8 @@
 "use client"
+import { useValidationFocus } from "@/lib/use-validation-focus"
+import { RequestNotice } from "@/components/shared/request-notice"
+import { notify } from "@/lib/toast"
+import { RequestError, UserFacingError, errorMessage } from "@/lib/errors"
 
 import { ImagePlus, Loader2, Plus, X } from "lucide-react"
 import Link from "next/link"
@@ -55,12 +59,14 @@ export function ClaimForm({
 }) {
   const ids = useId()
   const [eligible, setEligible] = useState<Eligible>({ status: "loading" })
+  const [loadKey, setLoadKey] = useState(0)
   const [orderCode, setOrderCode] = useState("")
   const [category, setCategory] = useState<ClaimCategory | "">("")
   const [description, setDescription] = useState("")
   const [evidence, setEvidence] = useState<Evidence[]>([])
   const [fileError, setFileError] = useState<string | null>(null)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  useValidationFocus(errors)
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
 
@@ -69,6 +75,11 @@ export function ClaimForm({
     const load = warrantyApi.eligibleOrders()
     void load.then((res) => {
       if (cancelled) return
+      if (loadKey > 0) {
+        if (res.success)
+          notify.success("Pesanan yang dapat diklaim berhasil dimuat.")
+        else notify.error(res.error)
+      }
       setEligible(
         res.success
           ? { status: "ready", orders: res.data }
@@ -78,7 +89,7 @@ export function ClaimForm({
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [loadKey])
 
   // Release preview object URLs when the form closes.
   useEffect(
@@ -90,12 +101,17 @@ export function ClaimForm({
   async function addFiles(list: FileList | null) {
     setFileError(null)
     const picked = Array.from(list ?? [])
+    let failed: string | null = null
+    let completed = 0
     const room = EVIDENCE_MAX_FILES - evidence.length
-    if (picked.length > room)
-      setFileError(`Maksimal ${EVIDENCE_MAX_FILES} screenshot.`)
+    if (picked.length > room) {
+      failed = `Maksimal ${EVIDENCE_MAX_FILES} screenshot.`
+      setFileError(failed)
+    }
     for (const file of picked.slice(0, Math.max(room, 0))) {
       const problem = evidenceError(file)
       if (problem) {
+        failed = problem
         setFileError(problem)
         continue
       }
@@ -110,6 +126,8 @@ export function ClaimForm({
         },
       ])
       const res = await filesApi.upload(file, "claim_evidence", file.type)
+      if (res.success) completed++
+      else failed = res.error.message
       setEvidence((current) =>
         current.map((e) =>
           e.key !== key
@@ -120,6 +138,8 @@ export function ClaimForm({
         )
       )
     }
+    if (failed) notify.error(new UserFacingError(failed))
+    else if (completed) notify.success(`${completed} bukti berhasil diunggah.`)
   }
 
   function removeEvidence(key: string) {
@@ -143,7 +163,16 @@ export function ClaimForm({
       next.description = `Ceritakan kendalamu minimal ${MIN_DESCRIPTION} karakter.`
     if (!ready.length) next.evidence = "Lampirkan minimal 1 screenshot bukti."
     setErrors(next)
-    if (Object.keys(next).length || uploading || !category) return
+    if (Object.keys(next).length || uploading || !category) {
+      notify.error(
+        new UserFacingError(
+          uploading
+            ? "Tunggu bukti selesai diunggah."
+            : "Lengkapi isian klaim yang ditandai."
+        )
+      )
+      return
+    }
 
     setSubmitting(true)
     const res = await warrantyApi.create({
@@ -154,6 +183,7 @@ export function ClaimForm({
     })
     setSubmitting(false)
     if (res.success) {
+      notify.success("Klaim garansi berhasil diajukan.")
       onCreated(res.data.code)
       return
     }
@@ -169,7 +199,12 @@ export function ClaimForm({
         )
       )
     }
-    setFormError(res.error.message)
+    const failure = new RequestError(
+      res.error,
+      "Status pengajuan klaim belum bisa dipastikan. Periksa daftar klaim sebelum mengajukan lagi."
+    )
+    notify.error(failure)
+    setFormError(errorMessage(failure))
   }
 
   const orders = eligible.status === "ready" ? eligible.orders : []
@@ -181,6 +216,15 @@ export function ClaimForm({
       onClose={onClose}
       locked={submitting}
     >
+      {eligible.status === "error" && (
+        <RequestNotice
+          message={eligible.message}
+          onRetry={() => {
+            setEligible({ status: "loading" })
+            setLoadKey((value) => value + 1)
+          }}
+        />
+      )}
       {eligible.status === "ready" && orders.length === 0 ? (
         <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-line px-4 py-8 text-center">
           <p className="font-medium">Belum ada pesanan yang bisa diklaim.</p>

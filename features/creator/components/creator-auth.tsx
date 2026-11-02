@@ -1,4 +1,7 @@
 "use client"
+import { useValidationFocus } from "@/lib/use-validation-focus"
+import { notify } from "@/lib/toast"
+import { UserFacingError } from "@/lib/errors"
 
 import { Loader2 } from "lucide-react"
 import Link from "next/link"
@@ -53,6 +56,7 @@ function SignUpForm() {
   const router = useRouter()
   const [note, setNote] = useState("")
   const [errors, setErrors] = useState<FieldErrors>()
+  useValidationFocus(errors)
   const [turnstileToken, setTurnstileToken] = useState<string>()
   const [resetCaptcha, setResetCaptcha] = useState(0)
   const [submitting, setSubmitting] = useState(false)
@@ -66,6 +70,7 @@ function SignUpForm() {
         const password = String(data.get("password"))
         if (password !== String(data.get("confirm-password"))) {
           setErrors({ confirmPassword: ["Konfirmasi password belum sama."] })
+          notify.error(new UserFacingError("Konfirmasi password belum sama."))
           return
         }
         setSubmitting(true)
@@ -80,6 +85,7 @@ function SignUpForm() {
         })
         setSubmitting(false)
         if (res.success) {
+          notify.success("Akun Creator berhasil dibuat.")
           setSession(res.data.user, res.data.accessToken)
           router.replace(DASHBOARD)
           return
@@ -87,6 +93,7 @@ function SignUpForm() {
         setErrors(
           res.error.details?.fieldErrors as Record<string, string[]> | undefined
         )
+        notify.error(res.error)
         setNote(res.error.message)
         setResetCaptcha((n) => n + 1)
       }}
@@ -157,6 +164,7 @@ function JoinForm() {
   const router = useRouter()
   const [note, setNote] = useState("")
   const [errors, setErrors] = useState<FieldErrors>()
+  useValidationFocus(errors)
   const [submitting, setSubmitting] = useState(false)
 
   return (
@@ -174,6 +182,7 @@ function JoinForm() {
         setSubmitting(false)
         // 409: already a creator (e.g. joined in another tab).
         if (res.success || res.error.status === 409) {
+          notify.success("Akunmu sudah tergabung sebagai Creator.")
           setUser({ ...user, isCreator: true })
           router.replace(DASHBOARD)
           return
@@ -181,6 +190,7 @@ function JoinForm() {
         setErrors(
           res.error.details?.fieldErrors as Record<string, string[]> | undefined
         )
+        notify.error(res.error)
         setNote(res.error.message)
       }}
     >
@@ -237,7 +247,10 @@ export function CreatorLoginForm() {
           true
         )
         setSubmitting(false)
-        if (!result.success) setNote(result.error)
+        if (!result.success) {
+          notify.error(result.cause)
+          setNote(result.error)
+        } else notify.success("Berhasil masuk. Selamat datang kembali!")
       }}
     >
       <Heading
