@@ -21,7 +21,8 @@ export const plagiarismServices: PlagiarismService[] = [
     description:
       "Cek similarity tugasmu dengan Turnitin, biar kamu bisa tahu bagian mana yang perlu diperbaiki",
     price: 7000,
-    summary: "Cek similarity satu dokumen. Laporan masuk ke WhatsApp.",
+    summary:
+      "Cek similarity satu dokumen. Laporan dan Digital Receipt tersedia di detail pesanan.",
     filters: true,
   },
   {

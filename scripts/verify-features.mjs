@@ -624,6 +624,30 @@ assert.equal(
   "A failed creation must not emit a success toast"
 )
 assert.equal(redirects.length, 1)
+let turnitinDraft
+gatewayDouble.createTurnitinOrder = async (input) => {
+  turnitinDraft = input
+  return { id: "TRN-TEST0001" }
+}
+await submitCheckout({
+  phone: "081234567890",
+  amount: 1,
+  details: {
+    kind: "document",
+    slug: "turnitin",
+    fileId: "file",
+    excludeQuotes: true,
+    excludeSmallMatches: true,
+    excludeMatchesWords: 8,
+  },
+})
+assert.equal(turnitinDraft.details.excludeMatchesWords, 8)
+assert.equal(redirects.at(-1), "/pembayaran/TRN-TEST0001")
+assert.equal(
+  outcomes.length,
+  2,
+  "Turnitin uses live checkout with one success outcome"
+)
 assert.equal(
   feedback.errorMessage(
     new feedback.RequestError({ code: "ABORTED", status: 0 }, "uncertain")

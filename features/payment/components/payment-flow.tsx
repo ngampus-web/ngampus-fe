@@ -178,7 +178,9 @@ export function PaymentFlow({
       setBusy(false)
     }
   }
-  async function downloadResult(file: "document" | "report" = "document") {
+  async function downloadResult(
+    file: "document" | "report" | "receipt" = "document"
+  ) {
     setBusy(true)
     setError("")
     try {
@@ -637,6 +639,19 @@ export function PaymentFlow({
                       className="h-12 w-full rounded-full"
                     >
                       Unduh Laporan Pengecekan Akhir
+                    </Button>
+                  )}
+                {live &&
+                  details.kind === "document" &&
+                  details.slug === "turnitin" &&
+                  details.hasReceipt && (
+                    <Button
+                      disabled={busy}
+                      variant="outline"
+                      onClick={() => void downloadResult("receipt")}
+                      className="h-12 w-full rounded-full"
+                    >
+                      Unduh Digital Receipt
                     </Button>
                   )}
                 {!canDownload && (

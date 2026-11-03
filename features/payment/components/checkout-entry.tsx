@@ -8,7 +8,7 @@ import { previewGateway } from "../services/preview-gateway"
 /**
  * Login is optional: guests check out too and open the order with its token.
  * Marketplace, paraphrase and Cek AI orders are created on the API (priced on
- * the server); Turnitin still uses the preview gateway until its API lands.
+ * the server), including Turnitin.
  */
 export function useCheckoutPayment() {
   const router = useRouter()
@@ -19,7 +19,9 @@ export function useCheckoutPayment() {
         : draft.details.kind === "paraphrase" && draft.details.sourceFileId
           ? await apiGateway.createParaphraseOrder(draft)
           : draft.details.kind === "document" && draft.details.fileId
-            ? await apiGateway.createAiCheckOrder(draft)
+            ? draft.details.slug === "turnitin"
+              ? await apiGateway.createTurnitinOrder(draft)
+              : await apiGateway.createAiCheckOrder(draft)
             : await previewGateway.createOrder(draft)
     notify.success("Pesanan berhasil dibuat.")
     router.push(`/pembayaran/${order.id}`)

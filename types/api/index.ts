@@ -179,6 +179,7 @@ export interface OrderDetail extends OrderSummary {
 /** docs/API-CONTRACT.md `DocumentCheckDetails`. */
 export interface DocumentCheckOrderDetails {
   kind: "turnitin" | "ai_check"
+  hasReceipt?: boolean
   documentTitle: string
   fileName: string
   fileSizeBytes: number

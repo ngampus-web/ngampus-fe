@@ -39,6 +39,11 @@ export type PaymentDetails =
       wordCount?: number | null
       /** Live orders: result and free re-upload after a failed check. */
       score?: number | null
+      hasReceipt?: boolean
+      excludeQuotes?: boolean
+      excludeBibliography?: boolean
+      excludeSmallMatches?: boolean
+      excludeMatchesWords?: number
       hasResult?: boolean
       failReason?: string | null
       retriesLeft?: number
