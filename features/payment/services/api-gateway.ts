@@ -63,6 +63,7 @@ function documentDetails(
     wordCount: d.wordCount,
     score: d.resultScore,
     hasResult: d.hasResult,
+    hasReceipt: d.hasReceipt,
     failReason: d.failReason,
     retriesLeft: d.retriesLeft,
     resultExpiresAt: d.resultExpiresAt,
@@ -173,6 +174,32 @@ export const apiGateway = {
   },
 
   /** The file is uploaded first; the server counts words and prices the order. */
+  async createTurnitinOrder(draft: OrderDraft): Promise<PaymentOrder> {
+    const d = draft.details
+    if (d.kind !== "document" || d.slug !== "turnitin" || !d.fileId)
+      return fail("Unggah dokumen PDF terlebih dahulu.")
+    const res = await ordersApi.createTurnitin(
+      {
+        documentTitle:
+          d.fileName.replace(/\.[^.]+$/, "").slice(0, 200) || d.fileName,
+        fileId: d.fileId,
+        whatsapp: draft.phone,
+        promoCode: draft.promoCode,
+        excludeQuotes: d.excludeQuotes,
+        excludeBibliography: d.excludeBibliography,
+        excludeSmallMatches: d.excludeSmallMatches,
+        excludeMatchesWords: d.excludeMatchesWords,
+      },
+      draft.uploadToken
+    )
+    if (!res.success)
+      throw new RequestError(
+        res.error,
+        "Pesanan belum dapat dibuat. Periksa kembali data pesanan."
+      )
+    return remember(res.data)
+  },
+
   async createAiCheckOrder(draft: OrderDraft): Promise<PaymentOrder> {
     const d = draft.details
     if (d.kind !== "document" || d.slug !== "cek-ai" || !d.fileId)
@@ -214,7 +241,7 @@ export const apiGateway = {
 
   async resultUrl(
     code: string,
-    file: "document" | "report" = "document"
+    file: "document" | "report" | "receipt" = "document"
   ): Promise<string> {
     const res = await ordersApi.result(code, file)
     if (!res.success) throw new RequestError(res.error)

@@ -123,10 +123,11 @@ export function PlagiarismCheckout({
       checked["exclude-matches"] &&
       (!Number.isFinite(Number(excludeAmount)) ||
         Number(excludeAmount) <= 0 ||
-        (excludeUnit === "persentase" && Number(excludeAmount) > 100))
+        !Number.isInteger(Number(excludeAmount)) ||
+        Number(excludeAmount) > 60000)
     ) {
       showPayError(
-        "Isi batas Exclude Small Matches yang valid (persentase 1–100)."
+        "Isi batas Exclude Small Matches berupa jumlah kata (1–60.000)."
       )
       return
     }
@@ -134,7 +135,7 @@ export function PlagiarismCheckout({
     setBusy(true)
     try {
       let fileId: string | undefined
-      if (isAi) {
+      {
         fileId = uploaded.current.get(file)
         if (!fileId) {
           const res = await filesApi.upload(
@@ -152,10 +153,16 @@ export function PlagiarismCheckout({
       await onCheckout({
         phone,
         amount: price ?? aiPricing.startingPrice,
-        promoCode: isAi ? promo.trim() || undefined : undefined,
+        promoCode: promo.trim() || undefined,
         uploadToken: uploadToken.current,
         details: {
           kind: "document",
+          excludeQuotes: !!checked["sumber-kutipan"],
+          excludeBibliography: !!checked["daftar-pustaka"],
+          excludeSmallMatches: !!checked["exclude-matches"],
+          excludeMatchesWords: checked["exclude-matches"]
+            ? Number(excludeAmount)
+            : undefined,
           slug,
           title: service.title,
           fileName: file.name,
@@ -166,7 +173,7 @@ export function PlagiarismCheckout({
                 .filter((f) => checked[f.id])
                 .map((f) =>
                   f.id === "exclude-matches"
-                    ? `${f.title}: ${excludeAmount} ${excludeUnit === "kata" ? "kata" : "%"}`
+                    ? `${f.title}: ${excludeAmount} kata`
                     : f.title
                 )
             : [],
@@ -196,10 +203,7 @@ export function PlagiarismCheckout({
   const [wordCount, setWordCount] = useState<number | null | undefined>(null)
   const [charCount, setCharCount] = useState<number | null>(null)
   const wordRequest = useRef(0)
-  const [excludeAmount, setExcludeAmount] = useState("20")
-  const [excludeUnit, setExcludeUnit] = useState<"kata" | "persentase">(
-    "persentase"
-  )
+  const [excludeAmount, setExcludeAmount] = useState("8")
   // Cek AI has no price until the document is counted and within limits.
   const limitError =
     isAi && wordCount ? aiLimitError(aiPricing, wordCount, charCount) : null
@@ -292,11 +296,7 @@ export function PlagiarismCheckout({
                   type="button"
                   onClick={() =>
                     setPromoNote(
-                      notify.info(
-                        isAi
-                          ? "Kode promo dicek saat pesanan dibuat."
-                          : "Kode promo belum tersedia pada pratinjau. Total tetap mengikuti harga layanan."
-                      )
+                      notify.info("Kode promo dicek saat pesanan dibuat.")
                     )
                   }
                   size="pill"
@@ -363,35 +363,16 @@ export function PlagiarismCheckout({
                   <div className="flex flex-wrap items-center gap-4">
                     <input
                       type="number"
-                      min={0}
+                      min={1}
+                      max={60000}
+                      step={1}
                       inputMode="numeric"
                       value={excludeAmount}
                       onChange={(event) => setExcludeAmount(event.target.value)}
                       aria-label="Batas minimum"
                       className="h-12 w-20 rounded-xl border border-line text-center text-base tracking-[-0.02em] outline-none focus-visible:border-primary"
                     />
-                    <label className="flex items-center gap-2 text-sm tracking-[-0.02em]">
-                      <input
-                        type="radio"
-                        name="exclude-unit"
-                        value="kata"
-                        checked={excludeUnit === "kata"}
-                        onChange={() => setExcludeUnit("kata")}
-                        className="size-4 accent-primary"
-                      />
-                      Kata
-                    </label>
-                    <label className="flex items-center gap-2 text-sm tracking-[-0.02em]">
-                      <input
-                        type="radio"
-                        name="exclude-unit"
-                        value="persentase"
-                        checked={excludeUnit === "persentase"}
-                        onChange={() => setExcludeUnit("persentase")}
-                        className="size-4 accent-primary"
-                      />
-                      Persentase (%)
-                    </label>
+                    <span className="text-sm">Kata</span>
                   </div>
                 </div>
               )}
@@ -554,12 +535,6 @@ export function PlagiarismCheckout({
           >
             {busy ? "Menyiapkan pesanan…" : plagiarismCheckout.payLabel}
           </Button>
-          {!isAi && (
-            <p className="text-xs leading-5 text-subtle">
-              Pratinjau pembayaran. File belum diunggah; hanya nama dan ukuran
-              yang diteruskan.
-            </p>
-          )}
           {payError && (
             <p role="alert" className="text-sm text-red-600">
               {payError}

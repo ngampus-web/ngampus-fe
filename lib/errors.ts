@@ -18,7 +18,9 @@ export class RequestError extends UserFacingError {
   readonly details?: Record<string, unknown>
   constructor(info: ErrorInfo, uncertainMessage?: string) {
     super(
-      uncertainMessage && (info.status === 0 || (info.status ?? 0) >= 500)
+      uncertainMessage &&
+        info.code !== "SERVICE_UNAVAILABLE" &&
+        (info.status === 0 || (info.status ?? 0) >= 500)
         ? uncertainMessage
         : errorMessage(info)
     )
@@ -48,6 +50,8 @@ export function errorMessage(error: unknown, fallback?: string): string {
     return "Sesi masukmu berakhir. Silakan masuk lagi."
   if (info.code === "FORBIDDEN")
     return "Akunmu tidak memiliki izin untuk melakukan tindakan ini."
+  if (info.code === "SERVICE_UNAVAILABLE")
+    return "Cek Turnitin sedang dalam pemeliharaan. Silakan coba lagi nanti."
   if (info.code === "RATE_LIMITED" || info.status === 429)
     return "Terlalu banyak percobaan. Tunggu sebentar lalu coba lagi."
   if (info.code === "NETWORK_ERROR" || info.status === 0)

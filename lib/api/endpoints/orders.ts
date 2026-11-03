@@ -84,6 +84,26 @@ export const ordersApi = {
     )
   },
 
+  createTurnitin(
+    body: {
+      documentTitle: string
+      fileId: string
+      whatsapp: string
+      promoCode?: string
+      excludeQuotes?: boolean
+      excludeBibliography?: boolean
+      excludeSmallMatches?: boolean
+      excludeMatchesWords?: number
+    },
+    uploadToken?: string
+  ) {
+    return apiClient.post<CreatedOrder>(
+      "/orders/turnitin",
+      body,
+      uploadHeaders(uploadToken)
+    )
+  },
+
   createAiCheck(
     body: {
       documentTitle: string
@@ -126,7 +146,7 @@ export const ordersApi = {
   },
 
   /** Presigned download of a completed order's result. */
-  result(code: string, file: "document" | "report" = "document") {
+  result(code: string, file: "document" | "report" | "receipt" = "document") {
     return apiClient.get<{ url: string; expiresAt: string }>(
       `/orders/${encodeURIComponent(code)}/result?file=${file}`,
       tokenOf(code)
