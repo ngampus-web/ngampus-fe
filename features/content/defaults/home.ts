@@ -1,3 +1,5 @@
+import { HOME_PAGE_TITLE } from "@/lib/site-metadata"
+
 export const homeDefault = {
   hero: {
     title: ["Kuliah Ribet?", "Ngampus Aja"],
@@ -91,7 +93,7 @@ export const homeDefault = {
     cta: true,
   },
   seo: {
-    title: "Ngampus.id - Tools kuliah, lengkap di satu tempat",
+    title: HOME_PAGE_TITLE,
     description:
       "Platform kuliah all-in-one: cek plagiasi, deteksi AI, akses AI premium, dan file tools untuk mahasiswa Indonesia.",
     imageFileId: null as string | null,
