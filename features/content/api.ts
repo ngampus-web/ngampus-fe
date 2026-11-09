@@ -1,3 +1,4 @@
+import { upgradeCreatorGuide } from "./creator-content"
 import type { Metadata } from "next"
 import { serverGet } from "@/lib/api/server"
 import { PAGE_DEFAULTS } from "./defaults"
@@ -17,7 +18,13 @@ export async function getPageContent<K extends ContentPage>(
   const draft = await readContentDraft()
   if (draft?.page === page) return draft.value as PageContent<K>
   try {
-    return (await serverGet<PageContent<K>>(`/content/pages/${page}`)).data
+    const content = (await serverGet<PageContent<K>>(`/content/pages/${page}`))
+      .data
+    return page === "creator"
+      ? (upgradeCreatorGuide(
+          content as PageContent<"creator">
+        ) as unknown as PageContent<K>)
+      : content
   } catch {
     return PAGE_DEFAULTS[page] as PageContent<K>
   }

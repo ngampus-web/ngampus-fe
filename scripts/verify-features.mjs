@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+import * as crypto from "node:crypto"
 import { readFileSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
@@ -31,6 +32,7 @@ function load(relative) {
     },
   }).outputText
   const require = (specifier) => {
+    if (specifier === "node:crypto") return crypto
     assert.ok(
       specifier.startsWith("."),
       "Pure feature services should use local modules"
@@ -1041,3 +1043,48 @@ assert.equal(preventedArrow, true)
 console.log(
   "PASS: popup swipe and keyboard handlers navigate slides without accidental link activation."
 )
+
+// New guide upgrades only untouched legacy CMS fields, preserving admin changes.
+const { creatorDefault } = load("features/content/defaults/creator.ts")
+const { upgradeCreatorGuide } = load("features/content/creator-content.ts")
+const legacyCreator = {
+  ...creatorDefault,
+  fees: [
+    {
+      name: "Instagram",
+      text: "Setiap konten yang mencapai 3.000 views berhak mendapatkan Rp10.000 atau 1 akun Premium NGAMPUS secara random.",
+    },
+    {
+      name: "TikTok",
+      text: "Setiap video yang mencapai 3.000 views berhak mendapatkan Rp10.000 atau 1 akun Premium NGAMPUS secara random.",
+    },
+    {
+      name: "X / Thread",
+      text: "Setiap thread yang mencapai 3.000 impressions berhak mendapatkan Rp10.000 atau 1 akun Premium NGAMPUS secara random.",
+    },
+  ],
+}
+assert.deepEqual(upgradeCreatorGuide(legacyCreator).fees, creatorDefault.fees)
+assert.equal(legacyCreator.fees[0].text.includes("random"), true)
+const customCreator = {
+  ...creatorDefault,
+  fees: [{ name: "Custom", text: "Custom reward" }],
+}
+assert.deepEqual(upgradeCreatorGuide(customCreator).fees, customCreator.fees)
+for (const fee of creatorDefault.fees) {
+  for (const text of [
+    "3.000",
+    "Rp10.000",
+    "15.000",
+    "Rp50.000",
+    "100.000",
+    "Rp150.000",
+  ])
+    assert.ok(fee.text.includes(text))
+}
+assert.equal(creatorDefault.contentRules.length, 8)
+assert.deepEqual(
+  Array.from(creatorDefault.sections, (section) => section.items.length),
+  [7, 5, 6]
+)
+console.log("Creator guide tiers and legacy content upgrade: OK")
