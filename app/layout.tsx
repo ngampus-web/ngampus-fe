@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { HOME_PAGE_TITLE } from "@/lib/site-metadata"
 import { Geist_Mono, Inter } from "next/font/google"
 import { SiteChrome } from "@/components/layout/site-chrome"
 import { Footer } from "@/components/layout/footer"
@@ -20,7 +21,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Ngampus.id - Tools kuliah, lengkap di satu tempat",
+    default: HOME_PAGE_TITLE,
     template: "%s | Ngampus.id",
   },
   description:

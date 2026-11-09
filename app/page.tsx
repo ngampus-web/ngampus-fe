@@ -1,3 +1,4 @@
+import { HOME_PAGE_TITLE } from "@/lib/site-metadata"
 import { AnnouncementBar } from "@/components/layout/announcement-bar"
 import { Cta } from "@/features/home/components/cta"
 import { Faq } from "@/features/home/components/faq"
@@ -9,7 +10,14 @@ import { WhyNgampus } from "@/features/home/components/why-ngampus"
 import { getHomeContent } from "@/features/home/content"
 import { getPageContent, pageMetadata } from "@/features/content/api"
 
-export const generateMetadata = () => pageMetadata("home")
+export async function generateMetadata() {
+  const metadata = await pageMetadata("home")
+  return {
+    ...metadata,
+    title: { absolute: HOME_PAGE_TITLE },
+    openGraph: { ...metadata.openGraph, title: HOME_PAGE_TITLE },
+  }
+}
 
 export default async function Home() {
   const [content, page] = await Promise.all([
