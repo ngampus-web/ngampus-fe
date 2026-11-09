@@ -7,6 +7,28 @@ import { PAGE_DEFAULTS } from "@/features/content/defaults"
 import type { PageContent } from "@/features/content/api"
 import type { CreatorExample } from "@/lib/api/endpoints/content"
 
+function GuideItem({ text, lead = false }: { text: string; lead?: boolean }) {
+  if (lead) {
+    const end = text.indexOf(". ")
+    if (end >= 0)
+      return (
+        <>
+          <strong>{text.slice(0, end + 1)}</strong>
+          {text.slice(end + 1)}
+        </>
+      )
+  }
+  return (
+    <>
+      {text
+        .split(
+          /(akun pribadi|Reels|30 detik|Ngampus\.co\.id|pemilik akun yang terdaftar|screenshot atau tampilan website|format thread)/g
+        )
+        .map((part, i) => (i % 2 ? <strong key={i}>{part}</strong> : part))}
+    </>
+  )
+}
+
 function PlatformIcon({ icon }: { icon: string }) {
   if (icon === "instagram") {
     return (
@@ -127,7 +149,9 @@ export function CreatorLanding({
                 </h3>
                 <ul className="list-disc space-y-1 pl-5 text-sm leading-6 tracking-[-0.02em]">
                   {platform.items.map((item) => (
-                    <li key={item}>{item}</li>
+                    <li key={item}>
+                      <GuideItem text={item} />
+                    </li>
                   ))}
                 </ul>
               </div>
@@ -148,9 +172,11 @@ export function CreatorLanding({
                 <h3 className="text-sm font-semibold tracking-[-0.02em]">
                   {fee.name}
                 </h3>
-                <p className="text-sm leading-6 tracking-[-0.02em]">
-                  {fee.text}
-                </p>
+                <ul className="space-y-3 text-sm leading-6 tracking-[-0.02em]">
+                  {fee.text.split("\n").map((tier) => (
+                    <li key={tier}>{tier}</li>
+                  ))}
+                </ul>
               </div>
             ))}
           </div>
@@ -158,11 +184,13 @@ export function CreatorLanding({
             {campaignFeeNote}
           </p>
           <h3 className="text-sm font-semibold tracking-[-0.02em]">
-            Ketentuan Konten
+            Ketentuan & Mekanisme Konten
           </h3>
           <ul className="list-disc space-y-1 pl-5 text-sm leading-6 tracking-[-0.02em]">
             {campaignContentRules.map((item) => (
-              <li key={item}>{item}</li>
+              <li key={item}>
+                <GuideItem text={item} lead />
+              </li>
             ))}
           </ul>
         </section>
@@ -179,7 +207,9 @@ export function CreatorLanding({
             </h2>
             <ul className="list-disc space-y-1 pl-5 text-sm leading-6 tracking-[-0.02em]">
               {section.items.map((item) => (
-                <li key={item}>{item}</li>
+                <li key={item}>
+                  <GuideItem text={item} lead />
+                </li>
               ))}
             </ul>
           </section>
