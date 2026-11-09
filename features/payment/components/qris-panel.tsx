@@ -113,9 +113,23 @@ export function QrisPanel({
             Waktu tersisa{" "}
             <strong className="text-black tabular-nums">{remaining}</strong>
           </span>
-          <p className="text-xs text-subtle">
-            Halaman ini otomatis berpindah setelah pembayaran terverifikasi.
-          </p>
+          <div
+            role="status"
+            className="flex max-w-sm flex-col items-center gap-2"
+          >
+            <p className="inline-flex items-center gap-2 text-sm font-medium text-subtle">
+              <LoaderCircle
+                aria-hidden="true"
+                className="size-4 shrink-0 animate-spin motion-reduce:animate-none"
+              />
+              Menunggu pembayaran terkonfirmasi
+            </p>
+            <p className="text-xs leading-5 text-subtle">
+              Sudah membayar? Tunggu konfirmasi otomatis dan jangan melakukan
+              pembayaran ulang. Halaman akan berpindah setelah pembayaran
+              terverifikasi.
+            </p>
+          </div>
           {session?.paymentUrl && (
             <a
               href={session.paymentUrl}

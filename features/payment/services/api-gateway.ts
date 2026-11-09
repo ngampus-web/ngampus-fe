@@ -1,4 +1,5 @@
 import { type CreatedOrder, ordersApi } from "@/lib/api/endpoints/orders"
+import { paymentApi } from "@/lib/api/endpoints/payment"
 import { orderTokens } from "@/lib/orders/order-tokens"
 import { RequestError, UserFacingError } from "@/lib/errors"
 import type { OrderDetail, PaymentSession } from "@/types/api"
@@ -257,7 +258,7 @@ export const apiGateway = {
   },
 
   async startPayment(code: string): Promise<PaymentSession> {
-    const res = await ordersApi.pay(code)
+    const res = await paymentApi.createPayment(code)
     if (!res.success) throw new RequestError(res.error)
     return res.data
   },
