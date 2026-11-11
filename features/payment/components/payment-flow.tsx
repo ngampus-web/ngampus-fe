@@ -732,7 +732,7 @@ export function PaymentFlow({
                 className="h-12 rounded-full"
               >
                 <QrCode className="size-4" />
-                {busy ? "Membuka…" : "Pembayaran QRIS"}
+                {busy ? "Membuka…" : "Bayar sekarang"}
               </Button>
               <Button
                 variant="outline"
@@ -742,6 +742,16 @@ export function PaymentFlow({
                 Batalkan pesanan
               </Button>
             </>
+          )}
+          {status === "pending" && gateway && live && (
+            <Button
+              variant="outline"
+              size="pill"
+              disabled={busy}
+              onClick={() => transition("cancelled")}
+            >
+              Batalkan pesanan
+            </Button>
           )}
           {terminal && !canResubmit && (
             <Button asChild size="pill">

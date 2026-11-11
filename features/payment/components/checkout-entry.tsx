@@ -24,6 +24,11 @@ export function useCheckoutPayment() {
               : await apiGateway.createAiCheckOrder(draft)
             : await previewGateway.createOrder(draft)
     notify.success("Pesanan berhasil dibuat.")
-    router.push(`/pembayaran/${order.id}`)
+    // Live orders go straight to the QR: the countdown is already running.
+    router.push(
+      order.mode === "live"
+        ? `/pembayaran/${order.id}/qris`
+        : `/pembayaran/${order.id}`
+    )
   }
 }
