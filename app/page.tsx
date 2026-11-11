@@ -31,13 +31,10 @@ export default async function Home() {
       {page.visible.tools && <ToolCategories content={page.toolCategories} />}
       {page.visible.benefits && <WhyNgampus content={page.whyNgampus} />}
       <FeaturedProducts />
-      {((page.visible.testimonials && content.testimonials.length > 0) ||
-        (page.visible.logos && content.logos.length > 0)) && (
+      {page.visible.testimonials && content.testimonials.length > 0 && (
         <Testimonials
-          items={page.visible.testimonials ? content.testimonials : []}
-          logos={page.visible.logos ? content.logos : []}
+          items={content.testimonials}
           title={page.headings.testimonials}
-          logosTitle={page.headings.logos}
         />
       )}
       {page.visible.faq && (

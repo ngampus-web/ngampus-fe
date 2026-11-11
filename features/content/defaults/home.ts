@@ -74,7 +74,6 @@ export const homeDefault = {
   },
   headings: {
     testimonials: "Apa Kata Mereka?",
-    logos: "TELAH DIPERCAYA OLEH MAHASISWA DI BERBAGAI KAMPUS",
     faq: "Pertanyaan umum",
     faqDescription:
       "Jawaban singkat soal Ngampus. Masih bingung? Chat admin kami.",
@@ -88,7 +87,6 @@ export const homeDefault = {
     tools: true,
     benefits: true,
     testimonials: true,
-    logos: true,
     faq: true,
     cta: true,
   },

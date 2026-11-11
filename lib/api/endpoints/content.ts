@@ -29,12 +29,6 @@ export interface ContentFaq {
   answer: string
 }
 
-export interface ContentLogo {
-  id: string
-  name: string
-  logoUrl: string | null
-}
-
 export interface CreatorExample {
   id: string
   platform: "tiktok" | "instagram" | "x_threads"
@@ -84,8 +78,6 @@ export const contentApi = {
       () => get<ContentFaq[]>("/content/faqs", { placement }),
       fallback
     ),
-  partnerLogos: (fallback: ContentLogo[]) =>
-    withFallback(() => get<ContentLogo[]>("/content/partner-logos"), fallback),
   /** No static examples exist: an empty result hides the section. */
   creatorExamples: () =>
     withFallback(

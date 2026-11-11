@@ -68,17 +68,6 @@
   --text-title: 48px;
   --text-title--letter-spacing: -0.02em;
   --text-title--line-height: 1.2;
-
-  --animate-marquee: marquee 30s linear infinite;
-
-  @keyframes marquee {
-    from {
-      transform: translateX(0);
-    }
-    to {
-      transform: translateX(-50%);
-    }
-  }
 }
 
 :root {

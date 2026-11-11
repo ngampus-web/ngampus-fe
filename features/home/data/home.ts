@@ -4,54 +4,6 @@ export const hero = {
     "Teman kuliahmu untuk berbagai kebutuhan dari Marketplace Account, Plagiarisme Checker, sampai Academic Tools",
 }
 
-export const trustedBy = {
-  title: "TELAH DIPERCAYA OLEH MAHASISWA DI BERBAGAI KAMPUS",
-  logos: [
-    {
-      id: "uns",
-      name: "Universitas Sebelas Maret",
-      src: "/images/logo-campus.png",
-      width: 1024,
-      height: 386,
-    },
-    {
-      id: "pertamina",
-      name: "Universitas Pertamina",
-      src: "/images/logo-pertamina.png",
-      width: 742,
-      height: 537,
-    },
-    {
-      id: "telkom",
-      name: "Telkom University",
-      src: "/images/logo-telkom.png",
-      width: 416,
-      height: 568,
-    },
-    {
-      id: "dinamika",
-      name: "Universitas Dinamika",
-      src: "/images/logo-dinamika.png",
-      width: 876,
-      height: 241,
-    },
-    {
-      id: "untar",
-      name: "Universitas Tarumanagara",
-      src: "/images/logo-untar.png",
-      width: 471,
-      height: 588,
-    },
-    {
-      id: "amikom",
-      name: "Universitas AMIKOM Yogyakarta",
-      src: "/images/logo-amikom.png",
-      width: 1024,
-      height: 372,
-    },
-  ],
-}
-
 export const toolCategories = {
   title: ["Kebutuhan mahasiswa,", "lengkap di satu tempat"],
   description:
