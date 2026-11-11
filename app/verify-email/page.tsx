@@ -6,7 +6,7 @@ import { AuthShell } from "@/components/layout/auth-shell"
 
 export const metadata: Metadata = {
   title: "Verifikasi Email",
-  description: "Verifikasi email akun Ngampus.id.",
+  description: "Verifikasi email akun Ngampus.co.id.",
 }
 
 export default function VerifyEmailPage() {

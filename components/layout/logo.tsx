@@ -5,10 +5,10 @@ import { cn } from "@/lib/utils"
 
 export function Logo({ className }: { className?: string }) {
   return (
-    <Link href="/" aria-label="Ngampus.id beranda" className="shrink-0">
+    <Link href="/" aria-label="Ngampus.co.id beranda" className="shrink-0">
       <Image
         src="/images/logo-brand.png"
-        alt="ngampus.id"
+        alt="ngampus.co.id"
         width={1305}
         height={225}
         priority

@@ -6,7 +6,7 @@ import { AuthShell } from "@/components/layout/auth-shell"
 
 export const metadata: Metadata = {
   title: "Lupa Password",
-  description: "Kirim link reset password Ngampus.id.",
+  description: "Kirim link reset password Ngampus.co.id.",
 }
 
 export default function ForgotPasswordPage() {

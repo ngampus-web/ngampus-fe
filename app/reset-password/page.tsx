@@ -6,7 +6,7 @@ import { AuthShell } from "@/components/layout/auth-shell"
 
 export const metadata: Metadata = {
   title: "Reset Password",
-  description: "Buat password baru untuk akun Ngampus.id.",
+  description: "Buat password baru untuk akun Ngampus.co.id.",
 }
 
 export default function ResetPasswordPage() {

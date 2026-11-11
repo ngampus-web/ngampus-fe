@@ -230,7 +230,7 @@ export const termsDefault = {
                 content: [
                   {
                     type: "text",
-                    text: "Ngampus.id tidak bertanggung jawab atas kerugian tidak langsung, konsekuensial, atau keputusan pihak ketiga yang berada di luar kendali operasional layanan.",
+                    text: "Ngampus.co.id tidak bertanggung jawab atas kerugian tidak langsung, konsekuensial, atau keputusan pihak ketiga yang berada di luar kendali operasional layanan.",
                   },
                 ],
               },

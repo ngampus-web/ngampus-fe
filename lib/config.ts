@@ -14,7 +14,7 @@ export const config = {
    */
   app: {
     name: "Ngampus",
-    url: process.env.NEXT_PUBLIC_APP_URL || "https://ngampus.id",
+    url: process.env.NEXT_PUBLIC_APP_URL || "https://ngampus.co.id",
   },
 
   /**

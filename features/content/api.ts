@@ -1,6 +1,7 @@
 import { upgradeCreatorGuide } from "./creator-content"
 import type { Metadata } from "next"
 import { serverGet } from "@/lib/api/server"
+import { normalizeNgampusBrand } from "@/lib/normalize-ngampus-brand"
 import { PAGE_DEFAULTS } from "./defaults"
 import { readContentDraft } from "./preview"
 
@@ -16,7 +17,9 @@ export async function getPageContent<K extends ContentPage>(
   page: K
 ): Promise<PageContent<K>> {
   const draft = await readContentDraft()
-  if (draft?.page === page) return draft.value as PageContent<K>
+  if (draft?.page === page) {
+    return normalizeNgampusBrand(draft.value as PageContent<K>)
+  }
   try {
     const content = (await serverGet<PageContent<K>>(`/content/pages/${page}`))
       .data
