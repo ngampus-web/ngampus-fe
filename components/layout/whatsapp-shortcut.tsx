@@ -1,24 +1,61 @@
+"use client"
+
+import Image from "next/image"
+import { useRef, useState } from "react"
+
 export function WhatsAppShortcut({ phone }: { phone: string }) {
+  const [showMessage, setShowMessage] = useState(true)
+  const shortcut = useRef<HTMLAnchorElement>(null)
   const number = phone.replace(/\D/g, "")
   if (!number) return null
 
+  const chatUrl = `https://wa.me/${number}`
+
   return (
-    <a
-      href={`https://wa.me/${number}`}
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label="Chat WhatsApp Ngampus"
-      title="Chat WhatsApp Ngampus"
-      className="fixed right-5 bottom-[calc(1.25rem+env(safe-area-inset-bottom))] z-40 flex size-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg transition-[background-color,transform] hover:bg-[#1ebe5d] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#128c7e] motion-safe:hover:scale-105 md:right-6 md:bottom-[calc(1.5rem+env(safe-area-inset-bottom))]"
-    >
-      <svg
-        viewBox="0 0 24 24"
-        className="size-8"
-        fill="currentColor"
-        aria-hidden="true"
+    <div className="fixed right-5 bottom-[calc(1.25rem+env(safe-area-inset-bottom))] z-40 md:right-6 md:bottom-[calc(1.5rem+env(safe-area-inset-bottom))]">
+      {showMessage && (
+        <div className="absolute right-full bottom-10 mr-1.5 w-max max-w-[calc(100vw-7.75rem)] md:bottom-12 md:mr-2">
+          <a
+            href={chatUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block rounded-lg border border-primary bg-plum-700 px-2.5 py-1.5 text-xs leading-snug font-semibold text-white shadow-md transition-colors hover:bg-plum-700/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            Ada pertanyaan?
+            <br />
+            Hubungi aku di sini yuk!
+          </a>
+          <button
+            type="button"
+            aria-label="Tutup pesan WhatsApp"
+            onClick={() => {
+              setShowMessage(false)
+              shortcut.current?.focus()
+            }}
+            className="absolute -top-2 -left-2 flex size-6 items-center justify-center rounded-full bg-primary text-base leading-none font-bold text-black shadow-sm hover:bg-orange-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            <span aria-hidden="true">×</span>
+          </button>
+        </div>
+      )}
+      <a
+        ref={shortcut}
+        href={chatUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Chat WhatsApp Ngampus"
+        title="Chat WhatsApp Ngampus"
+        className="block w-18 rounded-2xl transition-transform focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary motion-safe:hover:scale-105 md:w-22"
       >
-        <path d="M20.52 3.48A11.91 11.91 0 0 0 12.04 0C5.47 0 .12 5.35.12 11.93c0 2.1.55 4.16 1.59 5.97L0 24l6.25-1.64a11.9 11.9 0 0 0 5.79 1.48h.01c6.57 0 11.92-5.35 11.92-11.93 0-3.18-1.24-6.18-3.45-8.43ZM12.04 21.8a9.87 9.87 0 0 1-5.03-1.38l-.36-.21-3.71.97.99-3.62-.24-.37a9.87 9.87 0 0 1-1.51-5.26c0-5.47 4.45-9.92 9.92-9.92a9.85 9.85 0 0 1 7.01 2.91 9.85 9.85 0 0 1 2.9 7.02c0 5.47-4.45 9.92-9.97 9.86Zm5.44-7.4c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.64.07-.3-.15-1.25-.46-2.38-1.47-.88-.79-1.48-1.77-1.65-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.18.2-.3.3-.5.1-.2.05-.37-.03-.52-.07-.15-.67-1.61-.92-2.21-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48s1.07 2.87 1.21 3.07c.15.2 2.1 3.2 5.09 4.49.71.3 1.27.49 1.7.63.71.22 1.36.19 1.87.11.57-.08 1.76-.72 2.01-1.41.25-.69.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35Z" />
-      </svg>
-    </a>
+        <Image
+          src="/images/mascot-whatsapp.png"
+          alt=""
+          width={1150}
+          height={1368}
+          sizes="(min-width: 768px) 88px, 72px"
+          className="h-auto w-full drop-shadow-md"
+        />
+      </a>
+    </div>
   )
 }
