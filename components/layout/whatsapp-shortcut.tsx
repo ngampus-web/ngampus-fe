@@ -23,7 +23,7 @@ export function WhatsAppShortcut({ phone }: { phone: string }) {
           >
             Ada pertanyaan?
             <br />
-            Hubungi aku di sini yuk!
+            Hubungi Capy di sini yuk!
           </a>
           <button
             type="button"
