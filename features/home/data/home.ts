@@ -144,6 +144,12 @@ export const testimonials = {
   ],
 }
 
+export const similarityFaq = {
+  question: "Apakah hasil Turnitin di Ngampus sama dengan Turnitin kampus?",
+  answer:
+    "Ngampus menggunakan sistem pengecekan sendiri sebagai alternatif Turnitin, dengan hasil similarity yang kurang lebih dapat menjadi gambaran tingkat kemiripan dokumen. Persentase dapat berbeda tergantung sistem dan database yang digunakan",
+}
+
 export const faq = {
   title: "Pertanyaan umum",
   description: "Jawaban singkat soal Ngampus. Masih bingung? Chat admin kami.",
@@ -173,11 +179,7 @@ export const faq = {
       answer:
         "Pilih layanan yang kamu butuhkan, upload dokumen sesuai ketentuan, lakukan pembayaran, lalu tunggu hingga proses pengecekan selesai.",
     },
-    {
-      question: "Apakah hasil Turnitin di Ngampus sama dengan Turnitin kampus?",
-      answer:
-        "Pengecekan dilakukan menggunakan Turnitin, sehingga hasil similarity berasal dari sistem Turnitin. Hasil dapat berbeda jika terdapat perbedaan database atau pengaturan pengecekan.",
-    },
+    similarityFaq,
     {
       question: "Apakah dokumen saya aman setelah melakukan pengecekan?",
       answer:

@@ -5,7 +5,7 @@ import {
   contentApi,
 } from "@/lib/api/endpoints/content"
 
-import { faq, testimonials, trustedBy } from "./data/home"
+import { faq, similarityFaq, testimonials, trustedBy } from "./data/home"
 import { GLOBAL_DEFAULTS } from "@/features/content/global"
 
 // Static copies used when the content API is down or empty.
@@ -44,7 +44,11 @@ export async function getHomeContent() {
       ? { ...announcement, text: GLOBAL_DEFAULTS.announcement.text }
       : announcement,
     testimonials: items,
-    faqs,
+    faqs: faqs.map((item) =>
+      item.question.trim() === similarityFaq.question
+        ? { ...item, answer: similarityFaq.answer }
+        : item
+    ),
     logos,
   }
 }
