@@ -48,7 +48,7 @@ export const termsSections: LegalSection[] = [
   {
     title: "6. Batas Tanggung Jawab",
     items: [
-      "Ngampus.id tidak bertanggung jawab atas kerugian tidak langsung, konsekuensial, atau keputusan pihak ketiga yang berada di luar kendali operasional layanan.",
+      "Ngampus.co.id tidak bertanggung jawab atas kerugian tidak langsung, konsekuensial, atau keputusan pihak ketiga yang berada di luar kendali operasional layanan.",
     ],
   },
   {

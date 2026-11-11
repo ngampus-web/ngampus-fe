@@ -4,6 +4,7 @@
  */
 
 import { config } from "@/lib/config"
+import { normalizeNgampusBrand } from "@/lib/normalize-ngampus-brand"
 import type { PaginationMeta } from "@/types/api"
 
 type Query = Record<string, string | number | undefined>
@@ -53,5 +54,9 @@ export async function serverGet<T>(
   })
   if (res.status === 404) throw new ApiNotFoundError(path)
   if (!res.ok) throw new Error(`API ${res.status} for ${path}`)
-  return res.json()
+  const result: { data: T; meta?: PaginationMeta } = await res.json()
+  if (path.startsWith("/content/") || path.startsWith("/blog/")) {
+    return { ...result, data: normalizeNgampusBrand(result.data) }
+  }
+  return result
 }
