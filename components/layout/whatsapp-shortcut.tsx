@@ -32,7 +32,7 @@ export function WhatsAppShortcut({ phone }: { phone: string }) {
               setShowMessage(false)
               shortcut.current?.focus()
             }}
-            className="absolute -top-2 -left-2 flex size-6 items-center justify-center rounded-full bg-primary text-base leading-none font-bold text-black shadow-sm hover:bg-orange-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            className="absolute -top-2 -left-2 flex size-6 items-center justify-center rounded-full bg-primary text-base leading-none font-bold text-white shadow-sm hover:bg-orange-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             <span aria-hidden="true">×</span>
           </button>
