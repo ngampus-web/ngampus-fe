@@ -11,12 +11,13 @@
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
     "test:features": "node scripts/verify-features.mjs",
-    "predev": "node scripts/prepare-pdfjs.mjs",
-    "prebuild": "node scripts/prepare-pdfjs.mjs",
+    "predev": "node scripts/prepare-pdfjs.mjs && node scripts/prepare-qpdf.mjs",
+    "prebuild": "node scripts/prepare-pdfjs.mjs && node scripts/prepare-qpdf.mjs",
     "test:pdf": "node --experimental-strip-types scripts/verify-pdf-words.mjs",
     "test:docx": "node --experimental-strip-types scripts/verify-docx-words.mjs"
   },
   "dependencies": {
+    "@neslinesli93/qpdf-wasm": "0.3.1",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.4.0",
     "date-fns": "^4.4.0",

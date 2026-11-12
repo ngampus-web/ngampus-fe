@@ -4,28 +4,16 @@ import { notify } from "@/lib/toast"
 import {
   ArrowDown,
   ArrowUp,
-  Combine,
   Download,
-  FileOutput,
   FileText,
   Loader2,
-  MousePointerClick,
-  Shrink,
   Trash2,
-  Upload,
-  type LucideIcon,
 } from "lucide-react"
-import { useId, useState } from "react"
+import { useId, useRef, useState } from "react"
 
 import { Breadcrumb } from "@/components/layout/breadcrumb"
-import { SectionHeading } from "@/components/shared/section-heading"
 import { Button } from "@/components/ui/button"
-import {
-  fileToolFromParam,
-  fileTools,
-  fileToolsHowTo,
-  fileToolsUpload,
-} from "@/features/file-tools/data/file-tools"
+import { fileTools, type ToolId } from "@/features/file-tools/data/file-tools"
 import { canConvert } from "@/features/file-tools/lib/convert"
 import {
   addFiles,
@@ -34,9 +22,6 @@ import {
   formatBytes,
   outputName,
 } from "@/features/file-tools/lib/files"
-import { cn } from "@/lib/utils"
-
-type ToolId = (typeof fileTools)[number]["id"]
 
 interface Result {
   bytes: Uint8Array
@@ -44,16 +29,9 @@ interface Result {
   before: number
 }
 
-const accepts: Record<ToolId, (file: File) => boolean> = {
-  merge: (file) => extOf(file.name) === "pdf",
-  kompres: (file) => extOf(file.name) === "pdf",
-  convert: canConvert,
-}
-
-const actionLabels: Record<ToolId, string> = {
-  merge: "Gabungkan PDF",
-  kompres: "Kompres PDF",
-  convert: "Convert ke PDF",
+function acceptsFile(id: ToolId, file: File) {
+  if (id === "convert") return canConvert(file)
+  return fileTools[id].accept.split(",").includes(`.${extOf(file.name)}`)
 }
 
 /** Engines load on demand so the page itself stays light. */
@@ -78,38 +56,16 @@ async function runTool(
   return { bytes, before, name: outputName(files[0].name, "convert") }
 }
 
-const toolIcons: Record<(typeof fileTools)[number]["icon"], LucideIcon> = {
-  merge: Combine,
-  kompres: Shrink,
-  convert: FileOutput,
-}
-
-const stepIcons = {
-  choose: MousePointerClick,
-  upload: Upload,
-  download: Download,
-}
-
-export function FileTools({
-  initialTool,
-}: {
-  initialTool?: string | string[]
-}) {
-  const toolKey = Array.isArray(initialTool) ? initialTool[0] : initialTool
-  return <FileToolsPanel key={toolKey ?? "merge"} initialTool={toolKey} />
-}
-
-function FileToolsPanel({ initialTool }: { initialTool?: string }) {
-  const uploadId = useId()
-  const toolKey = Array.isArray(initialTool) ? initialTool[0] : initialTool
-  const [toolId, setToolId] = useState(() => fileToolFromParam(toolKey))
+export function FileTools({ toolId }: { toolId: ToolId }) {
+  const fileInput = useRef<HTMLInputElement>(null)
+  const fileLabelId = useId()
   const [files, setFiles] = useState<File[]>([])
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [progress, setProgress] = useState<string | null>(null)
   const [result, setResult] = useState<Result | null>(null)
 
-  const tool = fileTools.find((item) => item.id === toolId) ?? fileTools[0]
+  const tool = fileTools[toolId]
 
   const change = (next: File[], problem: string | null = null) => {
     setFiles(next)
@@ -131,7 +87,7 @@ function FileToolsPanel({ initialTool }: { initialTool?: string }) {
     setProgress("Memproses…")
     try {
       setResult(
-        await runTool(tool.id, files, (done, total) =>
+        await runTool(toolId, files, (done, total) =>
           setProgress(`Memproses ${done} dari ${total}…`)
         )
       )
@@ -146,7 +102,10 @@ function FileToolsPanel({ initialTool }: { initialTool?: string }) {
 
   const fileLabel =
     files.length === 0
-      ? fileToolsUpload.description
+      ? tool.accept
+          .split(",")
+          .filter((value) => value.startsWith("."))
+          .join(", ")
       : files.length === 1
         ? files[0].name
         : `${files.length} file dipilih`
@@ -154,75 +113,55 @@ function FileToolsPanel({ initialTool }: { initialTool?: string }) {
   return (
     <>
       <Breadcrumb
-        items={[{ label: "Beranda", href: "/" }, { label: "File Tools" }]}
+        items={[
+          { label: "Beranda", href: "/" },
+          { label: "File Tools", href: "/file-tools" },
+          { label: tool.title },
+        ]}
       />
       <section className="mx-auto flex w-full max-w-[1100px] flex-col gap-6 px-5 py-12 md:px-10 lg:py-16">
-        <div className="grid gap-4 md:grid-cols-3">
-          {fileTools.map((item) => {
-            const Icon = toolIcons[item.icon]
-            const selected = item.id === tool.id
-            return (
-              <button
-                key={item.id}
-                type="button"
-                aria-pressed={selected}
-                disabled={busy}
-                onClick={() => {
-                  setToolId(item.id)
-                  change([])
-                }}
-                className={cn(
-                  "flex flex-col items-start gap-6 rounded-2xl border bg-white p-5 text-left",
-                  selected ? "border-primary" : "border-line"
-                )}
-              >
-                <span
-                  className="flex size-10 items-center justify-center rounded-lg bg-primary text-white"
-                  aria-hidden
-                >
-                  <Icon className="size-5" strokeWidth={1.75} />
-                </span>
-                <span className="flex flex-col gap-1">
-                  <span className="text-base font-semibold tracking-[-0.02em]">
-                    {item.title}
-                  </span>
-                  <span className="text-sm tracking-[-0.02em] text-subtle">
-                    {item.description}
-                  </span>
-                </span>
-              </button>
-            )
-          })}
-        </div>
-
-        <label
-          htmlFor={uploadId}
-          className="flex min-h-64 cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl bg-surface px-6 py-10 text-center"
-        >
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+          {tool.title}
+        </h1>
+        {toolId === "word" && (
+          <p className="text-sm text-subtle">
+            Teks dokumen diubah menjadi PDF. Tata letak asli Word tidak
+            dipertahankan.
+          </p>
+        )}
+        <div className="flex min-h-64 flex-col items-center justify-center gap-3 rounded-2xl bg-surface px-6 py-10 text-center">
           <span className="flex size-12 items-center justify-center rounded-xl bg-white">
             <FileText className="size-5" aria-hidden />
           </span>
-          <span className="flex flex-col gap-1">
-            <span className="text-base font-semibold tracking-[-0.02em]">
-              {fileToolsUpload.title}
-            </span>
-            <span className="text-sm tracking-[-0.02em] text-subtle">
-              {fileLabel}
-            </span>
-          </span>
-        </label>
+          <Button
+            type="button"
+            size="pill"
+            className="px-8"
+            aria-describedby={fileLabelId}
+            disabled={busy}
+            onClick={() => fileInput.current?.click()}
+          >
+            Pilih file
+          </Button>
+          <p
+            id={fileLabelId}
+            className="max-w-full text-sm tracking-[-0.02em] break-all text-subtle"
+          >
+            {fileLabel}
+          </p>
+        </div>
         <input
-          key={tool.id}
-          id={uploadId}
+          key={toolId}
+          ref={fileInput}
           type="file"
           accept={tool.accept}
           multiple={tool.multiple}
-          className="sr-only"
+          hidden
           disabled={busy}
           onChange={(event) => {
             const picked = addFiles(files, [...(event.target.files ?? [])], {
               multiple: tool.multiple,
-              accepts: accepts[tool.id],
+              accepts: (file) => acceptsFile(toolId, file),
             })
             change(picked.files, picked.error)
             event.target.value = ""
@@ -243,7 +182,7 @@ function FileToolsPanel({ initialTool }: { initialTool?: string }) {
                 <span className="shrink-0 text-sm text-subtle">
                   {formatBytes(file.size)}
                 </span>
-                {tool.id === "merge" && (
+                {tool.multiple && (
                   <>
                     <Button
                       type="button"
@@ -282,7 +221,7 @@ function FileToolsPanel({ initialTool }: { initialTool?: string }) {
           </ul>
         )}
 
-        {tool.id === "kompres" && files.length > 0 && (
+        {toolId === "kompres" && files.length > 0 && (
           <p className="text-sm tracking-[-0.02em] text-subtle">
             Halaman PDF diubah menjadi gambar agar ukurannya kecil, jadi teks
             hasil kompres tidak bisa diseleksi.
@@ -303,7 +242,11 @@ function FileToolsPanel({ initialTool }: { initialTool?: string }) {
             onClick={process}
           >
             {busy && <Loader2 className="animate-spin" aria-hidden />}
-            {busy ? progress : actionLabels[tool.id]}
+            {busy
+              ? progress
+              : toolId === "merge"
+                ? "Gabungkan PDF"
+                : tool.title}
           </Button>
         )}
 
@@ -314,7 +257,7 @@ function FileToolsPanel({ initialTool }: { initialTool?: string }) {
                 {result.name}
               </span>
               <span className="text-sm tracking-[-0.02em] text-subtle">
-                {tool.id === "kompres"
+                {toolId === "kompres"
                   ? `${formatBytes(result.before)} → ${formatBytes(result.bytes.byteLength)}${
                       result.bytes.byteLength < result.before
                         ? ` (${Math.round((1 - result.bytes.byteLength / result.before) * 100)}% lebih kecil)`
@@ -344,43 +287,6 @@ function FileToolsPanel({ initialTool }: { initialTool?: string }) {
             </Button>
           </div>
         )}
-      </section>
-
-      <section className="bg-surface">
-        <div className="mx-auto flex w-full max-w-[1100px] flex-col items-center gap-12 px-5 py-16 md:px-10 lg:py-20">
-          <SectionHeading
-            title={fileToolsHowTo.title}
-            description={fileToolsHowTo.description}
-            align="center"
-            className="max-w-[640px]"
-          />
-          <div className="grid w-full gap-4 md:grid-cols-3">
-            {fileToolsHowTo.steps.map((step) => {
-              const Icon = stepIcons[step.icon]
-              return (
-                <article
-                  key={step.title}
-                  className="flex min-h-[280px] flex-col justify-between rounded-2xl border border-line bg-white p-6"
-                >
-                  <span
-                    className="flex size-14 items-center justify-center rounded-xl bg-plum-900 text-white"
-                    aria-hidden
-                  >
-                    <Icon className="size-6" strokeWidth={1.75} />
-                  </span>
-                  <div className="flex flex-col gap-1">
-                    <h3 className="text-lg font-semibold tracking-[-0.02em]">
-                      {step.title}
-                    </h3>
-                    <p className="text-sm leading-6 tracking-[-0.02em]">
-                      {step.description}
-                    </p>
-                  </div>
-                </article>
-              )
-            })}
-          </div>
-        </div>
       </section>
     </>
   )

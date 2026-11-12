@@ -42,3 +42,5 @@ next-env.d.ts
 
 # Generated PDF.js worker and font assets
 /public/pdfjs/
+
+/public/qpdf/
