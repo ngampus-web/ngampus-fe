@@ -1,60 +1,39 @@
 import { CONVERT_ACCEPT } from "@/features/file-tools/lib/convert"
 
-export const fileTools = [
-  {
-    id: "merge",
-    title: "Merge PDF",
-    description: "Gabung beberapa PDF jadi satu.",
-    accept: ".pdf,application/pdf",
+const pdfAccept = ".pdf,application/pdf"
+
+export const fileTools = {
+  merge: { title: "Gabung PDF", accept: pdfAccept, multiple: true },
+  kompres: { title: "Kompres PDF", accept: pdfAccept, multiple: false },
+  convert: { title: "Konversi ke PDF", accept: CONVERT_ACCEPT, multiple: true },
+  word: { title: "Word ke PDF", accept: ".docx", multiple: false },
+  jpg: { title: "JPG ke PDF", accept: ".jpg,.jpeg", multiple: true },
+  png: { title: "PNG ke PDF", accept: ".png", multiple: true },
+  gambar: {
+    title: "Gambar ke PDF",
+    accept: ".webp,.gif,.bmp,.svg,.jpg,.jpeg,.png",
     multiple: true,
-    icon: "merge" as const,
   },
-  {
-    id: "kompres",
-    title: "Kompres PDF",
-    description: "Kecilkan ukuran, kualitas tetap.",
-    accept: ".pdf,application/pdf",
-    multiple: false,
-    icon: "kompres" as const,
-  },
-  {
-    id: "convert",
-    title: "Convert ke PDF",
-    description: "Konversi DOCX, gambar, atau teks ke PDF",
-    accept: CONVERT_ACCEPT,
+  teks: {
+    title: "Teks ke PDF",
+    accept: ".txt,.md,.csv,.json,.log",
     multiple: true,
-    icon: "convert" as const,
   },
-]
+} as const
 
-export const fileToolsUpload = {
-  title: "Upload Dokumen",
-  description: "PDF, DOCX, gambar, atau teks.",
-}
+export type ToolId = keyof typeof fileTools
 
-export const fileToolsHowTo = {
-  title: "Cara pakai",
-  description: "Tiga langkah. Gak perlu nunggu operator.",
-  steps: [
-    {
-      title: "Pilih layanan",
-      description: "Merge, kompres, atau convert ke PDF.",
-      icon: "choose" as const,
-    },
-    {
-      title: "Upload dokumen",
-      description: "Kirim PDF, DOCX, gambar, atau teks.",
-      icon: "upload" as const,
-    },
-    {
-      title: "Unduh hasilnya",
-      description: "File baru siap dipakai, langsung.",
-      icon: "download" as const,
-    },
-  ],
-}
-
-export function fileToolFromParam(value: string | string[] | undefined) {
+export function fileToolFromParam(
+  value: string | string[] | undefined
+): ToolId | undefined {
   const id = Array.isArray(value) ? value[0] : value
-  return fileTools.find((tool) => tool.id === id)?.id ?? fileTools[0].id
+  return id && Object.hasOwn(fileTools, id) ? (id as ToolId) : undefined
 }
+
+export const specialToolTitles = {
+  protect: "Protect PDF",
+  sign: "Sign PDF",
+  scanner: "Scanner jadi PDF",
+} as const
+
+export type CatalogToolId = ToolId | keyof typeof specialToolTitles
