@@ -3,42 +3,14 @@ export type NavLink = {
   href: string
   description?: string
   icon?: "phone" | "email" | "tiktok" | "instagram"
-  tool?: "merge" | "kompres" | "convert"
 }
 
-export type NavItem =
-  | { type: "link"; label: string; href: string }
-  | { type: "menu"; label: string; items: NavLink[] }
-
-export const mainNav: NavItem[] = [
-  { type: "link", label: "Marketplace", href: "/marketplace" },
-  { type: "link", label: "Plagiarisme", href: "/cek-plagiarisme" },
-  {
-    type: "menu",
-    label: "File Tools",
-    items: [
-      {
-        label: "Kompres PDF",
-        href: "/file-tools?tool=kompres",
-        description: "Perkecil ukuran file tanpa mengurangi kualitas.",
-        tool: "kompres",
-      },
-      {
-        label: "Convert File",
-        href: "/file-tools?tool=convert",
-        description: "Ubah PDF, Word, dan gambar ke format lain.",
-        tool: "convert",
-      },
-      {
-        label: "Gabung PDF",
-        href: "/file-tools?tool=merge",
-        description: "Satukan beberapa PDF jadi satu dokumen.",
-        tool: "merge",
-      },
-    ],
-  },
-  { type: "link", label: "Riwayat Pesanan", href: "/riwayat-pesanan" },
-  { type: "link", label: "Ngampus Creator", href: "/creator" },
+export const mainNav: Pick<NavLink, "label" | "href">[] = [
+  { label: "Marketplace", href: "/marketplace" },
+  { label: "Plagiarisme", href: "/cek-plagiarisme" },
+  { label: "File Tools", href: "/file-tools" },
+  { label: "Riwayat Pesanan", href: "/riwayat-pesanan" },
+  { label: "Ngampus Creator", href: "/creator" },
 ]
 
 export const whatsappChannelUrl =
