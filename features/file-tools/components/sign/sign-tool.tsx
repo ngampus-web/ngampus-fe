@@ -1,6 +1,7 @@
 "use client"
 /* eslint-disable @next/next/no-img-element */
 import { Signature } from "lucide-react"
+import { UploadPanel } from "../upload-panel"
 import { Button } from "@/components/ui/button"
 import { loadPdfjs, loadPdf } from "@/features/file-tools/lib/pdf"
 import { useEffect, useRef, useState } from "react"
@@ -200,25 +201,16 @@ export function SignTool() {
   }
   const active = marks.find((m) => m.id === selected)
   return (
-    <div className="overflow-hidden rounded-2xl border border-line bg-surface">
+    <>
       {!doc ? (
-        <div className="mx-auto max-w-xl px-5 py-20 text-center">
-          <div className="mx-auto mb-5 grid h-16 w-16 place-items-center rounded-2xl bg-primary/10 text-3xl text-primary">
-            <Signature className="size-7" aria-hidden />
-          </div>
-          <p className="mt-3 text-black/65">
-            Buat tanda tangan, inisial, atau stempel dan letakkan langsung di
-            dokumenmu.
-          </p>
-          <Button
-            type="button"
-            size="pill"
-            className="mt-4 px-8"
-            disabled={busy}
-            onClick={() => picker.current?.click()}
-          >
-            {busy ? "Membuka dokumen…" : "Pilih file"}
-          </Button>
+        <>
+          <UploadPanel
+            icon={Signature}
+            hint="PDF · Maks. 20 MB"
+            label={busy ? "Membuka dokumen…" : "Pilih file"}
+            busy={busy}
+            onPick={() => picker.current?.click()}
+          />
           <input
             ref={picker}
             hidden
@@ -230,12 +222,9 @@ export function SignTool() {
               e.currentTarget.value = ""
             }}
           />
-          <p className="mt-3 text-sm text-black/65">
-            Maks. 20 MB · File tetap di perangkatmu
-          </p>
-        </div>
+        </>
       ) : (
-        <>
+        <div className="overflow-hidden rounded-2xl border border-line bg-surface">
           <div className="flex flex-wrap items-center gap-3 border-b border-line bg-white px-5 py-3">
             <button
               disabled={page === 1 || busy}
@@ -545,13 +534,15 @@ export function SignTool() {
                   </div>
                 </div>
               )}
-              <button
+              <Button
+                type="button"
+                size="pill-lg"
                 disabled={busy || !marks.length}
                 onClick={save}
-                className="w-full rounded-xl bg-primary p-4 font-semibold text-white disabled:opacity-40"
+                className="w-full"
               >
-                {busy ? "Menyimpan…" : "Tanda tangani & unduh →"}
-              </button>
+                {busy ? "Menyimpan…" : "Tanda tangani & unduh"}
+              </Button>
               <p className="mt-3 text-xs text-black/65">
                 {marks.length} elemen ditambahkan · Tanpa sertifikat digital
               </p>
@@ -567,7 +558,7 @@ export function SignTool() {
               )}
             </aside>
           </div>
-        </>
+        </div>
       )}
       {error && (
         <p role="alert" className="mx-auto max-w-xl p-5 text-red-700">
@@ -581,6 +572,6 @@ export function SignTool() {
           onApply={add}
         />
       )}
-    </div>
+    </>
   )
 }

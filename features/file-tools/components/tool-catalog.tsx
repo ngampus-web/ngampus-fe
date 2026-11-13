@@ -53,7 +53,8 @@ const tools = [
   {
     id: "word",
     icon: FileType2,
-    description: "Ubah teks dari dokumen Word (.docx) menjadi PDF.",
+    description:
+      "Ubah dokumen Word (.docx), termasuk tabel dan gambar, menjadi PDF.",
   },
   {
     id: "jpg",
