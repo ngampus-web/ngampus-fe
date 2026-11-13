@@ -1,4 +1,7 @@
 "use client"
+import { Camera, ScanLine } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { UploadPanel } from "../upload-panel"
 import { useEffect, useRef, useState } from "react"
 import {
   imageCanvas,
@@ -113,96 +116,38 @@ export function Scanner() {
             e.target.value = ""
           }}
         />
-        <div
-          onDragOver={(e) => {
-            e.preventDefault()
+        <UploadPanel
+          icon={ScanLine}
+          hint="JPG, PNG, WebP · Maks. 20 MB per gambar · 20 halaman"
+          onPick={() => gallery.current?.click()}
+          busy={busy}
+          onDragOver={(event) => {
+            event.preventDefault()
             if (!busy) setDragging(true)
           }}
-          onDragLeave={(e) => {
-            if (!e.currentTarget.contains(e.relatedTarget as Node))
+          onDragLeave={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget as Node))
               setDragging(false)
           }}
-          onDrop={(e) => {
-            e.preventDefault()
+          onDrop={(event) => {
+            event.preventDefault()
             setDragging(false)
-            add(e.dataTransfer.files)
+            add(event.dataTransfer.files)
           }}
-          className={`rounded-2xl border-2 border-dashed p-6 text-center transition-colors sm:p-8 ${dragging ? "border-primary bg-primary/10" : "border-neutral-200 bg-white"}`}
+          className={dragging ? "border-primary bg-primary/10" : undefined}
         >
-          <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-primary/10 text-primary">
-            <svg
-              width="28"
-              height="28"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              aria-hidden="true"
-            >
-              <path d="M4 8V4h4m8 0h4v4M4 16v4h4m8 0h4v-4M8 7h8v10H8zM2 12h20" />
-            </svg>
-          </div>
-          <h2 className="text-lg font-semibold">
-            {pages.length
-              ? "Tambahkan halaman berikutnya"
-              : "Mulai dari foto dokumenmu"}
-          </h2>
-          <p className="mt-2 text-sm text-black/65">
-            Ambil foto, pilih dari galeri, atau tarik gambar ke sini.
-          </p>
-          <div className="mt-5 flex flex-col justify-center gap-3 sm:flex-row">
-            <button
-              type="button"
-              onClick={() => {
-                if (pages.length >= 20) {
-                  setError(
-                    "Maksimal 20 halaman. Hapus halaman untuk menambahkan foto."
-                  )
-                  return
-                }
-                setCameraOpen(true)
-              }}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-white hover:bg-orange-600"
-            >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                aria-hidden="true"
-              >
-                <path d="m8 5 1-2h6l1 2h4v15H4V5z" />
-                <circle cx="12" cy="12" r="4" />
-              </svg>
-              Ambil foto
-            </button>
-            <button
-              type="button"
-              onClick={() => gallery.current?.click()}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white px-5 py-3 text-sm font-semibold hover:bg-neutral-50"
-            >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                aria-hidden="true"
-              >
-                <rect x="3" y="3" width="18" height="18" rx="3" />
-                <path d="m3 17 6-6 4 4 3-3 5 5" />
-                <circle cx="16" cy="8" r="1" />
-              </svg>
-              Pilih file
-            </button>
-          </div>
-          <p className="mt-4 text-xs text-black/65">
-            JPG, PNG, WebP · Maks. 20 MB/gambar · 20 halaman
-          </p>
-        </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="pill"
+            className="border-line"
+            disabled={busy || pages.length >= 20}
+            onClick={() => setCameraOpen(true)}
+          >
+            <Camera aria-hidden />
+            Ambil foto
+          </Button>
+        </UploadPanel>
         {pages.length > 0 && (
           <section aria-label="Halaman dokumen">
             <div className="mb-3 flex items-center justify-between">
@@ -357,17 +302,19 @@ export function Scanner() {
           {error}
         </p>
       )}
-      <button
+      <Button
+        type="button"
+        size="pill-lg"
         disabled={busy || !pages.length}
         onClick={download}
-        className="w-full rounded-xl bg-primary px-5 py-4 font-semibold text-white transition-colors hover:bg-orange-600 disabled:opacity-40"
+        className="w-full"
       >
         {busy
           ? `Memproses ${progress}/${pages.length} halaman…`
           : pages.length
             ? `Buat & unduh PDF · ${pages.length} halaman`
             : "Tambahkan foto untuk membuat PDF"}
-      </button>
+      </Button>
       <p role="status" className="text-center text-xs text-black/65">
         {complete
           ? "PDF berhasil dibuat. Unduhan sudah dimulai."

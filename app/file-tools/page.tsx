@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 
-import { Breadcrumb } from "@/components/layout/breadcrumb"
+import { ToolPage } from "@/features/file-tools/components/tool-page"
 import { ProtectTool } from "@/features/file-tools/components/protect/protect-tool"
 import { Scanner } from "@/features/file-tools/components/scanner/scanner"
 import { SignTool } from "@/features/file-tools/components/sign/sign-tool"
@@ -9,6 +9,7 @@ import { FileTools } from "@/features/file-tools/components/file-tools"
 import { ToolCatalog } from "@/features/file-tools/components/tool-catalog"
 import {
   fileToolFromParam,
+  fileTools,
   specialToolTitles,
 } from "@/features/file-tools/data/file-tools"
 
@@ -38,23 +39,17 @@ export default async function FileToolsPage({
   if (isSpecialTool(id)) {
     const Tool = specialTools[id]
     return (
-      <>
-        <Breadcrumb
-          items={[
-            { label: "Beranda", href: "/" },
-            { label: "File Tools", href: "/file-tools" },
-            { label: specialToolTitles[id] },
-          ]}
-        />
-        <section className="mx-auto w-full max-w-[1200px] px-5 py-12 md:px-10 lg:py-16">
-          <h1 className="mb-6 text-3xl font-semibold tracking-tight sm:text-4xl">
-            {specialToolTitles[id]}
-          </h1>
-          <Tool key={id} />
-        </section>
-      </>
+      <ToolPage title={specialToolTitles[id]}>
+        <Tool key={id} />
+      </ToolPage>
     )
   }
   const toolId = fileToolFromParam(id)
-  return toolId ? <FileTools key={toolId} toolId={toolId} /> : <ToolCatalog />
+  return toolId ? (
+    <ToolPage title={fileTools[toolId].title}>
+      <FileTools key={toolId} toolId={toolId} />
+    </ToolPage>
+  ) : (
+    <ToolCatalog />
+  )
 }

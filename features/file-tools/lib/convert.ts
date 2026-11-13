@@ -4,9 +4,6 @@ import type { PDFDocument, PDFFont } from "pdf-lib"
 import { extOf } from "./files"
 import { loadPdf } from "./pdf"
 
-// Ported from ngampus-app (PDFKilat). Office layouts (DOC, PPT, XLS) need a
-// server-side converter; DOCX is converted as plain text.
-
 const IMAGE_EXT = new Set(["png", "jpg", "jpeg", "webp", "gif", "bmp", "svg"])
 const TEXT_EXT = new Set(["txt", "md", "csv", "json", "log"])
 
@@ -169,21 +166,6 @@ async function addImage(doc: PDFDocument, file: File) {
   })
 }
 
-async function addDocx(doc: PDFDocument, file: File, font: PDFFont) {
-  const { default: mammoth } = await import("mammoth/mammoth.browser.js")
-  let text: string
-  try {
-    text = (
-      await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() })
-    ).value
-  } catch {
-    throw new UserFacingError(
-      `${file.name}: DOCX tidak bisa dibaca. Pastikan file tidak rusak atau terkunci.`
-    )
-  }
-  drawText(doc, font, `${file.name}\n\n${text.trim() || "(dokumen kosong)"}`)
-}
-
 async function addPdf(doc: PDFDocument, file: File) {
   const src = await loadPdf(new Uint8Array(await file.arrayBuffer()), file.name)
   const pages = await doc.copyPages(src, src.getPageIndices())
@@ -210,8 +192,10 @@ export async function convertToPdf(
   for (const [i, file] of files.entries()) {
     const kind = kindOf(file)
     if (kind === "pdf") await addPdf(out, file)
-    else if (kind === "docx") await addDocx(out, file, font)
-    else if (kind === "text")
+    else if (kind === "docx") {
+      const { addWordPages } = await import("./word-to-pdf")
+      await addWordPages(out, file)
+    } else if (kind === "text")
       drawText(out, font, `${file.name}\n\n${await file.text()}`)
     else await addImage(out, file)
     onProgress?.(i + 1, files.length)
