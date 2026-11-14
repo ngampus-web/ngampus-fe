@@ -109,12 +109,17 @@ function FilePicker({
       >
         <Upload className="size-5 text-primary" aria-hidden />
         <span className="text-sm font-semibold">{label}</span>
-        <span className="max-w-full text-xs leading-5 break-all text-subtle">
+        {/* One line, so the two cards keep the same layout whatever the name. */}
+        <span
+          className="block max-w-full truncate text-xs leading-5 text-subtle"
+          title={file?.name}
+        >
           {file
             ? `${file.name} · ${formatFileSize(file.size)}`
             : `${extension.toUpperCase()} · Maksimal ${maxFileMb} MB`}
         </span>
-        {file && status}
+        {/* Always takes its row, so cards with and without a file line up. */}
+        <div className="flex h-6 items-center">{file ? status : null}</div>
         <span className="text-xs text-primary">
           {file ? "Ganti file" : "Pilih file"}
         </span>
@@ -134,15 +139,17 @@ function FilePicker({
           }}
         />
       </label>
-      {file && (
-        <button
-          type="button"
-          className="mt-2 text-xs text-subtle underline"
-          onClick={() => onSelect(null)}
-        >
-          Hapus {label.toLowerCase()}
-        </button>
-      )}
+      {/* Kept (hidden) without a file so both cards end at the same line. */}
+      <button
+        type="button"
+        className={`mt-2 text-xs text-subtle underline ${file ? "" : "invisible"}`}
+        disabled={!file}
+        aria-hidden={!file}
+        tabIndex={file ? 0 : -1}
+        onClick={() => onSelect(null)}
+      >
+        Hapus {label.toLowerCase()}
+      </button>
     </div>
   )
 }
