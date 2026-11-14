@@ -3,6 +3,7 @@
  * every getter falls back to the static content bundled in the FE.
  */
 
+import type { FeatureFlags } from "@/lib/features"
 import { serverGet } from "../server"
 import { withFallback } from "../fallback"
 
@@ -38,6 +39,8 @@ export interface CreatorExample {
 
 export interface SiteSettings {
   announcement: { text: string; url: string | null; active: boolean }
+  /** Which services an admin has switched on. */
+  features: FeatureFlags
 }
 
 export interface GlobalContent extends SiteSettings {

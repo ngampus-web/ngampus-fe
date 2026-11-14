@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation"
 
 import { Navbar } from "@/components/layout/navbar"
 import { AuthProvider } from "@/components/layout/auth-provider"
+import type { FeatureFlags } from "@/lib/features"
 
 const bareRoutes = new Set([
   "/daftar",
@@ -16,9 +17,11 @@ const bareRoutes = new Set([
 export function SiteChrome({
   children,
   footer,
+  features,
 }: {
   children: React.ReactNode
   footer: React.ReactNode
+  features: FeatureFlags
 }) {
   const pathname = usePathname()
 
@@ -32,7 +35,7 @@ export function SiteChrome({
 
   return (
     <AuthProvider>
-      <Navbar />
+      <Navbar features={features} />
       <main className="flex-1">{children}</main>
       {footer}
     </AuthProvider>

@@ -74,6 +74,8 @@ export function errorMessage(error: unknown, fallback?: string): string {
       "INVALID_STATE",
       "FILE_TOO_LARGE",
       "FILE_INVALID",
+      // Names the service an admin switched off.
+      "FEATURE_DISABLED",
     ].includes(info.code ?? "") &&
     info.message
   )
