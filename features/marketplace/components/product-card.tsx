@@ -4,6 +4,8 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { productLogo, type ProductSummary } from "@/features/marketplace/api"
 import { cn } from "@/lib/utils"
+import { stockLevelOf } from "../stock"
+import { StockBadge } from "./stock-badge"
 
 const rupiah = (n: number) => `Rp ${n.toLocaleString("id-ID")}`
 
@@ -14,8 +16,15 @@ export function ProductCard({
   app: ProductSummary
   catalogFallback?: boolean
 }) {
+  // The home page shows fallback cards without live stock: never block those.
+  const soldOut = !catalogFallback && stockLevelOf(app) === "sold_out"
   return (
-    <article className="flex flex-col gap-4 rounded-2xl border border-line bg-white p-5">
+    <article
+      className={cn(
+        "flex flex-col gap-4 rounded-2xl border border-line bg-white p-5",
+        soldOut && "bg-surface"
+      )}
+    >
       <div className="flex items-center gap-3">
         <Image
           src={productLogo(app)}
@@ -48,28 +57,31 @@ export function ProductCard({
           {rupiah(app.startingPrice)}
         </p>
         <div className="flex flex-wrap gap-2">
-          {[
-            ...(catalogFallback
-              ? []
-              : [app.isInStock ? "Stok Tersedia" : "Stok Habis"]),
-            ...(app.hasPreorder ? ["Pre-order"] : []),
-            "Garansi",
-          ].map((badge) => (
-            <span
-              key={badge}
-              className={cn(
-                "rounded-full border border-line px-3 py-2 text-sm tracking-[-0.02em]",
-                badge === "Pre-order" && "font-semibold text-primary"
-              )}
-            >
-              {badge}
-            </span>
-          ))}
+          {!catalogFallback && <StockBadge product={app} />}
+          {[...(app.hasPreorder ? ["Pre-order"] : []), "Garansi"].map(
+            (badge) => (
+              <span
+                key={badge}
+                className={cn(
+                  "rounded-full border border-line px-3 py-2 text-sm tracking-[-0.02em]",
+                  badge === "Pre-order" && "font-semibold text-primary"
+                )}
+              >
+                {badge}
+              </span>
+            )
+          )}
         </div>
       </div>
-      <Button asChild className="h-11 w-full rounded-3xl text-sm">
-        <Link href={`/marketplace/${app.slug}`}>Beli Sekarang</Link>
-      </Button>
+      {soldOut ? (
+        <Button disabled className="h-11 w-full rounded-3xl text-sm">
+          Stok Habis
+        </Button>
+      ) : (
+        <Button asChild className="h-11 w-full rounded-3xl text-sm">
+          <Link href={`/marketplace/${app.slug}`}>Beli Sekarang</Link>
+        </Button>
+      )}
     </article>
   )
 }

@@ -5,6 +5,7 @@ import {
   marketplaceCategories,
   marketplaceLogoFallback,
 } from "./data/marketplace"
+import type { StockLevel } from "./stock"
 import type { CheckoutSection, MarketplaceCheckout } from "./types"
 import { warranty, warrantyTerms } from "./data/marketplace"
 
@@ -21,6 +22,9 @@ export interface ProductSummary {
   startingPrice: number
   startingOfficialPrice: number
   isInStock: boolean
+  /** Units left and the level the API derives from it (absent on older APIs). */
+  stock?: number
+  stockLevel?: StockLevel
   /** At least one active offer is a pre-order. */
   hasPreorder: boolean
 }
@@ -124,6 +128,8 @@ export function toCheckout(p: ProductDetail): MarketplaceCheckout {
     rating: p.rating,
     soldCount: p.soldCount,
     isInStock: p.isInStock,
+    stock: p.stock,
+    stockLevel: p.stockLevel,
     monthly: p.startingPrice,
     compare: Math.max(p.startingOfficialPrice, p.startingPrice),
     packages: [...new Set(p.offers.map((o) => o.planName))],

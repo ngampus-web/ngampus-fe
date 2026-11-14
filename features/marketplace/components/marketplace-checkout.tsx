@@ -19,6 +19,7 @@ import {
 import type { OrderDraft } from "@/features/payment/types"
 import { ordersApi } from "@/lib/api/endpoints/orders"
 import { isPreorderPlan } from "../services/preorder"
+import { StockBadge } from "./stock-badge"
 import {
   localPhone,
   useProfileAutofill,
@@ -200,23 +201,30 @@ export function MarketplaceCheckout({
               </div>
             </div>
             <div className="flex shrink-0 gap-2">
+              {!product.previewOnly &&
+                !(isPreorderPlan(offers, packageName) && product.isInStock) && (
+                  <StockBadge
+                    product={product}
+                    className="px-3 py-1.5 text-xs"
+                  />
+                )}
               {[
                 product.previewOnly
                   ? "Pratinjau"
-                  : isPreorderPlan(offers, packageName)
+                  : isPreorderPlan(offers, packageName) && product.isInStock
                     ? "Pre-order"
-                    : product.isInStock
-                      ? "Stok Tersedia"
-                      : "Stok Habis",
+                    : null,
                 "Garansi",
-              ].map((badge) => (
-                <span
-                  key={badge}
-                  className="rounded-full border border-line px-3 py-1.5 text-xs tracking-[-0.02em]"
-                >
-                  {badge}
-                </span>
-              ))}
+              ]
+                .filter((badge): badge is string => badge !== null)
+                .map((badge) => (
+                  <span
+                    key={badge}
+                    className="rounded-full border border-line px-3 py-1.5 text-xs tracking-[-0.02em]"
+                  >
+                    {badge}
+                  </span>
+                ))}
             </div>
           </div>
 

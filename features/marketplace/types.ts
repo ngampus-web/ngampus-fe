@@ -1,3 +1,5 @@
+import type { StockLevel } from "./stock"
+
 export type CheckoutSection = {
   title: string
   items: { title?: string; body: string }[]
@@ -22,6 +24,8 @@ export type MarketplaceCheckout = {
   rating: number
   soldCount: number
   isInStock: boolean
+  stock?: number
+  stockLevel?: StockLevel
   monthly: number
   compare: number
   packages: string[]
