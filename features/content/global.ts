@@ -2,9 +2,11 @@ import { serverGet } from "@/lib/api/server"
 import { normalizeNgampusBrand } from "@/lib/normalize-ngampus-brand"
 import { PAGE_DEFAULTS } from "./defaults"
 import type { GlobalContent } from "@/lib/api/endpoints/content"
+import { ALL_FEATURES_ON, type FeatureFlags } from "@/lib/features"
 import { readContentDraft } from "./preview"
 
 export const GLOBAL_DEFAULTS: GlobalContent = {
+  features: ALL_FEATURES_ON,
   announcement: {
     text: "Promo dan update terbaru Ngampus? Pantau langsung lewat Saluran WhatsApp kami!",
     url: "https://whatsapp.com/channel/0029Vb8T6U2KGGGEX7gFIJ2i",
@@ -29,6 +31,8 @@ export async function getGlobalContent(): Promise<GlobalContent> {
       ...settings,
       contacts: { ...GLOBAL_DEFAULTS.contacts, ...settings.contacts },
       footer: { ...GLOBAL_DEFAULTS.footer, ...settings.footer },
+      // A service missing from the response counts as on.
+      features: { ...ALL_FEATURES_ON, ...settings.features },
     }
   } catch {
     content = GLOBAL_DEFAULTS
@@ -39,4 +43,9 @@ export async function getGlobalContent(): Promise<GlobalContent> {
         footer: normalizeNgampusBrand(draft.value as GlobalContent["footer"]),
       }
     : content
+}
+
+/** Which services are on; all of them if the API cannot be reached. */
+export async function getFeatures(): Promise<FeatureFlags> {
+  return (await getGlobalContent()).features
 }
