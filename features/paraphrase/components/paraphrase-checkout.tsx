@@ -24,6 +24,7 @@ import { formatFileSize, rupiah } from "@/features/payment/services/order-rules"
 import { paraphraseServices, turnaroundOptions } from "../options"
 import type { ParaphraseDetails, ParaphraseKind, Turnaround } from "../types"
 import { countDocxWords } from "../services/docx-word-count"
+import { detectReportScore } from "../services/report-score"
 import { validateFile, validateParaphrase } from "../services/validation"
 
 import {
@@ -89,19 +90,22 @@ function FilePicker({
   maxFileMb,
   file,
   onSelect,
+  status,
 }: {
   label: string
   extension: "docx" | "pdf"
   maxFileMb: number
   file: File | null
   onSelect: (file: File | null) => void
+  /** Shown under the file name, e.g. the score read from a report. */
+  status?: ReactNode
 }) {
   const id = useId()
   return (
-    <div className="min-w-0">
+    <div className="flex min-w-0 flex-col">
       <label
         htmlFor={id}
-        className="flex min-h-36 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-line bg-surface p-5 text-center focus-within:ring-2 focus-within:ring-primary hover:border-primary"
+        className="flex min-h-40 flex-1 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-line bg-surface p-5 text-center focus-within:ring-2 focus-within:ring-primary hover:border-primary"
       >
         <Upload className="size-5 text-primary" aria-hidden />
         <span className="text-sm font-semibold">{label}</span>
@@ -110,6 +114,7 @@ function FilePicker({
             ? `${file.name} · ${formatFileSize(file.size)}`
             : `${extension.toUpperCase()} · Maksimal ${maxFileMb} MB`}
         </span>
+        {file && status}
         <span className="text-xs text-primary">
           {file ? "Ganti file" : "Pilih file"}
         </span>
@@ -157,6 +162,13 @@ export function ParaphraseCheckout({
     Record<"turnitin" | "ai", File | null>
   >({ turnitin: null, ai: null })
   const [scores, setScores] = useState({ turnitin: "", ai: "" })
+  const [detecting, setDetecting] = useState({ turnitin: false, ai: false })
+  const [reportNotes, setReportNotes] = useState({ turnitin: "", ai: "" })
+  /** Score read from each report PDF; null while unread or not found. */
+  const [detected, setDetected] = useState<
+    Record<"turnitin" | "ai", number | null>
+  >({ turnitin: null, ai: null })
+  const reportRequest = useRef({ turnitin: 0, ai: 0 })
   const [targets, setTargets] = useState({ turnitin: "10", ai: "10" })
   const [notes, setNotes] = useState("")
   const [language, setLanguage] = useState<"id" | "en">("id")
@@ -217,15 +229,54 @@ export function ParaphraseCheckout({
       if (current === request.current) setCounting(false)
     }
   }
-  function selectReport(type: "turnitin" | "ai", next: File | null) {
+  async function selectReport(type: "turnitin" | "ai", next: File | null) {
+    const current = ++reportRequest.current[type]
     setError("")
+    setReportNotes((prev) => ({ ...prev, [type]: "" }))
     try {
       if (next) validateFile(next, "pdf", rates.maxFileMb)
-      setReports((prev) => ({ ...prev, [type]: next }))
-      setScores((prev) => ({ ...prev, [type]: "" }))
     } catch (e) {
       setError(notify.error(e, "PDF tidak valid."))
+      return
     }
+    setReports((prev) => ({ ...prev, [type]: next }))
+    setScores((prev) => ({ ...prev, [type]: "" }))
+    setDetected((prev) => ({ ...prev, [type]: null }))
+    if (!next) return
+    setDetecting((prev) => ({ ...prev, [type]: true }))
+    const found = await detectReportScore(next)
+    if (current !== reportRequest.current[type]) return
+    setDetecting((prev) => ({ ...prev, [type]: false }))
+    const label = type === "ai" ? "AI" : "Turnitin"
+    if (!found) {
+      setReportNotes((prev) => ({
+        ...prev,
+        [type]: `Skor belum terbaca otomatis. Isi skor awal ${label} sesuai laporan.`,
+      }))
+      return
+    }
+    if (found.kind !== type) {
+      setReports((prev) => ({ ...prev, [type]: null }))
+      setError(
+        notify.error(
+          new UserFacingError(
+            found.kind === "ai"
+              ? `File ini terbaca sebagai laporan AI, bukan laporan ${label}. Pilih file yang sesuai.`
+              : `File ini terbaca sebagai laporan Turnitin, bukan laporan ${label}. Pilih file yang sesuai.`
+          )
+        )
+      )
+      return
+    }
+    setScores((prev) => ({ ...prev, [type]: String(found.score) }))
+    setDetected((prev) => ({ ...prev, [type]: found.score }))
+    setReportNotes((prev) => ({
+      ...prev,
+      [type]:
+        found.score <= rates.minTarget
+          ? `Terbaca otomatis: ${found.score}%. Skor ini sudah di bawah batas minimal target ${rates.minTarget}%, jadi belum perlu parafrase.`
+          : `Terbaca otomatis dari laporan: ${found.score}%. Ganti file laporan jika tidak sesuai.`,
+    }))
   }
   async function submit() {
     if (inFlight.current) return
@@ -374,6 +425,21 @@ export function ParaphraseCheckout({
                     onSelect={(next) => {
                       void selectDocument(next)
                     }}
+                    status={
+                      <span
+                        className={
+                          wordCount
+                            ? "rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary"
+                            : "text-xs text-subtle"
+                        }
+                      >
+                        {counting
+                          ? "Menghitung kata…"
+                          : wordCount
+                            ? `${wordCount.toLocaleString("id-ID")} kata`
+                            : "Jumlah kata tidak terbaca"}
+                      </span>
+                    }
                   />
                   {reportTypes.map((type) => (
                     <FilePicker
@@ -382,7 +448,26 @@ export function ParaphraseCheckout({
                       extension="pdf"
                       maxFileMb={rates.maxFileMb}
                       file={reports[type]}
-                      onSelect={(next) => selectReport(type, next)}
+                      onSelect={(next) => {
+                        void selectReport(type, next)
+                      }}
+                      status={
+                        <span
+                          role="status"
+                          data-testid={`detected-${type}`}
+                          className={
+                            detected[type] !== null
+                              ? "rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary"
+                              : "text-xs text-subtle"
+                          }
+                        >
+                          {detecting[type]
+                            ? "Membaca skor…"
+                            : detected[type] !== null
+                              ? `Skor terdeteksi: ${detected[type]}%`
+                              : "Skor tidak terbaca, isi manual"}
+                        </span>
+                      }
                     />
                   ))}
                 </div>
@@ -423,7 +508,7 @@ export function ParaphraseCheckout({
                             Skor awal {type === "ai" ? "AI" : "Turnitin"} (%)
                           </span>
                           <input
-                            className={inputStyle}
+                            className={`${inputStyle} read-only:cursor-default read-only:bg-surface read-only:text-subtle`}
                             type="number"
                             required
                             min="10.01"
@@ -431,13 +516,31 @@ export function ParaphraseCheckout({
                             step="0.01"
                             placeholder="Contoh: 45"
                             value={scores[type]}
-                            onChange={(e) =>
+                            disabled={detecting[type]}
+                            // A score read from the report is final: replace
+                            // the PDF to change it. Only unread reports are typed.
+                            readOnly={detected[type] !== null}
+                            onChange={(e) => {
                               setScores((prev) => ({
                                 ...prev,
                                 [type]: e.target.value,
                               }))
-                            }
+                              setReportNotes((prev) => ({
+                                ...prev,
+                                [type]: "",
+                              }))
+                            }}
                           />
+                          {(detecting[type] || reportNotes[type]) && (
+                            <span
+                              role="status"
+                              className="block text-xs leading-5 text-subtle"
+                            >
+                              {detecting[type]
+                                ? "Membaca skor dari laporan…"
+                                : reportNotes[type]}
+                            </span>
+                          )}
                         </label>
                         <label className="space-y-2 text-sm">
                           <span>
