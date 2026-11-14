@@ -2,6 +2,8 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 
 import { Checkout } from "./checkout"
+import { FeatureGate } from "@/features/content/feature-gate"
+import { PLAGIARISM_SLUG_FEATURE } from "@/lib/features"
 import {
   getPlagiarismService,
   plagiarismServices,
@@ -35,5 +37,9 @@ export default async function PlagiarismServicePage({
   const service = getPlagiarismService(slug)
   if (!service) notFound()
 
-  return <Checkout service={service} config={await getDocumentConfig()} />
+  return (
+    <FeatureGate feature={PLAGIARISM_SLUG_FEATURE[slug]} name={service.title}>
+      <Checkout service={service} config={await getDocumentConfig()} />
+    </FeatureGate>
+  )
 }

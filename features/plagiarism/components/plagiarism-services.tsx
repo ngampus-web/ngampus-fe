@@ -11,22 +11,33 @@ import {
   plagiarismServices,
 } from "@/features/plagiarism/data/plagiarism"
 import { PAGE_DEFAULTS } from "@/features/content/defaults"
+import {
+  ALL_FEATURES_ON,
+  PLAGIARISM_SLUG_FEATURE,
+  type FeatureFlags,
+} from "@/lib/features"
 import type { PageContent } from "@/features/content/api"
 
 export function PlagiarismServices({
   slides,
   startPrices,
   content = PAGE_DEFAULTS.plagiarism,
+  features = ALL_FEATURES_ON,
 }: {
   slides: PromoSlide[]
   /** Live "Start Rp …" per service slug (Pengaturan admin). */
   startPrices: Record<string, number>
   content?: PageContent<"plagiarism">
+  /** Services switched off are left out of the list. */
+  features?: FeatureFlags
 }) {
-  const services = plagiarismServices.map((service, index) => ({
-    ...service,
-    ...content.services[index],
-  }))
+  // Merge by position first: the content list follows the service list.
+  const services = plagiarismServices
+    .map((service, index) => ({
+      ...service,
+      ...content.services[index],
+    }))
+    .filter((service) => features[PLAGIARISM_SLUG_FEATURE[service.slug]])
   return (
     <>
       <Breadcrumb

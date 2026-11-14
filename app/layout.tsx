@@ -38,7 +38,12 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="flex min-h-full flex-col">
         <PreviewBanner />
-        <SiteChrome footer={<Footer content={global} />}>{children}</SiteChrome>
+        <SiteChrome
+          footer={<Footer content={global} />}
+          features={global.features}
+        >
+          {children}
+        </SiteChrome>
         <WhatsAppShortcut phone={global.contacts.whatsapp} />
         <PromoPopup />
         <Toaster />

@@ -22,11 +22,14 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { mainNav } from "@/config/navigation"
+import { type FeatureFlags, isPathEnabled } from "@/lib/features"
 
 const navItemClass =
   "h-auto rounded-md bg-transparent px-0 py-1 text-base font-normal whitespace-nowrap text-black hover:bg-transparent hover:text-primary focus:bg-transparent"
 
-export function Navbar() {
+export function Navbar({ features }: { features: FeatureFlags }) {
+  // Menu items of a service an admin switched off are left out.
+  const items = mainNav.filter(({ href }) => isPathEnabled(href, features))
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur supports-backdrop-filter:bg-white/80">
       <div className="mx-auto flex h-17 max-w-[1280px] items-center justify-between px-5 md:px-10">
@@ -35,7 +38,7 @@ export function Navbar() {
         <div className="hidden items-center gap-6 xl:flex">
           <NavigationMenu viewport={false}>
             <NavigationMenuList className="gap-6">
-              {mainNav.map(({ label, href }) => (
+              {items.map(({ label, href }) => (
                 <NavigationMenuItem key={href}>
                   <NavigationMenuLink asChild className={navItemClass}>
                     <Link href={href}>{label}</Link>
@@ -48,13 +51,13 @@ export function Navbar() {
           <AuthActions />
         </div>
 
-        <MobileNav />
+        <MobileNav items={items} />
       </div>
     </header>
   )
 }
 
-function MobileNav() {
+function MobileNav({ items }: { items: typeof mainNav }) {
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -73,7 +76,7 @@ function MobileNav() {
           <Logo />
         </SheetHeader>
         <nav className="flex flex-1 flex-col overflow-y-auto px-5 py-2">
-          {mainNav.map(({ label, href }) => (
+          {items.map(({ label, href }) => (
             <SheetClose asChild key={href}>
               <Link
                 href={href}

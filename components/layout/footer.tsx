@@ -3,6 +3,7 @@ import Link from "next/link"
 
 import { Logo } from "@/components/layout/logo"
 import { footerColumns, type NavLink } from "@/config/navigation"
+import { isPathEnabled } from "@/lib/features"
 import type { GlobalContent } from "@/lib/api/endpoints/content"
 
 function ContactIcon({ icon }: { icon: NavLink["icon"] }) {
@@ -69,12 +70,15 @@ export function Footer({ content }: { content: GlobalContent }) {
         ]
       : []),
   ]
+  // Links into a service an admin switched off are left out.
+  const shown = (links: NavLink[]) =>
+    links.filter((link) => isPathEnabled(link.href, content.features))
   const columns: { title: string; links: NavLink[] }[] = [
     {
       title: footer.menuTitle,
-      links: [...footerColumns[0].links, ...footer.links],
+      links: shown([...footerColumns[0].links, ...footer.links]),
     },
-    { title: footer.servicesTitle, links: footerColumns[1].links },
+    { title: footer.servicesTitle, links: shown(footerColumns[1].links) },
     { title: footer.contactsTitle, links: contactsLinks },
   ]
   return (

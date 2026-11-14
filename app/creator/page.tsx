@@ -1,3 +1,4 @@
+import { FeatureGate } from "@/features/content/feature-gate"
 import { CreatorLanding } from "@/features/creator/components/creator-landing"
 import { contentApi } from "@/lib/api/endpoints/content"
 import { getPageContent, pageMetadata } from "@/features/content/api"
@@ -9,5 +10,9 @@ export default async function CreatorPage() {
     contentApi.creatorExamples(),
     getPageContent("creator"),
   ])
-  return <CreatorLanding examples={examples} content={content} />
+  return (
+    <FeatureGate feature="creator" name="Ngampus Creator">
+      <CreatorLanding examples={examples} content={content} />
+    </FeatureGate>
+  )
 }

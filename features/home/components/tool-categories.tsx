@@ -6,6 +6,11 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { toolCategories } from "@/features/home/data/home"
 import type { PageContent } from "@/features/content/api"
+import {
+  ALL_FEATURES_ON,
+  isPathEnabled,
+  type FeatureFlags,
+} from "@/lib/features"
 
 const categoryMascots: Record<
   string,
@@ -30,9 +35,20 @@ const categoryMascots: Record<
 
 export function ToolCategories({
   content = toolCategories,
+  features = ALL_FEATURES_ON,
 }: {
   content?: PageContent<"home">["toolCategories"]
+  /** Categories of a service switched off are left out. */
+  features?: FeatureFlags
 }) {
+  // Mascots follow the original order, so pair them before leaving items out.
+  const items = content.items
+    .map((item, index) => ({
+      item,
+      mascot: Object.values(categoryMascots)[index],
+    }))
+    .filter(({ item }) => isPathEnabled(item.href, features))
+  if (items.length === 0) return null
   return (
     <section
       id="tools"
@@ -40,8 +56,7 @@ export function ToolCategories({
     >
       <SectionHeading title={content.title} description={content.description} />
       <div className="grid items-stretch gap-4 md:grid-cols-3">
-        {content.items.map((item, index) => {
-          const mascot = Object.values(categoryMascots)[index]
+        {items.map(({ item, mascot }) => {
           return (
             <Card
               key={item.title}
