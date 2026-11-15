@@ -30,17 +30,23 @@ function rupiah(value: number) {
   return `Rp ${value.toLocaleString("id-ID")}`
 }
 
+/** A plan with no units left; unknown stock (previews) counts as available. */
+const soldOut = (offer: { stock?: number }) =>
+  offer.stock !== undefined && offer.stock <= 0
+
 function Choice({
   selected,
   label,
   detail,
   preorder,
+  disabled,
   onSelect,
 }: {
   selected: boolean
   label: string
   preorder?: boolean
   detail?: string
+  disabled?: boolean
   onSelect: () => void
 }) {
   return (
@@ -48,8 +54,13 @@ function Choice({
       type="button"
       role="radio"
       aria-checked={selected}
+      aria-disabled={disabled}
+      disabled={disabled}
       onClick={onSelect}
-      className="flex items-center gap-2 rounded-xl border border-line px-3 py-2 text-left text-sm tracking-[-0.02em]"
+      className={cn(
+        "flex items-center gap-2 rounded-xl border border-line px-3 py-2 text-left text-sm tracking-[-0.02em]",
+        disabled && "cursor-not-allowed bg-muted/50 text-subtle opacity-60"
+      )}
     >
       <span
         className={cn(
@@ -63,10 +74,14 @@ function Choice({
       </span>
       <span>
         <span className="block">{label}</span>
-        {preorder && (
-          <span className="block text-xs font-semibold text-primary">
-            Pre-order
-          </span>
+        {disabled ? (
+          <span className="block text-xs font-semibold">Stok habis</span>
+        ) : (
+          preorder && (
+            <span className="block text-xs font-semibold text-primary">
+              Pre-order
+            </span>
+          )
         )}
         {detail && <span className="block text-xs text-subtle">{detail}</span>}
       </span>
@@ -90,11 +105,14 @@ export function MarketplaceCheckout({
     setEmail((v) => v || user.email)
     setWhatsapp((v) => v || localPhone(user.phone))
   })
-  const [packageName, setPackageName] = useState(product.packages[0])
+  const firstOffer =
+    offers?.find((offer) => !soldOut(offer)) ?? offers?.[0]
+  const [packageName, setPackageName] = useState(
+    firstOffer?.plan ?? product.packages[0]
+  )
   const [accountType, setAccountType] = useState(checkoutTypes[0])
   const [durationId, setDurationId] = useState(
-    offers?.find((offer) => offer.plan === product.packages[0])?.duration ??
-      checkoutDurations[0].id
+    firstOffer?.duration ?? checkoutDurations[0].id
   )
   const [payNote, setPayNote] = useState("")
   const [promoInput, setPromoInput] = useState("")
@@ -108,6 +126,7 @@ export function MarketplaceCheckout({
   const selectedOffer =
     planOffers?.find((offer) => offer.duration === durationId) ??
     planOffers?.[0]
+  const selectedSoldOut = selectedOffer ? soldOut(selectedOffer) : false
   const duration =
     checkoutDurations.find((item) => item.id === durationId) ??
     checkoutDurations[0]
@@ -157,7 +176,8 @@ export function MarketplaceCheckout({
 
   function selectPlan(plan: string) {
     setPackageName(plan)
-    const next = offers?.find((offer) => offer.plan === plan)
+    const inPlan = offers?.filter((offer) => offer.plan === plan)
+    const next = inPlan?.find((offer) => !soldOut(offer)) ?? inPlan?.[0]
     if (next) setDurationId(next.duration)
   }
 
@@ -254,7 +274,8 @@ export function MarketplaceCheckout({
           className="flex flex-col gap-4"
           onSubmit={async (event) => {
             event.preventDefault()
-            if (product.previewOnly || !product.isInStock) return
+            if (product.previewOnly || !product.isInStock || selectedSoldOut)
+              return
             if (inFlight.current) return
             inFlight.current = true
             setPayBusy(true)
@@ -351,6 +372,12 @@ export function MarketplaceCheckout({
                     selected={item === packageName}
                     label={item}
                     preorder={isPreorderPlan(offers, item)}
+                    disabled={
+                      !!offers &&
+                      offers
+                        .filter((offer) => offer.plan === item)
+                        .every(soldOut)
+                    }
                     onSelect={() => selectPlan(item)}
                   />
                 ))}
@@ -385,6 +412,7 @@ export function MarketplaceCheckout({
                         selected={item.duration === selectedOffer?.duration}
                         label={item.duration}
                         detail={rupiah(item.price)}
+                        disabled={soldOut(item)}
                         onSelect={() => setDurationId(item.duration)}
                       />
                     ))
@@ -469,12 +497,17 @@ export function MarketplaceCheckout({
             </dl>
             <Button
               type="submit"
-              disabled={product.previewOnly || payBusy || !product.isInStock}
+              disabled={
+                product.previewOnly ||
+                payBusy ||
+                !product.isInStock ||
+                selectedSoldOut
+              }
               className="h-12 w-full rounded-3xl text-base"
             >
               {product.previewOnly
                 ? "Pembayaran belum tersedia"
-                : !product.isInStock
+                : !product.isInStock || selectedSoldOut
                   ? "Stok Habis"
                   : payBusy
                     ? "Menyiapkan pesanan…"

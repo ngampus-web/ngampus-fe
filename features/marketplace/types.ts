@@ -14,6 +14,8 @@ export type CheckoutOffer = {
   price: number
   official: number
   preorder?: boolean
+  /** Units left of this plan; unknown (previews) counts as available. */
+  stock?: number
 }
 
 export type MarketplaceCheckout = {

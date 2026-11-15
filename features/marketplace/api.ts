@@ -44,6 +44,8 @@ export interface ProductDetail extends ProductSummary {
     price: number
     officialPrice: number
     isPreorder: boolean
+    /** Units left of this plan; 0 = sold out. Absent in bundled previews. */
+    stock?: number
   }[]
 }
 
@@ -141,6 +143,7 @@ export function toCheckout(p: ProductDetail): MarketplaceCheckout {
       price: o.price,
       official: o.officialPrice,
       preorder: o.isPreorder,
+      stock: o.stock,
     })),
     sections: [
       ...section("Deskripsi", p.descriptionParagraphs),
