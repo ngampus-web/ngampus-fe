@@ -235,9 +235,11 @@ export const apiGateway = {
     return fromApi(res.data)
   },
 
-  async resendDelivery(code: string): Promise<void> {
+  /** Resolves with the time the next resend becomes available. */
+  async resendDelivery(code: string): Promise<string> {
     const res = await ordersApi.resendDelivery(code)
     if (!res.success) throw new RequestError(res.error)
+    return res.data.retryAt
   },
 
   async resultUrl(

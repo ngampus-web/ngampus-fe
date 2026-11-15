@@ -21,6 +21,7 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { LinkGuestOrders } from "@/features/orders/components/link-guest-orders"
+import { RequestError } from "@/lib/errors"
 import { usePaymentOrder } from "../hooks/use-payment-order"
 import { QrisPanel } from "./qris-panel"
 import {
@@ -70,6 +71,7 @@ export function PaymentFlow({
   const [copied, setCopied] = useState(false)
   const [busy, setBusy] = useState(false)
   const [resent, setResent] = useState(false)
+  const [cooldownUntil, setCooldownUntil] = useState(0)
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(timer)
@@ -139,6 +141,7 @@ export function PaymentFlow({
     Math.ceil((Date.parse(order.expiresAt) - now) / 1000)
   )
   const remaining = `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`
+  const cooldownLeft = Math.max(0, Math.ceil((cooldownUntil - now) / 1000))
   const created = new Intl.DateTimeFormat("id-ID", {
     dateStyle: "medium",
     timeStyle: "short",
@@ -155,12 +158,18 @@ export function PaymentFlow({
     setError("")
     setResent(false)
     try {
-      await apiGateway.resendDelivery(orderId)
+      const retryAt = await apiGateway.resendDelivery(orderId)
+      setCooldownUntil(new Date(retryAt).getTime())
       setResent(true)
       notify.success(
         "Permintaan kirim ulang diterima. Notifikasi sedang dikirim."
       )
     } catch (e) {
+      const retryAt =
+        e instanceof RequestError && e.code === "RATE_LIMITED"
+          ? e.details?.retryAt
+          : undefined
+      if (typeof retryAt === "string") setCooldownUntil(new Date(retryAt).getTime())
       setError(notify.error(e, "Gagal mengirim ulang."))
     } finally {
       setBusy(false)
@@ -544,10 +553,14 @@ export function PaymentFlow({
                     <Button
                       variant="outline"
                       size="pill"
-                      disabled={busy}
+                      disabled={busy || cooldownLeft > 0}
                       onClick={() => void resendDelivery()}
                     >
-                      {busy ? "Mengirim…" : "Kirim ulang"}
+                      {busy
+                        ? "Mengirim…"
+                        : cooldownLeft > 0
+                          ? `Kirim ulang (${String(Math.floor(cooldownLeft / 60)).padStart(2, "0")}:${String(cooldownLeft % 60).padStart(2, "0")})`
+                          : "Kirim ulang"}
                     </Button>
                     {resent && (
                       <span role="status" className="text-xs text-emerald-800">
