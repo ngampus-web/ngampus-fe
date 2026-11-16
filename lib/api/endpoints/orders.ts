@@ -133,7 +133,11 @@ export const ordersApi = {
 
   /** Sends the account details again to the order's own WhatsApp/email. */
   resendDelivery(code: string) {
-    return apiClient.post<{ sentAt: string; channels: string[] }>(
+    return apiClient.post<{
+      sentAt: string
+      channels: string[]
+      retryAt: string
+    }>(
       `/orders/${encodeURIComponent(code)}/resend-delivery`,
       undefined,
       tokenOf(code)
