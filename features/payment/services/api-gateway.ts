@@ -261,6 +261,10 @@ export const apiGateway = {
 
   async startPayment(code: string): Promise<PaymentSession> {
     const res = await paymentApi.createPayment(code)
+    if (!res.success && res.error.code === "UPSTREAM_ERROR")
+      throw new UserFacingError(
+        "Pembayaran belum dapat dipastikan. Tunggu konfirmasi dan jangan melakukan pembayaran ulang."
+      )
     if (!res.success) throw new RequestError(res.error)
     return res.data
   },

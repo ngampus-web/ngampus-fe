@@ -16,6 +16,7 @@ import { useAuthStore } from "@/lib/stores/auth"
 
 import { safeNext } from "./require-auth"
 import { Turnstile } from "./turnstile"
+import { VerificationReminder } from "./verification-reminder"
 
 export type FieldErrors = Record<string, string[]> | undefined
 
@@ -193,7 +194,6 @@ export function SubmitButton({
 
 export function RegisterForm() {
   const register = useAuthStore((s) => s.register)
-  const router = useRouter()
   const next = safeNext(useSearchParams().get("next"))
   const [note, setNote] = useState("")
   const [errors, setErrors] = useState<FieldErrors>()
@@ -201,6 +201,22 @@ export function RegisterForm() {
   const [turnstileToken, setTurnstileToken] = useState<string>()
   const [resetCaptcha, setResetCaptcha] = useState(0)
   const [submitting, setSubmitting] = useSubmitting()
+  const [registered, setRegistered] = useState(false)
+
+  if (registered) {
+    return (
+      <div className="flex flex-col gap-6">
+        <Heading
+          title="Akun berhasil dibuat"
+          description="Kamu bisa langsung menggunakan akunmu."
+        />
+        <VerificationReminder />
+        <Button asChild className="h-[52px] w-full rounded-3xl text-base">
+          <Link href={next}>Verifikasi nanti dan lanjutkan</Link>
+        </Button>
+      </div>
+    )
+  }
 
   return (
     <form
@@ -228,7 +244,7 @@ export function RegisterForm() {
         setSubmitting(false)
         if (result.success) {
           notify.success("Akun berhasil dibuat.")
-          router.replace(next)
+          setRegistered(true)
           return
         }
         setErrors(result.fieldErrors)

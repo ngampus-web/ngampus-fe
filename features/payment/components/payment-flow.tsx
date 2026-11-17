@@ -169,7 +169,8 @@ export function PaymentFlow({
         e instanceof RequestError && e.code === "RATE_LIMITED"
           ? e.details?.retryAt
           : undefined
-      if (typeof retryAt === "string") setCooldownUntil(new Date(retryAt).getTime())
+      if (typeof retryAt === "string")
+        setCooldownUntil(new Date(retryAt).getTime())
       setError(notify.error(e, "Gagal mengirim ulang."))
     } finally {
       setBusy(false)
@@ -462,7 +463,7 @@ export function PaymentFlow({
               <QrisPanel
                 code={orderId}
                 remaining={remaining}
-                onChanged={() => void refresh()}
+                onChanged={refresh}
               />
             )}
             {status === "pending" && gateway && !live && (

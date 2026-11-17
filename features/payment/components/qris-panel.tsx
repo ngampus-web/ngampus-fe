@@ -36,6 +36,7 @@ export function QrisPanel({
       try {
         const s = await apiGateway.startPayment(code)
         setSession(s)
+        onChanged()
         setQr(
           s.qrString
             ? await QRCode.toDataURL(s.qrString, { margin: 1, width: 280 })
@@ -50,7 +51,7 @@ export function QrisPanel({
         setLoading(false)
       }
     },
-    [code]
+    [code, onChanged]
   )
 
   useEffect(() => {
@@ -106,7 +107,9 @@ export function QrisPanel({
               {rupiah(session?.amount ?? 0)}
             </p>
             <p className="text-sm text-subtle">
-              Scan dengan aplikasi bank atau e-wallet yang mendukung QRIS
+              {qr
+                ? "Scan dengan aplikasi bank atau e-wallet yang mendukung QRIS"
+                : "Lanjutkan pembayaran melalui tautan di bawah."}
             </p>
           </div>
           <span className="text-sm text-subtle">
