@@ -14,7 +14,7 @@ export function WhatsAppShortcut({ phone }: { phone: string }) {
   return (
     <div className="fixed right-5 bottom-[calc(1.25rem+env(safe-area-inset-bottom))] z-40 md:right-6 md:bottom-[calc(1.5rem+env(safe-area-inset-bottom))]">
       {showMessage && (
-        <div className="absolute right-full bottom-10 mr-1.5 w-max max-w-[calc(100vw-7.75rem)] md:bottom-12 md:mr-2">
+        <div className="absolute right-full bottom-10 mr-1.5 hidden w-max max-w-[calc(100vw-7.75rem)] sm:block md:bottom-12 md:mr-2">
           <a
             href={chatUrl}
             target="_blank"
@@ -45,14 +45,14 @@ export function WhatsAppShortcut({ phone }: { phone: string }) {
         rel="noopener noreferrer"
         aria-label="Chat WhatsApp Ngampus"
         title="Chat WhatsApp Ngampus"
-        className="block w-18 rounded-2xl transition-transform focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary motion-safe:hover:scale-105 md:w-22"
+        className="block w-12 rounded-2xl transition-transform focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary motion-safe:hover:scale-105 sm:w-18 md:w-22"
       >
         <Image
           src="/images/mascot-whatsapp.png"
           alt=""
           width={1150}
           height={1368}
-          sizes="(min-width: 768px) 88px, 72px"
+          sizes="(min-width: 768px) 88px, (min-width: 640px) 72px, 48px"
           className="h-auto w-full drop-shadow-md"
         />
       </a>
