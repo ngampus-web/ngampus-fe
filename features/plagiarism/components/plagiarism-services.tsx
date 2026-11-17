@@ -48,7 +48,6 @@ export function PlagiarismServices({
       />
       <section className="mx-auto flex w-full max-w-[1120px] flex-col gap-8 px-5 py-12 md:px-10 lg:py-16">
         <h1 className="sr-only">{content.title}</h1>
-        <p>{content.description}</p>
         {slides.length > 0 && <PromoBanner slides={slides} />}
         <div className="grid items-start gap-4 md:grid-cols-3">
           {services.map((service) => (

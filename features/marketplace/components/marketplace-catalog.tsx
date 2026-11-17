@@ -98,7 +98,11 @@ export function MarketplaceCatalog({
           placeholder="Cari ChatGPT, Canva, CapCut..."
           className="h-12 w-full rounded-full border border-line bg-white px-5 text-sm tracking-[-0.02em] outline-none placeholder:text-subtle focus-visible:border-primary"
         />
-        <div className="flex flex-wrap gap-2">
+        <div
+          role="group"
+          aria-label="Kategori Marketplace"
+          className="flex min-w-0 gap-2 overflow-x-auto p-0.5"
+        >
           {chips.map((item) => {
             const selected = item.slug === category
             return (
@@ -108,7 +112,7 @@ export function MarketplaceCatalog({
                 aria-pressed={selected}
                 onClick={() => setCategory(item.slug)}
                 className={cn(
-                  "h-9 rounded-full px-4 text-sm tracking-[-0.02em]",
+                  "h-9 shrink-0 rounded-full px-4 text-sm tracking-[-0.02em] whitespace-nowrap focus-visible:outline-2 focus-visible:outline-primary",
                   selected
                     ? "bg-primary text-white"
                     : "border border-line bg-white text-black"

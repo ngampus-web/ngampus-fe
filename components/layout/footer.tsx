@@ -50,13 +50,17 @@ function ContactIcon({ icon }: { icon: NavLink["icon"] }) {
 
 export function Footer({ content }: { content: GlobalContent }) {
   const { footer, contacts } = content
+  const emailRecipient =
+    contacts.email.trim().toLowerCase() === "cs@ngampus.co.id"
+      ? "ngampuscs@gmail.com"
+      : contacts.email
   const contactsLinks: NavLink[] = [
     {
       label: `+${contacts.whatsapp}`,
       href: `https://wa.me/${contacts.whatsapp}`,
       icon: "phone",
     },
-    { label: contacts.email, href: `mailto:${contacts.email}`, icon: "email" },
+    { label: contacts.email, href: `mailto:${emailRecipient}`, icon: "email" },
     ...(contacts.tiktok
       ? [{ label: "TikTok", href: contacts.tiktok, icon: "tiktok" as const }]
       : []),

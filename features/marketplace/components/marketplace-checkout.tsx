@@ -105,8 +105,7 @@ export function MarketplaceCheckout({
     setEmail((v) => v || user.email)
     setWhatsapp((v) => v || localPhone(user.phone))
   })
-  const firstOffer =
-    offers?.find((offer) => !soldOut(offer)) ?? offers?.[0]
+  const firstOffer = offers?.find((offer) => !soldOut(offer)) ?? offers?.[0]
   const [packageName, setPackageName] = useState(
     firstOffer?.plan ?? product.packages[0]
   )
@@ -190,28 +189,28 @@ export function MarketplaceCheckout({
           { label: product.name },
         ]}
       />
-      <section className="mx-auto grid w-full max-w-[1100px] items-start gap-4 px-5 py-12 md:px-10 lg:grid-cols-2 lg:py-16">
+      <section className="mx-auto grid w-full max-w-[1100px] grid-cols-1 items-start gap-4 px-5 py-12 md:px-10 lg:grid-cols-2 lg:py-16">
         <article className="flex flex-col gap-4 rounded-2xl border border-line p-5">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3 max-sm:w-full">
               <Image
                 src={product.logo}
                 alt=""
                 width={56}
                 height={56}
                 unoptimized={/^https?:\/\//.test(product.logo)}
-                className="size-14 rounded-xl object-cover"
+                className="size-14 shrink-0 rounded-xl object-cover"
               />
-              <div className="flex flex-col gap-1">
-                <h1 className="text-lg font-semibold tracking-[-0.02em]">
+              <div className="flex min-w-0 flex-col gap-1">
+                <h1 className="text-lg font-semibold tracking-[-0.02em] wrap-anywhere">
                   {product.name}
                 </h1>
-                <p className="flex items-center gap-1.5 text-sm tracking-[-0.02em] text-subtle">
-                  <Star
-                    className="size-4 fill-primary text-primary"
-                    aria-hidden
-                  />
-                  <span className="text-black">
+                <p className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-sm tracking-[-0.02em] text-subtle">
+                  <span className="inline-flex shrink-0 items-center gap-1.5 text-black">
+                    <Star
+                      className="size-4 fill-primary text-primary"
+                      aria-hidden
+                    />
                     {product.rating.toFixed(1)}
                   </span>
                   <span>
@@ -220,7 +219,7 @@ export function MarketplaceCheckout({
                 </p>
               </div>
             </div>
-            <div className="flex shrink-0 gap-2">
+            <div className="flex max-w-full flex-wrap gap-2">
               {!product.previewOnly &&
                 !(isPreorderPlan(offers, packageName) && product.isInStock) && (
                   <StockBadge
@@ -256,7 +255,7 @@ export function MarketplaceCheckout({
               <h2 className="text-base font-semibold tracking-[-0.02em]">
                 {section.title}
               </h2>
-              <ul className="list-disc space-y-3 pl-5 text-sm leading-6 tracking-[-0.02em]">
+              <ul className="list-disc space-y-3 pl-5 text-sm leading-6 tracking-[-0.02em] wrap-anywhere">
                 {section.items.map((item) => (
                   <li key={item.body}>
                     {item.title && (
