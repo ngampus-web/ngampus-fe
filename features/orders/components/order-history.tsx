@@ -14,6 +14,7 @@ import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 
 import { Breadcrumb } from "@/components/layout/breadcrumb"
+import { VerificationReminder } from "@/features/auth/components/verification-reminder"
 import { Button } from "@/components/ui/button"
 import { formatFileSize, rupiah } from "@/features/payment/services/order-rules"
 import { ordersApi } from "@/lib/api/endpoints/orders"
@@ -58,8 +59,22 @@ const initial: HistoryState = {
   hasMore: false,
 }
 
-/** The signed-in user's orders from `GET /orders`, one section at a time. */
 export function OrderHistory() {
+  return (
+    <>
+      <Breadcrumb
+        items={[{ label: "Beranda", href: "/" }, { label: "Riwayat Pesanan" }]}
+      />
+      <section className="mx-auto flex w-full max-w-[960px] flex-col gap-6 px-5 py-12 md:px-10 lg:py-16">
+        <VerificationReminder compact />
+        <OrderHistoryContent />
+      </section>
+    </>
+  )
+}
+
+/** Tab and request state stay separate from the account verification notice. */
+function OrderHistoryContent() {
   const [section, setSection] = useState<OrderSection>("document")
   const [query, setQuery] = useState("")
   const [search, setSearch] = useState("")
@@ -134,147 +149,134 @@ export function OrderHistory() {
 
   return (
     <>
-      <Breadcrumb
-        items={[{ label: "Beranda", href: "/" }, { label: "Riwayat Pesanan" }]}
-      />
-      <section className="mx-auto flex w-full max-w-[960px] flex-col gap-6 px-5 py-12 md:px-10 lg:py-16">
-        <div className="flex items-center justify-between gap-4">
-          <h1 className="text-2xl font-semibold tracking-[-0.02em] text-black">
-            Order History
-          </h1>
-          <Button
-            type="button"
-            variant="outline"
-            size="pill"
-            onClick={reload}
-            disabled={loading}
-          >
-            <RefreshCw aria-hidden className={loading ? "animate-spin" : ""} />
-            Muat ulang
-          </Button>
-        </div>
-
-        <div
-          role="tablist"
-          aria-label="Jenis pesanan"
-          className="flex flex-wrap gap-3"
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-2xl font-semibold tracking-[-0.02em] text-black">
+          Order History
+        </h1>
+        <Button
+          type="button"
+          variant="outline"
+          size="pill"
+          onClick={reload}
+          disabled={loading}
         >
-          {sections.map((item) => {
-            const Icon = sectionIcons[item.id]
-            const active = section === item.id
-            return (
-              <button
-                key={item.id}
-                type="button"
-                role="tab"
-                aria-selected={active}
-                onClick={() => selectSection(item.id)}
-                className={`inline-flex cursor-pointer items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${active ? "border-primary bg-primary text-white" : "border-line bg-white text-subtle hover:border-primary hover:text-primary"}`}
-              >
-                <Icon className="size-4" aria-hidden />
-                {item.label}
-              </button>
-            )
-          })}
-        </div>
+          <RefreshCw aria-hidden className={loading ? "animate-spin" : ""} />
+          Muat ulang
+        </Button>
+      </div>
 
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex flex-wrap gap-2 text-xs font-medium">
-            {(
-              [
-                [`${state.counts.total} Total`, "bg-slate-400"],
-                [`${state.counts.completed} Selesai`, "bg-emerald-500"],
-                [`${state.counts.processing} Diproses`, "bg-orange-400"],
-                [`${state.counts.unpaid} Tidak Dibayar`, "bg-red-500"],
-              ] as const
-            ).map(([label, color]) => (
-              <span
-                key={label}
-                className="flex items-center gap-2 rounded-full border border-line px-3 py-2"
-              >
-                <span className={`size-2 rounded-full ${color}`} aria-hidden />
-                {label}
-              </span>
-            ))}
-          </div>
-          <label className="relative block md:w-80">
-            <span className="sr-only">Cari pesanan</span>
-            <Search
-              className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-subtle"
-              aria-hidden
-            />
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={
-                section === "marketplace"
-                  ? "Cari kode order atau produk"
-                  : "Cari kode order atau nama file"
-              }
-              className="h-12 w-full rounded-xl border border-transparent bg-surface pr-4 pl-11 text-base tracking-[-0.02em] outline-none placeholder:text-subtle focus-visible:border-primary md:text-sm"
-            />
-          </label>
-        </div>
+      <div
+        role="tablist"
+        aria-label="Jenis pesanan"
+        className="flex flex-wrap gap-3"
+      >
+        {sections.map((item) => {
+          const Icon = sectionIcons[item.id]
+          const active = section === item.id
+          return (
+            <button
+              key={item.id}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => selectSection(item.id)}
+              className={`inline-flex cursor-pointer items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${active ? "border-primary bg-primary text-white" : "border-line bg-white text-subtle hover:border-primary hover:text-primary"}`}
+            >
+              <Icon className="size-4" aria-hidden />
+              {item.label}
+            </button>
+          )
+        })}
+      </div>
 
-        {failed && state.items.length > 0 && (
-          <RequestNotice
-            message={state.error!}
-            onRetry={reload}
-            stale
-            pending={loading}
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-wrap gap-2 text-xs font-medium">
+          {(
+            [
+              [`${state.counts.total} Total`, "bg-slate-400"],
+              [`${state.counts.completed} Selesai`, "bg-emerald-500"],
+              [`${state.counts.processing} Diproses`, "bg-orange-400"],
+              [`${state.counts.unpaid} Tidak Dibayar`, "bg-red-500"],
+            ] as const
+          ).map(([label, color]) => (
+            <span
+              key={label}
+              className="flex items-center gap-2 rounded-full border border-line px-3 py-2"
+            >
+              <span className={`size-2 rounded-full ${color}`} aria-hidden />
+              {label}
+            </span>
+          ))}
+        </div>
+        <label className="relative block md:w-80">
+          <span className="sr-only">Cari pesanan</span>
+          <Search
+            className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-subtle"
+            aria-hidden
           />
-        )}
-        <div aria-live="polite" aria-busy={loading}>
-          {firstLoad ? (
-            <HistorySkeleton />
-          ) : failed && state.items.length === 0 ? (
-            <div className="rounded-3xl border border-dashed border-line p-8 text-center">
-              <p className="font-medium">Riwayat pesanan gagal dimuat.</p>
-              <p className="mt-2 text-sm leading-6 text-subtle">
-                {state.error}
-              </p>
-              <Button
-                type="button"
-                className="mt-4 rounded-xl"
-                onClick={reload}
-              >
-                Coba lagi
-              </Button>
-            </div>
-          ) : state.items.length === 0 ? (
-            <EmptyHistory section={section} searching={!!search} />
-          ) : (
-            <>
-              <p className="sr-only">
-                {state.counts.total} pesanan {sectionLabel}
-              </p>
-              <ul className="flex flex-col gap-4">
-                {state.items.map((order) => (
-                  <OrderCard key={order.code} order={order} />
-                ))}
-              </ul>
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={
+              section === "marketplace"
+                ? "Cari kode order atau produk"
+                : "Cari kode order atau nama file"
+            }
+            className="h-12 w-full rounded-xl border border-transparent bg-surface pr-4 pl-11 text-base tracking-[-0.02em] outline-none placeholder:text-subtle focus-visible:border-primary md:text-sm"
+          />
+        </label>
+      </div>
 
-              {state.hasMore && (
-                <div className="mt-6 flex justify-center">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="pill"
-                    disabled={loading}
-                    onClick={() => setPage((p) => p + 1)}
-                  >
-                    {loading && (
-                      <Loader2 className="animate-spin" aria-hidden />
-                    )}
-                    Muat lebih banyak
-                  </Button>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </section>
+      {failed && state.items.length > 0 && (
+        <RequestNotice
+          message={state.error!}
+          onRetry={reload}
+          stale
+          pending={loading}
+        />
+      )}
+      <div aria-live="polite" aria-busy={loading}>
+        {firstLoad ? (
+          <HistorySkeleton />
+        ) : failed && state.items.length === 0 ? (
+          <div className="rounded-3xl border border-dashed border-line p-8 text-center">
+            <p className="font-medium">Riwayat pesanan gagal dimuat.</p>
+            <p className="mt-2 text-sm leading-6 text-subtle">{state.error}</p>
+            <Button type="button" className="mt-4 rounded-xl" onClick={reload}>
+              Coba lagi
+            </Button>
+          </div>
+        ) : state.items.length === 0 ? (
+          <EmptyHistory section={section} searching={!!search} />
+        ) : (
+          <>
+            <p className="sr-only">
+              {state.counts.total} pesanan {sectionLabel}
+            </p>
+            <ul className="flex flex-col gap-4">
+              {state.items.map((order) => (
+                <OrderCard key={order.code} order={order} />
+              ))}
+            </ul>
+
+            {state.hasMore && (
+              <div className="mt-6 flex justify-center">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="pill"
+                  disabled={loading}
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  {loading && <Loader2 className="animate-spin" aria-hidden />}
+                  Muat lebih banyak
+                </Button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </>
   )
 }
