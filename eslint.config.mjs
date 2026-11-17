@@ -46,6 +46,7 @@ const eslintConfig = defineConfig([
     // Default ignores of eslint-config-next:
     ".next/**",
     "public/pdfjs/**",
+    "public/qpdf/**",
     "out/**",
     "build/**",
     "next-env.d.ts",
