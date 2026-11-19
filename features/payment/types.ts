@@ -3,6 +3,7 @@ import type { ParaphraseDetails } from "../paraphrase/types"
 /** Credentials only travel by WhatsApp/email; the page shows when and where. */
 export type AccountDelivery = {
   sentAt: string
+  retryAt: string
   channels: string[]
 }
 
@@ -51,6 +52,7 @@ export type PaymentDetails =
     }
 
 export type OrderDraft = {
+  turnstileToken?: string
   phone: string
   amount: number
   details: PaymentDetails

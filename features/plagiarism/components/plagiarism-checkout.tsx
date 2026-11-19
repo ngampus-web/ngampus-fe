@@ -31,6 +31,8 @@ import {
   type AiCheckPricing,
 } from "@/features/plagiarism/services/document-file"
 import { filesApi } from "@/lib/api/endpoints/files"
+import { Turnstile } from "@/features/auth/components/turnstile"
+import { useGuestTurnstile } from "@/features/auth/hooks/use-guest-turnstile"
 import {
   localPhone,
   useProfileAutofill,
@@ -76,6 +78,7 @@ export function PlagiarismCheckout({
   const uploadId = useId()
   const formId = useId()
   const inFlight = useRef(false)
+  const captcha = useGuestTurnstile()
   const [busy, setBusy] = useState(false)
   const [payError, setPayError] = useState("")
   const [promoNote, setPromoNote] = useState("")
@@ -84,7 +87,7 @@ export function PlagiarismCheckout({
   // Uploaded once per picked file, so a retried checkout reuses it; guests
   // keep the upload token that proves the file.
   const uploaded = useRef(new WeakMap<File, string>())
-  const uploadToken = useRef<string | undefined>(undefined)
+  const [uploadToken, setUploadToken] = useState<string>()
   const showPayError = (message: string) =>
     setPayError(notify.error(new UserFacingError(message)))
   async function checkout() {
@@ -135,6 +138,7 @@ export function PlagiarismCheckout({
     setBusy(true)
     try {
       let fileId: string | undefined
+      let sessionToken = uploadToken
       {
         fileId = uploaded.current.get(file)
         if (!fileId) {
@@ -142,11 +146,13 @@ export function PlagiarismCheckout({
             file,
             "doc_check_source",
             documentMime(file),
-            uploadToken.current
+            sessionToken,
+            sessionToken ? undefined : captcha.consume()
           )
           if (!res.success) throw new RequestError(res.error)
           fileId = res.data.id
-          uploadToken.current = res.data.uploadToken ?? uploadToken.current
+          sessionToken = res.data.uploadToken ?? sessionToken
+          setUploadToken(sessionToken)
           uploaded.current.set(file, fileId)
         }
       }
@@ -154,7 +160,7 @@ export function PlagiarismCheckout({
         phone,
         amount: price ?? aiPricing.startingPrice,
         promoCode: promo.trim() || undefined,
-        uploadToken: uploadToken.current,
+        uploadToken: sessionToken,
         details: {
           kind: "document",
           excludeQuotes: !!checked["sumber-kutipan"],
@@ -526,10 +532,18 @@ export function PlagiarismCheckout({
               </div>
             </dl>
           )}
+          {captcha.required && !uploadToken && (
+            <Turnstile {...captcha.widget} />
+          )}
           <Button
             type="submit"
             form={formId}
-            disabled={busy || wordCount === undefined || !!limitError}
+            disabled={
+              busy ||
+              (!uploadToken && !captcha.ready) ||
+              wordCount === undefined ||
+              !!limitError
+            }
             size="pill-lg"
             className="w-full"
           >

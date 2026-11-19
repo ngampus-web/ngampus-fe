@@ -130,6 +130,7 @@ export interface MarketplaceOrderDetails {
   /** Credentials are sent by WhatsApp/email only, never returned here. */
   delivery: {
     sentAt: string
+    retryAt: string
     channels: string[]
   } | null
 }

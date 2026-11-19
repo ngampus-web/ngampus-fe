@@ -20,6 +20,8 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
+import { Turnstile } from "@/features/auth/components/turnstile"
+import { useGuestTurnstile } from "@/features/auth/hooks/use-guest-turnstile"
 import { LinkGuestOrders } from "@/features/orders/components/link-guest-orders"
 import { RequestError } from "@/lib/errors"
 import { usePaymentOrder } from "../hooks/use-payment-order"
@@ -60,6 +62,7 @@ export function PaymentFlow({
     refresh,
   } = usePaymentOrder(orderId, { pollMs: gateway ? 5_000 : 15_000 })
   const router = useRouter()
+  const captcha = useGuestTurnstile()
   // Leave the QR page once the order is no longer awaiting payment.
   const leaveQr =
     gateway && order?.mode === "live" && order.status !== "pending"
@@ -141,7 +144,14 @@ export function PaymentFlow({
     Math.ceil((Date.parse(order.expiresAt) - now) / 1000)
   )
   const remaining = `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`
-  const cooldownLeft = Math.max(0, Math.ceil((cooldownUntil - now) / 1000))
+  const deliveryRetryAt =
+    details.kind === "marketplace" && details.delivery?.retryAt
+      ? Date.parse(details.delivery.retryAt)
+      : 0
+  const cooldownLeft = Math.max(
+    0,
+    Math.ceil((Math.max(deliveryRetryAt, cooldownUntil) - now) / 1000)
+  )
   const created = new Intl.DateTimeFormat("id-ID", {
     dateStyle: "medium",
     timeStyle: "short",
@@ -180,7 +190,7 @@ export function PaymentFlow({
     setBusy(true)
     setError("")
     try {
-      setOrder(await apiGateway.resubmit(orderId, file))
+      setOrder(await apiGateway.resubmit(orderId, file, captcha.consume()))
       notify.success("Dokumen berhasil dikirim ulang untuk diproses.")
     } catch (e) {
       setError(notify.error(e, "Dokumen gagal diunggah."))
@@ -594,13 +604,16 @@ export function PaymentFlow({
                     ? `Pembayaran kamu tetap aman. Unggah ulang dokumen tanpa biaya tambahan (sisa ${details.retriesLeft}x).`
                     : `Batas unggah ulang sudah habis. Hubungi CS Ngampus dengan nomor pesanan ${order.id} agar kami bantu cek manual.`}
                 </p>
+                {canResubmit && captcha.required && (
+                  <Turnstile {...captcha.widget} />
+                )}
                 {canResubmit && (
                   <label className="mt-4 inline-flex cursor-pointer items-center justify-center rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white">
                     {busy ? "Mengunggah…" : "Unggah ulang dokumen"}
                     <input
                       type="file"
                       className="sr-only"
-                      disabled={busy}
+                      disabled={busy || !captcha.ready}
                       accept={
                         details.slug === "cek-ai"
                           ? AI_CHECK_ACCEPT
