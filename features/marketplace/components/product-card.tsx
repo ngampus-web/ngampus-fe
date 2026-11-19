@@ -1,10 +1,10 @@
 import { Star } from "lucide-react"
-import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { productLogo, type ProductSummary } from "@/features/marketplace/api"
 import { cn } from "@/lib/utils"
 import { stockLevelOf } from "../stock"
+import { ProductLogo } from "./product-logo"
 import { StockBadge } from "./stock-badge"
 
 const rupiah = (n: number) => `Rp ${n.toLocaleString("id-ID")}`
@@ -26,14 +26,7 @@ export function ProductCard({
       )}
     >
       <div className="flex items-center gap-3">
-        <Image
-          src={productLogo(app)}
-          alt=""
-          width={56}
-          height={56}
-          unoptimized={/^https?:\/\//.test(productLogo(app))}
-          className="size-14 rounded-xl object-cover"
-        />
+        <ProductLogo src={productLogo(app)} />
         <div className="flex min-w-0 flex-col gap-1">
           <h3 className="text-base font-semibold tracking-[-0.02em]">
             {app.name}
