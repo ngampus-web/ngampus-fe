@@ -98,15 +98,17 @@ export function CreatorLanding({
               <CreatorBannerSubmit label={content.submitLabel} />
             </div>
           </div>
-          <Image
-            src={content.imageUrl || "/images/mascot-creator.png"}
-            unoptimized={!!content.imageUrl}
-            alt=""
-            width={655}
-            height={961}
-            sizes="220px"
-            className="pointer-events-none absolute right-4 bottom-0 hidden h-[240px] w-auto object-contain md:block"
-          />
+          {content.imageUrl && (
+            <Image
+              src={content.imageUrl}
+              unoptimized
+              alt=""
+              width={655}
+              height={961}
+              sizes="220px"
+              className="pointer-events-none absolute right-4 bottom-0 hidden h-[240px] w-auto object-contain md:block"
+            />
+          )}
         </div>
         <section className="flex flex-col gap-6 py-4">
           <h2 className="text-[32px] leading-[1.2] font-medium tracking-[-0.02em]">
