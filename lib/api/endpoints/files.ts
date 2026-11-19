@@ -21,14 +21,21 @@ export const filesApi = {
     purpose: FilePurpose,
     /** Some browsers leave `file.type` empty (e.g. DOCX on Windows). */
     mimeType = file.type,
-    uploadToken?: string
+    uploadToken?: string,
+    turnstileToken?: string
   ): Promise<ApiResponse<FileInfo & { uploadToken?: string }>> {
     const guest = uploadToken
       ? { headers: { "X-Upload-Token": uploadToken } }
       : undefined
     const ticket = await apiClient.post<UploadTicket>(
       "/uploads",
-      { purpose, fileName: file.name, mimeType, sizeBytes: file.size },
+      {
+        purpose,
+        fileName: file.name,
+        mimeType,
+        sizeBytes: file.size,
+        turnstileToken,
+      },
       guest
     )
     if (!ticket.success) return ticket

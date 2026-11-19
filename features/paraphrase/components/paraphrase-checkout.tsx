@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/select"
 import type { OrderDraft } from "@/features/payment/types"
 import { filesApi } from "@/lib/api/endpoints/files"
+import { Turnstile } from "@/features/auth/components/turnstile"
+import { useGuestTurnstile } from "@/features/auth/hooks/use-guest-turnstile"
 import {
   localPhone,
   useProfileAutofill,
@@ -44,7 +46,8 @@ type UploadSession = { files: WeakMap<File, string>; token?: string }
 async function uploadOnce(
   session: UploadSession,
   file: File,
-  purpose: FilePurpose
+  purpose: FilePurpose,
+  turnstileToken?: string
 ) {
   const cached = session.files.get(file)
   if (cached) return cached
@@ -53,7 +56,8 @@ async function uploadOnce(
     purpose,
     file.type ||
       (purpose === "paraphrase_source" ? DOCX_MIME : "application/pdf"),
-    session.token
+    session.token,
+    turnstileToken
   )
   if (!res.success) throw new RequestError(res.error)
   session.token = res.data.uploadToken ?? session.token
@@ -192,7 +196,9 @@ export function ParaphraseCheckout({
   const [busy, setBusy] = useState(false)
   const request = useRef(0)
   const inFlight = useRef(false)
+  const captcha = useGuestTurnstile()
   const uploaded = useRef<UploadSession>({ files: new WeakMap() })
+  const [hasUploadToken, setHasUploadToken] = useState(false)
   const reportTypes: ("turnitin" | "ai")[] =
     service === "combined" ? ["turnitin", "ai"] : [service]
   const selectedService = paraphraseServices.find((s) => s.id === service)!
@@ -337,8 +343,10 @@ export function ParaphraseCheckout({
       details.sourceFileId = await uploadOnce(
         uploaded.current,
         document,
-        "paraphrase_source"
+        "paraphrase_source",
+        uploaded.current.token ? undefined : captcha.consume()
       )
+      setHasUploadToken(!!uploaded.current.token)
       for (const r of details.reports)
         r.fileId = await uploadOnce(
           uploaded.current,
@@ -723,10 +731,18 @@ export function ParaphraseCheckout({
                 {error}
               </p>
             )}
+            {captcha.required && !hasUploadToken && (
+              <Turnstile {...captcha.widget} />
+            )}
             <Button
               type="submit"
               form={id}
-              disabled={busy || counting || !price}
+              disabled={
+                busy ||
+                (!hasUploadToken && !captcha.ready) ||
+                counting ||
+                !price
+              }
               className="h-12 w-full rounded-full"
             >
               {busy

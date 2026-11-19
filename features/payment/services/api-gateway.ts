@@ -125,6 +125,7 @@ export const apiGateway = {
       return fail("Pilih paket terlebih dahulu.")
     const customerEmail = validateMarketplaceEmail(d.customerEmail)
     const res = await ordersApi.createMarketplace({
+      turnstileToken: draft.turnstileToken,
       offerId: d.offerId,
       customerEmail,
       whatsapp: draft.phone,
@@ -223,11 +224,17 @@ export const apiGateway = {
     return remember(res.data)
   },
 
-  async resubmit(code: string, file: File): Promise<PaymentOrder> {
+  async resubmit(
+    code: string,
+    file: File,
+    turnstileToken?: string
+  ): Promise<PaymentOrder> {
     const up = await filesApi.upload(
       file,
       "doc_check_source",
-      documentMime(file)
+      documentMime(file),
+      undefined,
+      turnstileToken
     )
     if (!up.success) return fail(up.error.message)
     const res = await ordersApi.resubmit(code, up.data.id, up.data.uploadToken)

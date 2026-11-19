@@ -49,6 +49,7 @@ export const ordersApi = {
   },
 
   createMarketplace(body: {
+    turnstileToken?: string
     offerId: string
     customerEmail: string
     whatsapp: string
