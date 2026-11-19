@@ -1,10 +1,7 @@
 import { apiClient } from "@/lib/api/client"
 import { ApiNotFoundError, serverGet } from "@/lib/api/server"
 
-import {
-  marketplaceCategories,
-  marketplaceLogoFallback,
-} from "./data/marketplace"
+import { marketplaceCategories } from "./data/marketplace"
 import type { StockLevel } from "./stock"
 import type { CheckoutSection, MarketplaceCheckout } from "./types"
 import { warranty, warrantyTerms } from "./data/marketplace"
@@ -54,11 +51,9 @@ export interface CategoryItem {
   name: string
 }
 
-/** Logo from the CDN, or the bundled asset while logos are not in R2 yet. */
-export function productLogo(p: Pick<ProductSummary, "slug" | "logoUrl">) {
-  return (
-    p.logoUrl ?? marketplaceLogoFallback[p.slug] ?? "/images/logo-brand.png"
-  )
+/** Logo URL from the CDN; null when none is uploaded yet. */
+export function productLogo(p: Pick<ProductSummary, "logoUrl">) {
+  return p.logoUrl
 }
 
 /** Server: categories with static fallback when the API is unreachable. */

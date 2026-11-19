@@ -26,16 +26,18 @@ export function Hero({ content }: { content?: PageContent<"home">["hero"] }) {
         )}
       </div>
 
-      <Image
-        src={content?.imageUrl || "/images/mascot-hero.png"}
-        unoptimized={!!content?.imageUrl}
-        alt="Maskot Ngampus"
-        width={660}
-        height={861}
-        priority
-        sizes="320px"
-        className="h-[280px] w-auto shrink-0 object-contain sm:h-[340px] lg:h-[420px]"
-      />
+      {content?.imageUrl && (
+        <Image
+          src={content.imageUrl}
+          unoptimized
+          alt="Maskot Ngampus"
+          width={660}
+          height={861}
+          priority
+          sizes="320px"
+          className="h-[280px] w-auto shrink-0 object-contain sm:h-[340px] lg:h-[420px]"
+        />
+      )}
     </section>
   )
 }

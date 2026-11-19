@@ -11,24 +11,6 @@ export const marketplaceCategories = [
 
 export type MarketplaceCategory = (typeof marketplaceCategories)[number]["id"]
 
-// Bundled logos used until product logos are uploaded to the CDN (admin → Produk).
-export const marketplaceLogoFallback: Record<string, string> = {
-  chatgpt: "/images/app-chatgpt.png",
-  claude: "/images/app-claude.png",
-  gemini: "/images/app-gemini.png",
-  canva: "/images/app-canva.png",
-  capcut: "/images/app-capcut.png",
-  "alight-motion": "/images/app-alight-motion.png",
-  spotify: "/images/app-spotify.png",
-  youtube: "/images/app-youtube.png",
-  perplexity: "/images/app-perplexity.png",
-  duolingo: "/images/app-duolingo.jpg",
-  "disney-plus": "/images/app-disney.jpg",
-  loklok: "/images/app-loklok.png",
-  netflix: "/images/app-netflix.jpg",
-  zoom: "/images/app-zoom.png",
-}
-
 export const marketplaceOrderSteps = [
   {
     title: "Pilih Produk",
