@@ -2,10 +2,21 @@ import Link from "next/link"
 
 import { SectionHeading } from "@/components/shared/section-heading"
 
+import { getMarketplaceProducts } from "@/features/marketplace/api"
 import { ProductCard } from "@/features/marketplace/components/product-card"
 import { featuredCatalogProducts } from "@/features/home/data/featured-catalog"
 
-export function FeaturedProducts() {
+/** Curated slugs from the static list, with live data (price, logo) from the API. */
+async function getFeaturedProducts() {
+  const live = new Map((await getMarketplaceProducts()).map((p) => [p.slug, p]))
+  return featuredCatalogProducts.map((p) => {
+    const product = live.get(p.slug)
+    return { product: product ?? p, isLive: Boolean(product) }
+  })
+}
+
+export async function FeaturedProducts() {
+  const products = await getFeaturedProducts()
   return (
     <section
       aria-label="Produk marketplace"
@@ -24,8 +35,12 @@ export function FeaturedProducts() {
         </Link>
       </div>
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {featuredCatalogProducts.map((product) => (
-          <ProductCard key={product.slug} app={product} catalogFallback />
+        {products.map(({ product, isLive }) => (
+          <ProductCard
+            key={product.slug}
+            app={product}
+            catalogFallback={!isLive}
+          />
         ))}
       </div>
     </section>
