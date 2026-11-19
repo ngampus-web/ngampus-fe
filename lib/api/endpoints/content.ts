@@ -59,6 +59,16 @@ export interface GlobalContent extends SiteSettings {
     contactsTitle: string
     addressTitle: string
     links: { label: string; href: string }[]
+    menuLinks?: { label: string; href: string }[]
+    serviceLinks?: { label: string; href: string }[]
+    extraSections?: (
+      | {
+          kind: "links"
+          title: string
+          links: { label: string; href: string }[]
+        }
+      | { kind: "text"; title: string; body: string }
+    )[]
   }
 }
 
