@@ -1,4 +1,10 @@
+export type CreatorBannerDestination = "automatic" | "login" | "register"
+
 export const creatorDefault = {
+  banner: {
+    imageFileId: null as string | null,
+    destination: "automatic" as CreatorBannerDestination,
+  },
   submitLabel: "Submit Konten",
   title: "Ngampus Creator",
   description:

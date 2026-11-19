@@ -50,6 +50,7 @@ function ContactIcon({ icon }: { icon: NavLink["icon"] }) {
 
 export function Footer({ content }: { content: GlobalContent }) {
   const { footer, contacts } = content
+  const address = footer.address.trim()
   const emailRecipient =
     contacts.email.trim().toLowerCase() === "cs@ngampus.co.id"
       ? "ngampuscs@gmail.com"
@@ -77,13 +78,28 @@ export function Footer({ content }: { content: GlobalContent }) {
   // Links into a service an admin switched off are left out.
   const shown = (links: NavLink[]) =>
     links.filter((link) => isPathEnabled(link.href, content.features))
-  const columns: { title: string; links: NavLink[] }[] = [
+  const columns: {
+    title: string
+    links: NavLink[]
+    body?: string
+    contact?: boolean
+  }[] = [
     {
       title: footer.menuTitle,
-      links: shown([...footerColumns[0].links, ...footer.links]),
+      links: shown(
+        footer.menuLinks ?? [...footerColumns[0].links, ...footer.links]
+      ),
     },
-    { title: footer.servicesTitle, links: shown(footerColumns[1].links) },
-    { title: footer.contactsTitle, links: contactsLinks },
+    {
+      title: footer.servicesTitle,
+      links: shown(footer.serviceLinks ?? footerColumns[1].links),
+    },
+    ...(footer.extraSections ?? []).map((section) => ({
+      title: section.title,
+      links: section.kind === "links" ? shown(section.links) : [],
+      body: section.kind === "text" ? section.body.trim() : undefined,
+    })),
+    { title: footer.contactsTitle, links: contactsLinks, contact: true },
   ]
   return (
     <footer id="kontak" className="bg-surface-footer">
@@ -98,62 +114,72 @@ export function Footer({ content }: { content: GlobalContent }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-10 sm:grid-cols-3 lg:gap-15">
-            {columns.map((column, index) => (
-              <div
-                key={column.title}
-                className={`flex min-w-0 flex-col gap-4 ${index === 2 ? "col-span-2 sm:col-span-1" : ""}`}
-              >
-                <p className="font-semibold tracking-[-0.02em] text-black">
-                  {column.title}
-                </p>
-                <ul className="flex flex-col gap-4">
-                  {column.links.map((link, i) => {
-                    const external = link.href.startsWith("http")
-                    const [name, domain] = link.label.split("@")
-                    const email = link.icon === "email" && domain
-                    return (
-                      <li
-                        key={i}
-                        className={email ? "w-0 min-w-full" : undefined}
-                      >
-                        <Link
-                          href={link.href}
-                          target={external ? "_blank" : undefined}
-                          rel={external ? "noreferrer" : undefined}
-                          className={`inline-flex max-w-full gap-2 tracking-[-0.02em] whitespace-nowrap text-black hover:text-primary ${email ? "items-start" : "items-center"}`}
-                        >
-                          <ContactIcon icon={link.icon} />
-                          {email ? (
-                            <span className="min-w-0 whitespace-normal">
-                              {name}@<wbr />
-                              {domain}
-                            </span>
-                          ) : (
-                            link.label
-                          )}
-                        </Link>
-                      </li>
-                    )
-                  })}
-                </ul>
-                {index === 2 && (
-                  <div className="flex max-w-[220px] items-start gap-2 text-black">
-                    <div className="min-w-0">
-                      <p className="font-semibold tracking-[-0.02em]">
-                        {footer.addressTitle}
+          <div className="grid min-w-0 grid-cols-2 gap-10 sm:grid-cols-3 lg:gap-15">
+            {columns.map(
+              (column, index) =>
+                (column.contact || column.body || column.links.length > 0) && (
+                  <div
+                    key={index}
+                    className={`flex min-w-0 flex-col gap-4 ${column.contact ? "col-span-2 sm:col-span-1" : ""}`}
+                  >
+                    <p className="font-semibold tracking-[-0.02em] text-black">
+                      {column.title}
+                    </p>
+                    {column.body && (
+                      <p className="text-sm leading-6 wrap-break-word whitespace-pre-line text-black">
+                        {column.body}
                       </p>
-                      <address className="mt-1 text-sm leading-6 tracking-[-0.02em] not-italic">
-                        {footer.address}
-                      </address>
-                      {contacts.supportHours && (
-                        <p className="mt-2 text-sm">{contacts.supportHours}</p>
-                      )}
-                    </div>
+                    )}
+                    {column.links.length > 0 && (
+                      <ul className="flex flex-col gap-4">
+                        {column.links.map((link, i) => {
+                          const external = link.href.startsWith("http")
+                          const [name, domain] = link.label.split("@")
+                          const email = link.icon === "email" && domain
+                          return (
+                            <li
+                              key={i}
+                              className={email ? "w-0 min-w-full" : undefined}
+                            >
+                              <Link
+                                href={link.href}
+                                target={external ? "_blank" : undefined}
+                                rel={external ? "noreferrer" : undefined}
+                                className={`inline-flex max-w-full gap-2 tracking-[-0.02em] wrap-break-word text-black hover:text-primary ${email ? "items-start" : "items-center"}`}
+                              >
+                                <ContactIcon icon={link.icon} />
+                                {email ? (
+                                  <span className="min-w-0 whitespace-normal">
+                                    {name}@<wbr />
+                                    {domain}
+                                  </span>
+                                ) : (
+                                  link.label
+                                )}
+                              </Link>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    )}
+                    {column.contact && contacts.supportHours && (
+                      <p className="text-sm text-black">
+                        {contacts.supportHours}
+                      </p>
+                    )}
+                    {column.contact && address && (
+                      <div className="max-w-[220px] text-black">
+                        <p className="font-semibold tracking-[-0.02em]">
+                          {footer.addressTitle}
+                        </p>
+                        <address className="mt-1 text-sm leading-6 tracking-[-0.02em] whitespace-pre-line not-italic">
+                          {address}
+                        </address>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            ))}
+                )
+            )}
           </div>
         </div>
         <p className="mt-10 border-t border-line pt-6 text-center text-sm tracking-[-0.02em] text-black/70">
