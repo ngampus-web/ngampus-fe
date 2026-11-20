@@ -2,11 +2,12 @@
 import { notify } from "@/lib/toast"
 
 import { Check, Mail, Phone, Star } from "lucide-react"
-import Image from "next/image"
 import { useRef, useState } from "react"
 
 import { Breadcrumb } from "@/components/layout/breadcrumb"
 import { Button } from "@/components/ui/button"
+import { Turnstile } from "@/features/auth/components/turnstile"
+import { useGuestTurnstile } from "@/features/auth/hooks/use-guest-turnstile"
 import {
   checkoutDurations,
   checkoutTypes,
@@ -19,6 +20,7 @@ import {
 import type { OrderDraft } from "@/features/payment/types"
 import { ordersApi } from "@/lib/api/endpoints/orders"
 import { isPreorderPlan } from "../services/preorder"
+import { ProductLogo } from "./product-logo"
 import { StockBadge } from "./stock-badge"
 import {
   localPhone,
@@ -97,6 +99,7 @@ export function MarketplaceCheckout({
   onCheckout: (draft: OrderDraft) => Promise<void>
 }) {
   const inFlight = useRef(false)
+  const captcha = useGuestTurnstile()
   const [payBusy, setPayBusy] = useState(false)
   const offers = product.offers
   const [email, setEmail] = useState("")
@@ -193,14 +196,7 @@ export function MarketplaceCheckout({
         <article className="flex flex-col gap-4 rounded-2xl border border-line p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3 max-sm:w-full">
-              <Image
-                src={product.logo}
-                alt=""
-                width={56}
-                height={56}
-                unoptimized={/^https?:\/\//.test(product.logo)}
-                className="size-14 shrink-0 rounded-xl object-cover"
-              />
+              <ProductLogo src={product.logo} />
               <div className="flex min-w-0 flex-col gap-1">
                 <h1 className="text-lg font-semibold tracking-[-0.02em] wrap-anywhere">
                   {product.name}
@@ -281,6 +277,7 @@ export function MarketplaceCheckout({
             setPayNote("")
             try {
               await onCheckout({
+                turnstileToken: captcha.consume(),
                 phone: whatsapp,
                 amount: payable,
                 promoCode: activePromo?.code,
@@ -494,10 +491,14 @@ export function MarketplaceCheckout({
                 <dd>{rupiah(payable)}</dd>
               </div>
             </dl>
+            {captcha.required && !product.previewOnly && (
+              <Turnstile {...captcha.widget} />
+            )}
             <Button
               type="submit"
               disabled={
                 product.previewOnly ||
+                !captcha.ready ||
                 payBusy ||
                 !product.isInStock ||
                 selectedSoldOut

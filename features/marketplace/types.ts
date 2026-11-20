@@ -22,7 +22,7 @@ export type MarketplaceCheckout = {
   previewOnly?: boolean
   slug: string
   name: string
-  logo: string
+  logo: string | null
   rating: number
   soldCount: number
   isInStock: boolean

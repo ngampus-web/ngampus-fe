@@ -38,15 +38,17 @@ export class ApiClient {
     retried = false
   ): Promise<ApiResponse<T>> {
     const { skipRefresh, ...init } = options
-    const headers = new Headers(init.headers)
-    if (init.body && !(init.body instanceof FormData)) {
-      headers.set("Content-Type", "application/json")
-    }
-    const token = this.tokens?.getToken()
-    if (token) headers.set("Authorization", `Bearer ${token}`)
 
     let response: Response
     try {
+      // Inside the try: an invalid header value throws here, and must surface
+      // as a request error instead of an unhandled exception.
+      const headers = new Headers(init.headers)
+      if (init.body && !(init.body instanceof FormData)) {
+        headers.set("Content-Type", "application/json")
+      }
+      const token = this.tokens?.getToken()
+      if (token) headers.set("Authorization", `Bearer ${token}`)
       response = await fetch(`${this.baseUrl}${endpoint}`, {
         ...init,
         headers,

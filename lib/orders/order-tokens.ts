@@ -30,12 +30,26 @@ function write(entries: Entry[]) {
   }
 }
 
+/**
+ * Tokens are base64url. Links opened from WhatsApp can carry invisible or
+ * formatting characters (zero-width spaces, line breaks); one of those in the
+ * `X-Order-Token` header makes the browser reject the request before it is
+ * sent, so the order never loads. Keep only the token alphabet.
+ */
+export function cleanToken(raw: string | null | undefined): string | undefined {
+  const token = raw?.replace(/[^A-Za-z0-9_-]/g, "")
+  return token || undefined
+}
+
 export const orderTokens = {
   get(code: string): string | undefined {
-    return read().find((e) => e.code === code.toUpperCase())?.token
+    // Also repairs tokens saved before cleaning existed.
+    return cleanToken(read().find((e) => e.code === code.toUpperCase())?.token)
   },
 
-  save(code: string, token: string) {
+  save(code: string, raw: string) {
+    const token = cleanToken(raw)
+    if (!token) return
     const upper = code.toUpperCase()
     const rest = read().filter((e) => e.code !== upper)
     write([{ code: upper, token, at: Date.now() }, ...rest].slice(0, MAX))

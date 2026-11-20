@@ -104,8 +104,15 @@ function useLiveOrder(code: string, enabled: boolean, pollMs: number) {
   const active = order?.status === "pending" || order?.status === "processing"
   useEffect(() => {
     if (!enabled || !active) return
-    const timer = setInterval(() => void refresh(), pollMs)
-    return () => clearInterval(timer)
+    const refreshVisible = () => {
+      if (document.visibilityState === "visible") void refresh()
+    }
+    const timer = setInterval(refreshVisible, pollMs)
+    document.addEventListener("visibilitychange", refreshVisible)
+    return () => {
+      clearInterval(timer)
+      document.removeEventListener("visibilitychange", refreshVisible)
+    }
   }, [enabled, active, refresh, pollMs])
 
   return { order, error, refresh, setOrder }

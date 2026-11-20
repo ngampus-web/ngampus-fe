@@ -86,28 +86,40 @@ export function CreatorLanding({
     <div className="flex min-h-svh flex-col bg-white">
       <CreatorHeader />
       <article className="mx-auto flex w-full max-w-[1100px] flex-col gap-4 px-5 py-10 md:px-10 lg:py-14">
-        <div className="relative flex min-h-[220px] items-center overflow-hidden rounded-[24px] bg-plum-700 px-6 py-8 text-white md:px-10 lg:min-h-[260px]">
-          <div className="relative z-10 flex max-w-[520px] flex-col gap-4">
-            <h1 className="text-[32px] leading-[1.15] font-medium tracking-[-0.02em] md:text-[44px]">
-              {content.title}
-            </h1>
-            <p className="text-sm leading-6 tracking-[-0.02em] text-white/80 md:text-base">
-              {content.description}
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <CreatorBannerSubmit label={content.submitLabel} />
+        {content.banner?.imageUrl ? (
+          <>
+            <h1 className="sr-only">Ngampus Creator</h1>
+            <CreatorBannerSubmit
+              imageUrl={content.banner.imageUrl}
+              destination={content.banner.destination}
+            />
+          </>
+        ) : (
+          <div className="relative flex min-h-[220px] items-center overflow-hidden rounded-[24px] bg-plum-700 px-6 py-8 text-white md:px-10 lg:min-h-[260px]">
+            <div className="relative z-10 flex max-w-[520px] flex-col gap-4">
+              <h1 className="text-[32px] leading-[1.15] font-medium tracking-[-0.02em] md:text-[44px]">
+                {content.title}
+              </h1>
+              <p className="text-sm leading-6 tracking-[-0.02em] text-white/80 md:text-base">
+                {content.description}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <CreatorBannerSubmit label={content.submitLabel} />
+              </div>
             </div>
+            {content.imageUrl && (
+              <Image
+                src={content.imageUrl}
+                unoptimized
+                alt=""
+                width={655}
+                height={961}
+                sizes="220px"
+                className="pointer-events-none absolute right-4 bottom-0 hidden h-[240px] w-auto object-contain md:block"
+              />
+            )}
           </div>
-          <Image
-            src={content.imageUrl || "/images/mascot-creator.png"}
-            unoptimized={!!content.imageUrl}
-            alt=""
-            width={655}
-            height={961}
-            sizes="220px"
-            className="pointer-events-none absolute right-4 bottom-0 hidden h-[240px] w-auto object-contain md:block"
-          />
-        </div>
+        )}
         <section className="flex flex-col gap-6 py-4">
           <h2 className="text-[32px] leading-[1.2] font-medium tracking-[-0.02em]">
             {content.joinTitle}

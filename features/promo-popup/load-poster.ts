@@ -4,7 +4,9 @@ export function loadPoster(url: string, signal: AbortSignal): Promise<boolean> {
   return new Promise((resolve) => {
     if (signal.aborted) return resolve(false)
     const image = new Image()
-    const finish = (loaded: boolean) => {
+    const finish = (loaded: boolean, reason?: string) => {
+      if (!loaded && reason && !signal.aborted)
+        console.warn(`[promo-popup] poster not usable (${reason}):`, url)
       clearTimeout(timer)
       signal.removeEventListener("abort", abort)
       image.onload = null
@@ -15,10 +17,12 @@ export function loadPoster(url: string, signal: AbortSignal): Promise<boolean> {
       image.src = ""
       finish(false)
     }
-    const timer = setTimeout(() => finish(false), 8000)
+    // Posters are large PNGs; slow mobile links need more than a few seconds.
+    const timer = setTimeout(() => finish(false, "timeout"), 20000)
     signal.addEventListener("abort", abort, { once: true })
-    image.onload = () => finish(image.naturalWidth > 0)
-    image.onerror = () => finish(false)
+    image.onload = () =>
+      image.naturalWidth > 0 ? finish(true) : finish(false, "empty image")
+    image.onerror = () => finish(false, "load error")
     image.src = url
   })
 }

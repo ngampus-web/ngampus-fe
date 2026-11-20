@@ -20,7 +20,10 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
+import { Turnstile } from "@/features/auth/components/turnstile"
+import { useGuestTurnstile } from "@/features/auth/hooks/use-guest-turnstile"
 import { LinkGuestOrders } from "@/features/orders/components/link-guest-orders"
+import { OrderUnlock } from "./order-unlock"
 import { RequestError } from "@/lib/errors"
 import { usePaymentOrder } from "../hooks/use-payment-order"
 import { QrisPanel } from "./qris-panel"
@@ -38,6 +41,7 @@ import { AI_CHECK_ACCEPT } from "@/features/plagiarism/services/document-file"
 import { PriceBreakdown } from "@/features/paraphrase/components/price-breakdown"
 import { calculateParaphrasePrice } from "@/features/paraphrase/services/pricing"
 import type { PaymentStatus } from "../types"
+import type { ResultFile } from "@/types/api"
 
 const wib = (iso: string) =>
   new Intl.DateTimeFormat("id-ID", {
@@ -60,6 +64,7 @@ export function PaymentFlow({
     refresh,
   } = usePaymentOrder(orderId, { pollMs: gateway ? 5_000 : 15_000 })
   const router = useRouter()
+  const captcha = useGuestTurnstile()
   // Leave the QR page once the order is no longer awaiting payment.
   const leaveQr =
     gateway && order?.mode === "live" && order.status !== "pending"
@@ -102,20 +107,12 @@ export function PaymentFlow({
     )
   if (!order)
     return (
-      <section className="mx-auto flex max-w-lg flex-col items-center gap-5 px-5 py-24 text-center">
-        <FileText className="size-10 text-primary" />
-        <h1 className="text-2xl font-semibold">Pesanan tidak ditemukan</h1>
-        <p className="text-sm leading-6 text-subtle">
-          Tautan tidak valid, pesanan milik akun lain, atau sesi pratinjau sudah
-          berakhir.
-        </p>
-        <Button asChild size="pill">
-          <Link href="/marketplace">Kembali ke Marketplace</Link>
-        </Button>
-        <Link className="text-sm text-primary" href="/cek-plagiarisme">
-          Pilih layanan dokumen
-        </Link>
-      </section>
+      <OrderUnlock
+        code={orderId}
+        onUnlocked={() => {
+          void refresh()
+        }}
+      />
     )
 
   const live = order.mode === "live"
@@ -141,7 +138,14 @@ export function PaymentFlow({
     Math.ceil((Date.parse(order.expiresAt) - now) / 1000)
   )
   const remaining = `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`
-  const cooldownLeft = Math.max(0, Math.ceil((cooldownUntil - now) / 1000))
+  const deliveryRetryAt =
+    details.kind === "marketplace" && details.delivery?.retryAt
+      ? Date.parse(details.delivery.retryAt)
+      : 0
+  const cooldownLeft = Math.max(
+    0,
+    Math.ceil((Math.max(deliveryRetryAt, cooldownUntil) - now) / 1000)
+  )
   const created = new Intl.DateTimeFormat("id-ID", {
     dateStyle: "medium",
     timeStyle: "short",
@@ -180,7 +184,7 @@ export function PaymentFlow({
     setBusy(true)
     setError("")
     try {
-      setOrder(await apiGateway.resubmit(orderId, file))
+      setOrder(await apiGateway.resubmit(orderId, file, captcha.consume()))
       notify.success("Dokumen berhasil dikirim ulang untuk diproses.")
     } catch (e) {
       setError(notify.error(e, "Dokumen gagal diunggah."))
@@ -188,9 +192,7 @@ export function PaymentFlow({
       setBusy(false)
     }
   }
-  async function downloadResult(
-    file: "document" | "report" | "receipt" = "document"
-  ) {
+  async function downloadResult(file: ResultFile = "document") {
     setBusy(true)
     setError("")
     try {
@@ -594,13 +596,16 @@ export function PaymentFlow({
                     ? `Pembayaran kamu tetap aman. Unggah ulang dokumen tanpa biaya tambahan (sisa ${details.retriesLeft}x).`
                     : `Batas unggah ulang sudah habis. Hubungi CS Ngampus dengan nomor pesanan ${order.id} agar kami bantu cek manual.`}
                 </p>
+                {canResubmit && captcha.required && (
+                  <Turnstile {...captcha.widget} />
+                )}
                 {canResubmit && (
                   <label className="mt-4 inline-flex cursor-pointer items-center justify-center rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white">
                     {busy ? "Mengunggah…" : "Unggah ulang dokumen"}
                     <input
                       type="file"
                       className="sr-only"
-                      disabled={busy}
+                      disabled={busy || !captcha.ready}
                       accept={
                         details.slug === "cek-ai"
                           ? AI_CHECK_ACCEPT
@@ -652,7 +657,23 @@ export function PaymentFlow({
                       onClick={() => void downloadResult("report")}
                       className="h-12 w-full rounded-full"
                     >
-                      Unduh Laporan Pengecekan Akhir
+                      {/* Combined orders delivered before the split hold both reports in one PDF. */}
+                      {details.service === "combined" &&
+                      !details.hasResultAiReport
+                        ? "Unduh Laporan Pengecekan Akhir"
+                        : "Unduh Laporan Turnitin Akhir"}
+                    </Button>
+                  )}
+                {live &&
+                  details.kind === "paraphrase" &&
+                  details.hasResultAiReport && (
+                    <Button
+                      disabled={busy}
+                      variant="outline"
+                      onClick={() => void downloadResult("ai_report")}
+                      className="h-12 w-full rounded-full"
+                    >
+                      Unduh Laporan AI Akhir
                     </Button>
                   )}
                 {live &&

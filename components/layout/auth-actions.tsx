@@ -1,19 +1,23 @@
 "use client"
 import { notify } from "@/lib/toast"
 
-import { History, LogOut, ShieldCheck, UserRound } from "lucide-react"
+import {
+  ChevronDown,
+  History,
+  LogOut,
+  ShieldCheck,
+  UserRound,
+} from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import {
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-} from "@/components/ui/navigation-menu"
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import { SheetClose } from "@/components/ui/sheet"
 import { useAuthStore } from "@/lib/stores/auth"
 
@@ -45,6 +49,7 @@ export function AuthActions() {
   const user = useAuthStore((s) => s.user)
   const status = useAuthStore((s) => s.status)
   const onLogout = useLogout()
+  const [open, setOpen] = useState(false)
 
   if (status === "idle" || status === "loading") {
     return <div className="h-[42px] w-[180px]" aria-hidden />
@@ -71,43 +76,55 @@ export function AuthActions() {
   }
 
   return (
-    <NavigationMenu viewport={false}>
-      <NavigationMenuList>
-        <NavigationMenuItem>
-          <NavigationMenuTrigger className="h-[42px] rounded-3xl border border-line bg-transparent px-4 text-base font-medium">
-            <UserRound className="mr-2 size-4" aria-hidden />
-            {firstName(user.name)}
-          </NavigationMenuTrigger>
-          <NavigationMenuContent className="right-0 left-auto">
-            <ul className="flex w-[220px] flex-col gap-1 p-2">
-              {accountLinks.map(({ href, label, icon: Icon }) => (
-                <li key={href}>
-                  <NavigationMenuLink asChild>
-                    <Link
-                      href={href}
-                      className="flex-row items-center gap-2 rounded-xl p-3 text-sm"
-                    >
-                      <Icon className="size-4" aria-hidden />
-                      {label}
-                    </Link>
-                  </NavigationMenuLink>
-                </li>
-              ))}
-              <li>
-                <button
-                  type="button"
-                  onClick={onLogout}
-                  className="flex w-full items-center gap-2 rounded-xl p-3 text-left text-sm text-destructive hover:bg-muted"
-                >
-                  <LogOut className="size-4" aria-hidden />
-                  Keluar
-                </button>
-              </li>
-            </ul>
-          </NavigationMenuContent>
-        </NavigationMenuItem>
-      </NavigationMenuList>
-    </NavigationMenu>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          className="group h-[42px] gap-2 rounded-3xl border-line bg-transparent px-4 text-base font-medium data-open:bg-muted/50"
+        >
+          <UserRound className="size-4" aria-hidden />
+          {firstName(user.name)}
+          <ChevronDown
+            className="size-3 transition-transform group-data-open:rotate-180"
+            aria-hidden
+          />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="end"
+        sideOffset={6}
+        className="w-[228px] p-2"
+        aria-label="Menu akun"
+      >
+        <ul className="flex flex-col gap-1">
+          {accountLinks.map(({ href, label, icon: Icon }) => (
+            <li key={href}>
+              <Link
+                href={href}
+                onNavigate={() => setOpen(false)}
+                className="flex items-center gap-2 rounded-xl p-3 text-sm hover:bg-muted focus-visible:bg-muted"
+              >
+                <Icon className="size-4" aria-hidden />
+                {label}
+              </Link>
+            </li>
+          ))}
+          <li>
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false)
+                void onLogout()
+              }}
+              className="flex w-full items-center gap-2 rounded-xl p-3 text-left text-sm text-destructive hover:bg-muted focus-visible:bg-muted"
+            >
+              <LogOut className="size-4" aria-hidden />
+              Keluar
+            </button>
+          </li>
+        </ul>
+      </PopoverContent>
+    </Popover>
   )
 }
 

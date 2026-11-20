@@ -130,12 +130,18 @@ export interface MarketplaceOrderDetails {
   /** Credentials are sent by WhatsApp/email only, never returned here. */
   delivery: {
     sentAt: string
+    retryAt: string
     channels: string[]
   } | null
 }
 
+/** Files an order owner can download from `/orders/:code/result`. */
+export type ResultFile = "document" | "report" | "ai_report" | "receipt"
+
 export interface ParaphraseOrderDetails {
   hasResultReport: boolean
+  /** Optional: older backends do not send it. */
+  hasResultAiReport?: boolean
   kind: "paraphrase"
   service: "turnitin" | "ai" | "combined"
   fileName: string
@@ -403,6 +409,7 @@ export interface CreatorWithdrawal {
   adminNote: string | null
   createdAt: string
   processedAt: string | null
+  transferProofUrl?: string | null
 }
 
 export interface CreateWithdrawalRequest {

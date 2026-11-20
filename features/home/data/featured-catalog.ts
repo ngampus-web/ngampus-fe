@@ -1,6 +1,7 @@
 import type { ProductSummary } from "@/features/marketplace/api"
 
-// Catalog seed prices for offline display; live stock and metrics are not shown.
+// Curated home slugs. Live data comes from the API; these entries are only used
+// when the API is unreachable or a product is missing. Stock and metrics are not shown.
 export const featuredCatalogProducts: ProductSummary[] = [
   {
     slug: "chatgpt",
