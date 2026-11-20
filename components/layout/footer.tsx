@@ -50,17 +50,20 @@ function ContactIcon({ icon }: { icon: NavLink["icon"] }) {
 
 export function Footer({ content }: { content: GlobalContent }) {
   const { footer, contacts } = content
-  const emailRecipient =
-    contacts.email.trim().toLowerCase() === "cs@ngampus.co.id"
-      ? "ngampuscs@gmail.com"
-      : contacts.email
+  const email = [
+    "cs@ngampus.co.id",
+    "ngampuscs@gmail.com",
+    "csngampus@gmail.com",
+  ].includes(contacts.email.trim().toLowerCase())
+    ? "support@ngampus.co.id"
+    : contacts.email.trim()
   const contactsLinks: NavLink[] = [
     {
       label: `+${contacts.whatsapp}`,
       href: `https://wa.me/${contacts.whatsapp}`,
       icon: "phone",
     },
-    { label: contacts.email, href: `mailto:${emailRecipient}`, icon: "email" },
+    { label: email, href: `mailto:${email}`, icon: "email" },
     ...(contacts.tiktok
       ? [{ label: "TikTok", href: contacts.tiktok, icon: "tiktok" as const }]
       : []),
@@ -88,7 +91,7 @@ export function Footer({ content }: { content: GlobalContent }) {
   return (
     <footer id="kontak" className="bg-surface-footer">
       <div className="mx-auto flex max-w-[1280px] flex-col px-5 py-15 md:px-10">
-        <div className="flex flex-col gap-10 lg:flex-row lg:justify-between">
+        <div className="flex flex-col gap-10 xl:flex-row xl:justify-between">
           <div className="flex max-w-[400px] flex-col gap-10">
             <Logo className="h-12" />
             <div className="flex flex-col gap-4">
@@ -98,7 +101,7 @@ export function Footer({ content }: { content: GlobalContent }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-10 sm:grid-cols-3 lg:gap-15">
+          <div className="grid grid-cols-2 gap-10 sm:grid-cols-[max-content_max-content_minmax(0,1fr)] xl:gap-15">
             {columns.map((column, index) => (
               <div
                 key={column.title}
@@ -110,28 +113,16 @@ export function Footer({ content }: { content: GlobalContent }) {
                 <ul className="flex flex-col gap-4">
                   {column.links.map((link, i) => {
                     const external = link.href.startsWith("http")
-                    const [name, domain] = link.label.split("@")
-                    const email = link.icon === "email" && domain
                     return (
-                      <li
-                        key={i}
-                        className={email ? "w-0 min-w-full" : undefined}
-                      >
+                      <li key={i}>
                         <Link
                           href={link.href}
                           target={external ? "_blank" : undefined}
                           rel={external ? "noreferrer" : undefined}
-                          className={`inline-flex max-w-full gap-2 tracking-[-0.02em] whitespace-nowrap text-black hover:text-primary ${email ? "items-start" : "items-center"}`}
+                          className="inline-flex max-w-full items-center gap-2 tracking-[-0.02em] whitespace-nowrap text-black hover:text-primary"
                         >
                           <ContactIcon icon={link.icon} />
-                          {email ? (
-                            <span className="min-w-0 whitespace-normal">
-                              {name}@<wbr />
-                              {domain}
-                            </span>
-                          ) : (
-                            link.label
-                          )}
+                          <span>{link.label}</span>
                         </Link>
                       </li>
                     )

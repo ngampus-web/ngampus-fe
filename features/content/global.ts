@@ -14,7 +14,7 @@ export const GLOBAL_DEFAULTS: GlobalContent = {
   },
   contacts: {
     whatsapp: "6281918685172",
-    email: "cs@ngampus.co.id",
+    email: "support@ngampus.co.id",
     instagram: "https://www.instagram.com/ngampusofc/" as string | null,
     tiktok: "https://www.tiktok.com/@ngampusofc" as string | null,
     supportHours: "",
