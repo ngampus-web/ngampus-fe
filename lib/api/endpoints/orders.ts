@@ -185,7 +185,17 @@ export const ordersApi = {
     )
   },
 
-  quote(body: { kind: "marketplace"; offerId: string; promoCode?: string }) {
-    return apiClient.post<PriceBreakdown>("/pricing/quote", body)
+  /** Server price, promo included. Documents quote an uploaded file (guests send their upload token). */
+  quote(
+    body:
+      | { kind: "marketplace"; offerId: string; promoCode?: string }
+      | { kind: "turnitin" | "ai_check"; fileId: string; promoCode?: string },
+    uploadToken?: string
+  ) {
+    return apiClient.post<PriceBreakdown>(
+      "/pricing/quote",
+      body,
+      uploadHeaders(uploadToken)
+    )
   },
 }
