@@ -404,6 +404,7 @@ export interface CreatorWithdrawal {
   adminNote: string | null
   createdAt: string
   processedAt: string | null
+  transferProofUrl?: string | null
 }
 
 export interface CreateWithdrawalRequest {

@@ -107,6 +107,7 @@ export function CreatorDashboard() {
     status: WITHDRAWAL_STATUS[item.status].label,
     bank: item.bankName,
     note: item.adminNote ?? "",
+    proofUrl: item.transferProofUrl ?? null,
   }))
   const stats: { label: string; value: string; icon: LucideIcon }[] = [
     {
@@ -305,7 +306,14 @@ export function CreatorDashboard() {
             <table className="w-full min-w-[760px] text-left text-sm tracking-[-0.02em]">
               <thead>
                 <tr className="text-[11px] font-medium tracking-[0.08em] text-subtle uppercase">
-                  {["Waktu", "Nominal", "Status", "Bank", "Catatan"].map(
+                  {[
+                    "Waktu",
+                    "Nominal",
+                    "Status",
+                    "Bank",
+                    "Catatan",
+                    "Bukti transfer",
+                  ].map(
                     (heading) => (
                       <th
                         key={heading}
@@ -321,7 +329,7 @@ export function CreatorDashboard() {
                 {sectionErrors.withdrawals &&
                 !data.withdrawals ? null : creatorWithdrawals.length === 0 ? (
                   <tr className="border-t border-line">
-                    <td colSpan={5} className="px-5 py-4 text-subtle">
+                    <td colSpan={6} className="px-5 py-4 text-subtle">
                       Belum ada withdraw.
                     </td>
                   </tr>
@@ -338,6 +346,20 @@ export function CreatorDashboard() {
                       <td className="px-5 py-4">{item.status}</td>
                       <td className="px-5 py-4">{item.bank}</td>
                       <td className="px-5 py-4">{item.note}</td>
+                      <td className="px-5 py-4 whitespace-nowrap">
+                        {item.proofUrl ? (
+                          <a
+                            href={item.proofUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-medium text-primary hover:underline"
+                          >
+                            Lihat bukti
+                          </a>
+                        ) : (
+                          <span className="text-subtle">—</span>
+                        )}
+                      </td>
                     </tr>
                   ))
                 )}
