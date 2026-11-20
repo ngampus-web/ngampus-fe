@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button"
 import { Turnstile } from "@/features/auth/components/turnstile"
 import { useGuestTurnstile } from "@/features/auth/hooks/use-guest-turnstile"
 import { LinkGuestOrders } from "@/features/orders/components/link-guest-orders"
+import { OrderUnlock } from "./order-unlock"
 import { RequestError } from "@/lib/errors"
 import { usePaymentOrder } from "../hooks/use-payment-order"
 import { QrisPanel } from "./qris-panel"
@@ -106,20 +107,12 @@ export function PaymentFlow({
     )
   if (!order)
     return (
-      <section className="mx-auto flex max-w-lg flex-col items-center gap-5 px-5 py-24 text-center">
-        <FileText className="size-10 text-primary" />
-        <h1 className="text-2xl font-semibold">Pesanan tidak ditemukan</h1>
-        <p className="text-sm leading-6 text-subtle">
-          Tautan tidak valid, pesanan milik akun lain, atau sesi pratinjau sudah
-          berakhir.
-        </p>
-        <Button asChild size="pill">
-          <Link href="/marketplace">Kembali ke Marketplace</Link>
-        </Button>
-        <Link className="text-sm text-primary" href="/cek-plagiarisme">
-          Pilih layanan dokumen
-        </Link>
-      </section>
+      <OrderUnlock
+        code={orderId}
+        onUnlocked={() => {
+          void refresh()
+        }}
+      />
     )
 
   const live = order.mode === "live"
