@@ -8,13 +8,19 @@ export function Breadcrumb({
 }) {
   return (
     <nav aria-label="Breadcrumb" className="border-b border-line">
-      <ol className="mx-auto flex max-w-[1280px] items-center gap-2 px-5 py-4 text-sm tracking-[-0.02em] text-black md:px-10">
+      <ol
+        tabIndex={0}
+        className="mx-auto flex max-w-[1280px] [scrollbar-width:none] items-center gap-2 overflow-x-auto px-5 py-4 text-sm tracking-[-0.02em] whitespace-nowrap text-black md:px-10"
+      >
         {items.map((item, index) => {
           const last = index === items.length - 1
           return (
-            <li key={item.label} className="flex items-center gap-2">
+            <li key={item.label} className="flex shrink-0 items-center gap-2">
               {index > 0 && (
-                <ChevronRight className="size-4 text-subtle" aria-hidden />
+                <ChevronRight
+                  className="size-4 shrink-0 text-subtle"
+                  aria-hidden
+                />
               )}
               {last || !item.href ? (
                 <span aria-current={last ? "page" : undefined}>
