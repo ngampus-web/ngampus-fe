@@ -18,6 +18,7 @@ import type {
   OrderSummary,
   PaymentSession,
   PriceBreakdown,
+  ResultFile,
 } from "@/types/api"
 
 export interface OrdersQuery {
@@ -151,7 +152,7 @@ export const ordersApi = {
   },
 
   /** Presigned download of a completed order's result. */
-  result(code: string, file: "document" | "report" | "receipt" = "document") {
+  result(code: string, file: ResultFile = "document") {
     return apiClient.get<{ url: string; expiresAt: string }>(
       `/orders/${encodeURIComponent(code)}/result?file=${file}`,
       tokenOf(code)

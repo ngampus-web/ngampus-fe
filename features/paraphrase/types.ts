@@ -35,5 +35,8 @@ export type ParaphraseDetails = {
     startedAt: string | null
   }
   hasResult?: boolean
+  /** Final Turnitin report (or, for older combined orders, both reports in one PDF). */
   hasResultReport?: boolean
+  /** Final AI report. */
+  hasResultAiReport?: boolean
 }

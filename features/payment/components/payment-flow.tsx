@@ -40,6 +40,7 @@ import { AI_CHECK_ACCEPT } from "@/features/plagiarism/services/document-file"
 import { PriceBreakdown } from "@/features/paraphrase/components/price-breakdown"
 import { calculateParaphrasePrice } from "@/features/paraphrase/services/pricing"
 import type { PaymentStatus } from "../types"
+import type { ResultFile } from "@/types/api"
 
 const wib = (iso: string) =>
   new Intl.DateTimeFormat("id-ID", {
@@ -198,9 +199,7 @@ export function PaymentFlow({
       setBusy(false)
     }
   }
-  async function downloadResult(
-    file: "document" | "report" | "receipt" = "document"
-  ) {
+  async function downloadResult(file: ResultFile = "document") {
     setBusy(true)
     setError("")
     try {
@@ -665,7 +664,23 @@ export function PaymentFlow({
                       onClick={() => void downloadResult("report")}
                       className="h-12 w-full rounded-full"
                     >
-                      Unduh Laporan Pengecekan Akhir
+                      {/* Combined orders delivered before the split hold both reports in one PDF. */}
+                      {details.service === "combined" &&
+                      !details.hasResultAiReport
+                        ? "Unduh Laporan Pengecekan Akhir"
+                        : "Unduh Laporan Turnitin Akhir"}
+                    </Button>
+                  )}
+                {live &&
+                  details.kind === "paraphrase" &&
+                  details.hasResultAiReport && (
+                    <Button
+                      disabled={busy}
+                      variant="outline"
+                      onClick={() => void downloadResult("ai_report")}
+                      className="h-12 w-full rounded-full"
+                    >
+                      Unduh Laporan AI Akhir
                     </Button>
                   )}
                 {live &&

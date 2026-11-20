@@ -2,7 +2,7 @@ import { type CreatedOrder, ordersApi } from "@/lib/api/endpoints/orders"
 import { paymentApi } from "@/lib/api/endpoints/payment"
 import { orderTokens } from "@/lib/orders/order-tokens"
 import { RequestError, UserFacingError } from "@/lib/errors"
-import type { OrderDetail, PaymentSession } from "@/types/api"
+import type { OrderDetail, PaymentSession, ResultFile } from "@/types/api"
 
 import { filesApi } from "@/lib/api/endpoints/files"
 import { paraphraseServices } from "@/features/paraphrase/options"
@@ -46,6 +46,7 @@ function paraphraseDetails(
     },
     hasResult: d.hasResult,
     hasResultReport: d.hasResultReport,
+    hasResultAiReport: d.hasResultAiReport ?? false,
   }
 }
 
@@ -251,7 +252,7 @@ export const apiGateway = {
 
   async resultUrl(
     code: string,
-    file: "document" | "report" | "receipt" = "document"
+    file: ResultFile = "document"
   ): Promise<string> {
     const res = await ordersApi.result(code, file)
     if (!res.success) throw new RequestError(res.error)
