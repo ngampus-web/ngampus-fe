@@ -49,8 +49,8 @@ export const footerColumns: { title: string; links: NavLink[] }[] = [
         icon: "phone",
       },
       {
-        label: "cs@ngampus.co.id",
-        href: "mailto:cs@ngampus.co.id",
+        label: "support@ngampus.co.id",
+        href: "mailto:support@ngampus.co.id",
         icon: "email",
       },
       { label: "@ngampusofc", href: tiktokUrl, icon: "tiktok" },

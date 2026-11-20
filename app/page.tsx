@@ -4,6 +4,7 @@ import { Cta } from "@/features/home/components/cta"
 import { Faq } from "@/features/home/components/faq"
 import { Hero } from "@/features/home/components/hero"
 import { FeaturedProducts } from "@/features/home/components/featured-products"
+import { FeaturedServices } from "@/features/home/components/featured-services"
 import { Testimonials } from "@/features/home/components/testimonials"
 import { ToolCategories } from "@/features/home/components/tool-categories"
 import { WhyNgampus } from "@/features/home/components/why-ngampus"
@@ -34,6 +35,9 @@ export default async function Home() {
         <ToolCategories content={page.toolCategories} features={features} />
       )}
       {page.visible.benefits && <WhyNgampus content={page.whyNgampus} />}
+      {(features.turnitin || features.ai_check) && (
+        <FeaturedServices features={features} />
+      )}
       {features.marketplace && <FeaturedProducts />}
       {page.visible.testimonials && content.testimonials.length > 0 && (
         <Testimonials
