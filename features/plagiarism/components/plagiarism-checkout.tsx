@@ -280,6 +280,8 @@ export function PlagiarismCheckout({
   const price = isAi ? (quote?.total ?? null) : turnitin.startingPrice
   // A promo quote is tied to the file it priced; another file needs a new one.
   const activePromo = promo && promo.file === file ? promo : null
+  // A free code covers everything: the server pays the order on the spot.
+  const isFree = !!activePromo && activePromo.total === 0
   const notice =
     service.slug === "turnitin"
       ? { title: turnitinNoticeTitle, body: turnitinNoticeBody(turnitin) }
@@ -596,8 +598,18 @@ export function PlagiarismCheckout({
             size="pill-lg"
             className="w-full"
           >
-            {busy ? "Menyiapkan pesanan…" : plagiarismCheckout.payLabel}
+            {busy
+              ? "Menyiapkan pesanan…"
+              : isFree
+                ? "Konfirmasi Pesanan Gratis"
+                : plagiarismCheckout.payLabel}
           </Button>
+          {isFree && (
+            <p className="text-center text-xs leading-5 text-subtle">
+              Kode promo menutup seluruh harga, jadi tidak ada pembayaran yang
+              perlu dilakukan.
+            </p>
+          )}
           {payError && (
             <p role="alert" className="text-sm text-red-600">
               {payError}

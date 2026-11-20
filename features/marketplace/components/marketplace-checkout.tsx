@@ -143,6 +143,9 @@ export function MarketplaceCheckout({
   const activePromo =
     promo && promo.offerId === selectedOffer?.id ? promo : null
   const payable = activePromo ? activePromo.total : total
+  // A free code covers everything: the server pays the order on the spot, so
+  // there is nothing to pay. The total always comes from the server quote.
+  const isFree = !!activePromo && activePromo.total === 0
 
   async function applyPromo() {
     const code = promoInput.trim().toUpperCase()
@@ -511,12 +514,16 @@ export function MarketplaceCheckout({
                   ? "Stok Habis"
                   : payBusy
                     ? "Menyiapkan pesanan…"
-                    : "Bayar Sekarang"}
+                    : isFree
+                      ? "Konfirmasi Pesanan Gratis"
+                      : "Bayar Sekarang"}
             </Button>
             <p className="text-center text-xs leading-5 text-subtle">
               {product.previewOnly
                 ? "Data katalog pratinjau. Pembayaran tersedia setelah layanan terhubung kembali."
-                : "Pratinjau alur pembayaran. Belum ada transaksi nyata."}
+                : isFree
+                  ? "Kode promo menutup seluruh harga, jadi tidak ada pembayaran yang perlu dilakukan."
+                  : "Pratinjau alur pembayaran. Belum ada transaksi nyata."}
             </p>
             {payNote && (
               <p className="text-center text-sm tracking-[-0.02em] text-subtle">
