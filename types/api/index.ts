@@ -135,8 +135,13 @@ export interface MarketplaceOrderDetails {
   } | null
 }
 
+/** Files an order owner can download from `/orders/:code/result`. */
+export type ResultFile = "document" | "report" | "ai_report" | "receipt"
+
 export interface ParaphraseOrderDetails {
   hasResultReport: boolean
+  /** Optional: older backends do not send it. */
+  hasResultAiReport?: boolean
   kind: "paraphrase"
   service: "turnitin" | "ai" | "combined"
   fileName: string

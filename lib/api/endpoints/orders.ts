@@ -18,6 +18,7 @@ import type {
   OrderSummary,
   PaymentSession,
   PriceBreakdown,
+  ResultFile,
 } from "@/types/api"
 
 export interface OrdersQuery {
@@ -151,7 +152,7 @@ export const ordersApi = {
   },
 
   /** Presigned download of a completed order's result. */
-  result(code: string, file: "document" | "report" | "receipt" = "document") {
+  result(code: string, file: ResultFile = "document") {
     return apiClient.get<{ url: string; expiresAt: string }>(
       `/orders/${encodeURIComponent(code)}/result?file=${file}`,
       tokenOf(code)
@@ -184,7 +185,17 @@ export const ordersApi = {
     )
   },
 
-  quote(body: { kind: "marketplace"; offerId: string; promoCode?: string }) {
-    return apiClient.post<PriceBreakdown>("/pricing/quote", body)
+  /** Server price, promo included. Documents quote an uploaded file (guests send their upload token). */
+  quote(
+    body:
+      | { kind: "marketplace"; offerId: string; promoCode?: string }
+      | { kind: "turnitin" | "ai_check"; fileId: string; promoCode?: string },
+    uploadToken?: string
+  ) {
+    return apiClient.post<PriceBreakdown>(
+      "/pricing/quote",
+      body,
+      uploadHeaders(uploadToken)
+    )
   },
 }

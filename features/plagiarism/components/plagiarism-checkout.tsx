@@ -2,7 +2,7 @@
 import { notify } from "@/lib/toast"
 import { RequestError, UserFacingError } from "@/lib/errors"
 
-import { FileText, Info, Phone, TicketPercent } from "lucide-react"
+import { FileText, Info, Phone } from "lucide-react"
 import { useId, useRef, useState } from "react"
 
 import { Breadcrumb } from "@/components/layout/breadcrumb"
@@ -31,6 +31,11 @@ import {
   type AiCheckPricing,
 } from "@/features/plagiarism/services/document-file"
 import { filesApi } from "@/lib/api/endpoints/files"
+import { ordersApi } from "@/lib/api/endpoints/orders"
+import {
+  type AppliedPromo,
+  PromoField,
+} from "@/features/payment/components/promo-field"
 import { Turnstile } from "@/features/auth/components/turnstile"
 import { useGuestTurnstile } from "@/features/auth/hooks/use-guest-turnstile"
 import {
@@ -81,7 +86,6 @@ export function PlagiarismCheckout({
   const captcha = useGuestTurnstile()
   const [busy, setBusy] = useState(false)
   const [payError, setPayError] = useState("")
-  const [promoNote, setPromoNote] = useState("")
   const isAi = service.slug === "cek-ai"
   const maxWords = service.slug === "turnitin" ? turnitin.maxWords : Infinity
   // Uploaded once per picked file, so a retried checkout reuses it; guests
@@ -90,6 +94,83 @@ export function PlagiarismCheckout({
   const [uploadToken, setUploadToken] = useState<string>()
   const showPayError = (message: string) =>
     setPayError(notify.error(new UserFacingError(message)))
+
+  /** Uploads the picked file once; checkout and the promo quote reuse it. */
+  async function ensureUploaded(picked: File) {
+    let token = uploadToken
+    let fileId = uploaded.current.get(picked)
+    if (!fileId) {
+      const res = await filesApi.upload(
+        picked,
+        "doc_check_source",
+        documentMime(picked),
+        token,
+        token ? undefined : captcha.consume()
+      )
+      if (!res.success) throw new RequestError(res.error)
+      fileId = res.data.id
+      token = res.data.uploadToken ?? token
+      setUploadToken(token)
+      uploaded.current.set(picked, fileId)
+    }
+    return { fileId, token }
+  }
+
+  const [promoInput, setPromoInput] = useState("")
+  const [promo, setPromo] = useState<
+    (AppliedPromo & { file: File; subtotal: number; total: number }) | null
+  >(null)
+  const [promoError, setPromoError] = useState("")
+  const [promoBusy, setPromoBusy] = useState(false)
+
+  /** The discount needs the uploaded document: the server prices that file. */
+  async function applyPromo() {
+    const code = promoInput.trim().toUpperCase()
+    if (!code || promoBusy) return
+    const reason = !file
+      ? "Unggah dokumen dulu untuk menghitung potongan."
+      : wordCount === undefined
+        ? "Tunggu pemeriksaan dokumen selesai."
+        : limitError
+          ? limitError
+          : !uploadToken && !captcha.ready
+            ? "Selesaikan verifikasi keamanan di ringkasan pembayaran dulu."
+            : ""
+    if (reason || !file) return setPromoError(reason)
+    const kind = isAi ? "ai_check" : "turnitin"
+    setPromoBusy(true)
+    setPromoError("")
+    try {
+      const { fileId, token } = await ensureUploaded(file)
+      const res = await ordersApi.quote(
+        { kind, fileId, promoCode: code },
+        token
+      )
+      if (!res.success) {
+        notify.error(res.error)
+        return setPromoError(res.error.message)
+      }
+      notify.success("Kode promo berhasil digunakan.")
+      setPromo({
+        code,
+        discount: res.data.discount,
+        file,
+        subtotal: res.data.subtotal,
+        total: res.data.total,
+      })
+    } catch (error) {
+      setPromoError(notify.error(error, "Kode promo belum bisa dicek."))
+    } finally {
+      setPromoBusy(false)
+    }
+  }
+
+  function removePromo() {
+    notify.success("Kode promo dilepas.")
+    setPromo(null)
+    setPromoError("")
+  }
+
   async function checkout() {
     if (inFlight.current) return
     setPayError("")
@@ -137,29 +218,11 @@ export function PlagiarismCheckout({
     inFlight.current = true
     setBusy(true)
     try {
-      let fileId: string | undefined
-      let sessionToken = uploadToken
-      {
-        fileId = uploaded.current.get(file)
-        if (!fileId) {
-          const res = await filesApi.upload(
-            file,
-            "doc_check_source",
-            documentMime(file),
-            sessionToken,
-            sessionToken ? undefined : captcha.consume()
-          )
-          if (!res.success) throw new RequestError(res.error)
-          fileId = res.data.id
-          sessionToken = res.data.uploadToken ?? sessionToken
-          setUploadToken(sessionToken)
-          uploaded.current.set(file, fileId)
-        }
-      }
+      const { fileId, token: sessionToken } = await ensureUploaded(file)
       await onCheckout({
         phone,
-        amount: price ?? aiPricing.startingPrice,
-        promoCode: promo.trim() || undefined,
+        amount: activePromo?.total ?? price ?? aiPricing.startingPrice,
+        promoCode: activePromo?.code ?? (promoInput.trim() || undefined),
         uploadToken: sessionToken,
         details: {
           kind: "document",
@@ -199,7 +262,6 @@ export function PlagiarismCheckout({
   }
   const [phone, setPhone] = useState("")
   useProfileAutofill((user) => setPhone((v) => v || localPhone(user.phone)))
-  const [promo, setPromo] = useState("")
   const [checked, setChecked] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(
       plagiarismFilters.map((filter) => [filter.id, filter.defaultChecked])
@@ -216,6 +278,8 @@ export function PlagiarismCheckout({
   const quote =
     isAi && wordCount && !limitError ? quoteAiCheck(aiPricing, wordCount) : null
   const price = isAi ? (quote?.total ?? null) : turnitin.startingPrice
+  // A promo quote is tied to the file it priced; another file needs a new one.
+  const activePromo = promo && promo.file === file ? promo : null
   const notice =
     service.slug === "turnitin"
       ? { title: turnitinNoticeTitle, body: turnitinNoticeBody(turnitin) }
@@ -282,43 +346,24 @@ export function PlagiarismCheckout({
                 />
               </span>
             </label>
-            <div className="flex flex-col gap-2 text-sm font-medium tracking-[-0.02em]">
-              <label htmlFor="promo">Kode Promo</label>
-              <span className="relative">
-                <TicketPercent
-                  className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-subtle"
-                  aria-hidden
-                />
-                <input
-                  id="promo"
-                  type="text"
-                  name="promo"
-                  value={promo}
-                  onChange={(event) => setPromo(event.target.value)}
-                  placeholder="Kode promo"
-                  className="h-12 w-full rounded-full border border-line bg-white pr-28 pl-11 text-sm tracking-[-0.02em] outline-none placeholder:text-subtle focus-visible:border-primary"
-                />
-                <Button
-                  type="button"
-                  onClick={() =>
-                    setPromoNote(
-                      notify.info("Kode promo dicek saat pesanan dibuat.")
-                    )
-                  }
-                  size="pill"
-                  className="absolute top-1/2 right-1.5 h-9 -translate-y-1/2 px-3.5 text-sm"
-                >
-                  Gunakan
-                </Button>
-              </span>
-            </div>
+            <PromoField
+              value={promoInput}
+              onChange={(v) => {
+                setPromoInput(v)
+                setPromoError("")
+              }}
+              applied={activePromo}
+              error={
+                promoError ||
+                (promo && !activePromo
+                  ? "Dokumen berubah. Klik Gunakan lagi untuk menerapkan kode promo."
+                  : "")
+              }
+              busy={promoBusy}
+              onApply={() => void applyPromo()}
+              onRemove={removePromo}
+            />
           </div>
-
-          {promoNote && (
-            <p role="status" className="text-xs text-subtle">
-              {promoNote}
-            </p>
-          )}
 
           {service.filters && (
             <fieldset className="flex flex-col gap-3">
@@ -519,16 +564,20 @@ export function PlagiarismCheckout({
               chars={charCount}
               hasFile={!!file}
               quote={quote}
+              promo={activePromo}
             />
           ) : (
             <dl className="flex flex-col gap-3 text-sm tracking-[-0.02em]">
               <div className="flex items-center justify-between">
                 <dt>Subtotal</dt>
-                <dd>{rupiah(turnitin.startingPrice)}</dd>
+                <dd>
+                  {rupiah(activePromo?.subtotal ?? turnitin.startingPrice)}
+                </dd>
               </div>
+              <PromoRows promo={activePromo} />
               <div className="flex items-center justify-between font-semibold">
                 <dt>Total Pembayaran</dt>
-                <dd>{rupiah(turnitin.startingPrice)}</dd>
+                <dd>{rupiah(activePromo?.total ?? turnitin.startingPrice)}</dd>
               </div>
             </dl>
           )}
@@ -560,18 +609,42 @@ export function PlagiarismCheckout({
   )
 }
 
+type PricedPromo = AppliedPromo & { subtotal: number; total: number }
+
+/** Discount (and a service fee, if any) from the server quote. */
+function PromoRows({ promo }: { promo: PricedPromo | null }) {
+  if (!promo) return null
+  const fee = promo.total - (promo.subtotal - promo.discount)
+  return (
+    <>
+      <div className="flex items-center justify-between text-emerald-600">
+        <dt>Diskon ({promo.code})</dt>
+        <dd>−{rupiah(promo.discount)}</dd>
+      </div>
+      {fee > 0 && (
+        <div className="flex items-center justify-between">
+          <dt>Biaya layanan</dt>
+          <dd>{rupiah(fee)}</dd>
+        </div>
+      )}
+    </>
+  )
+}
+
 function AiCheckSummary({
   pricing,
   words,
   chars,
   hasFile,
   quote,
+  promo,
 }: {
   pricing: AiCheckPricing
   words: number | null | undefined
   chars: number | null
   hasFile: boolean
   quote: ReturnType<typeof quoteAiCheck> | null
+  promo: PricedPromo | null
 }) {
   const counting = hasFile && words === undefined
   const overChars = chars !== null && chars > pricing.maxChars
@@ -599,9 +672,12 @@ function AiCheckSummary({
             <dd>{rupiah(quote.extra)}</dd>
           </div>
         )}
+        <PromoRows promo={promo} />
         <div className="flex items-center justify-between border-t border-line pt-3 font-semibold">
           <dt>Total Pembayaran</dt>
-          <dd>{quote ? rupiah(quote.total) : "–"}</dd>
+          <dd>
+            {promo ? rupiah(promo.total) : quote ? rupiah(quote.total) : "–"}
+          </dd>
         </div>
       </dl>
       <p className="flex gap-2 text-xs leading-5 tracking-[-0.02em] text-subtle">
