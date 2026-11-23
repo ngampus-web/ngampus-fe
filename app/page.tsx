@@ -50,7 +50,9 @@ export default async function Home() {
   ])
   return (
     <>
-      <JsonLd data={organizationJsonLd(global.contacts)} />
+      <JsonLd
+        data={organizationJsonLd(global.contacts, global.footer.address)}
+      />
       <JsonLd data={websiteJsonLd()} />
       {page.visible.faq && content.faqs.length > 0 && (
         <JsonLd data={faqJsonLd(content.faqs)} />

@@ -8,7 +8,7 @@ import { MarketplaceCatalog } from "@/features/marketplace/components/marketplac
 import { fallbackMarketplaceSlides } from "@/features/marketplace/data/marketplace"
 import { contentApi } from "@/lib/api/endpoints/content"
 import { getPageContent, pageMetadata } from "@/features/content/api"
-import { breadcrumbJsonLd } from "@/lib/seo"
+import { breadcrumbJsonLd, howToJsonLd, itemListJsonLd } from "@/lib/seo"
 
 export const generateMetadata = () => pageMetadata("marketplace")
 
@@ -29,6 +29,29 @@ export default async function MarketplacePage() {
           { name: "Marketplace Akun AI & Premium", path: "/marketplace" },
         ])}
       />
+      {products.length > 0 && (
+        <JsonLd
+          data={itemListJsonLd({
+            name: "Katalog Akun AI & Aplikasi Premium Murah Mahasiswa",
+            items: products.map((product) => ({
+              name: `Akun ${product.name} Murah`,
+              path: `/marketplace/${product.slug}`,
+              description: product.shortDescription,
+            })),
+          })}
+        />
+      )}
+      {content.steps.length > 0 && (
+        <JsonLd
+          data={howToJsonLd({
+            name: content.stepsTitle,
+            description:
+              "Cara beli akun AI dan aplikasi premium murah bergaransi di Ngampus.co.id.",
+            path: "/marketplace",
+            steps: content.steps,
+          })}
+        />
+      )}
       <MarketplaceCatalog
         initialProducts={products}
         categories={categories}

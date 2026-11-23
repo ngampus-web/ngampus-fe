@@ -10,6 +10,7 @@ import { BlogCover } from "@/features/blog/components/blog-cover"
 import {
   articleJsonLd,
   breadcrumbJsonLd,
+  buildAlternates,
   buildOpenGraph,
   buildTwitterCard,
 } from "@/lib/seo"
@@ -30,7 +31,7 @@ export async function generateMetadata({
   return {
     title,
     description,
-    alternates: { canonical: path },
+    alternates: buildAlternates(path),
     openGraph: buildOpenGraph({
       type: "article",
       title,
@@ -70,6 +71,7 @@ export default async function BlogDetailPage({ params }: BlogDetailProps) {
           image: post.coverUrl,
           publishedAt: post.publishedAt,
           categoryName: post.category.name,
+          readingMinutes: post.readingMinutes,
         })}
       />
       <Breadcrumb

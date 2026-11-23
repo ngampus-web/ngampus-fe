@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { serverGet } from "@/lib/api/server"
 import { normalizeNgampusBrand } from "@/lib/normalize-ngampus-brand"
 import {
+  buildAlternates,
   buildOpenGraph,
   buildTwitterCard,
   CORE_SEO_KEYWORDS,
@@ -93,7 +94,7 @@ export async function pageMetadata(page: ContentPage): Promise<Metadata> {
     title,
     description,
     ...(keywords ? { keywords } : {}),
-    alternates: { canonical },
+    alternates: buildAlternates(canonical),
     openGraph: buildOpenGraph({
       title,
       description,

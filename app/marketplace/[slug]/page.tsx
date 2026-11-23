@@ -10,6 +10,7 @@ import {
 } from "@/features/marketplace/api"
 import {
   breadcrumbJsonLd,
+  buildAlternates,
   buildOpenGraph,
   buildTwitterCard,
   productJsonLd,
@@ -44,7 +45,7 @@ export async function generateMetadata({
       "akun ai murah",
       "akun premium mahasiswa",
     ],
-    alternates: { canonical: path },
+    alternates: buildAlternates(path),
     openGraph: buildOpenGraph({
       title,
       description,

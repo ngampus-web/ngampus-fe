@@ -13,6 +13,7 @@ import { startPrices } from "@/features/plagiarism/services/document-config"
 import { getDocumentConfig } from "@/features/plagiarism/services/document-services"
 import {
   breadcrumbJsonLd,
+  buildAlternates,
   buildOpenGraph,
   buildTwitterCard,
   serviceJsonLd,
@@ -98,7 +99,7 @@ export async function generateMetadata({
     title,
     description,
     ...(seo ? { keywords: seo.keywords } : {}),
-    alternates: { canonical: path },
+    alternates: buildAlternates(path),
     openGraph: buildOpenGraph({
       title,
       description,

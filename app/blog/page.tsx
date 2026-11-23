@@ -4,6 +4,7 @@ import { BlogListing } from "@/features/blog/components/blog-listing"
 import {
   BLOG_SEO_KEYWORDS,
   breadcrumbJsonLd,
+  buildAlternates,
   buildOpenGraph,
   buildTwitterCard,
 } from "@/lib/seo"
@@ -16,7 +17,7 @@ export const metadata: Metadata = {
   title: BLOG_TITLE,
   description: BLOG_DESCRIPTION,
   keywords: BLOG_SEO_KEYWORDS,
-  alternates: { canonical: "/blog" },
+  alternates: buildAlternates("/blog"),
   openGraph: buildOpenGraph({
     title: BLOG_TITLE,
     description: BLOG_DESCRIPTION,

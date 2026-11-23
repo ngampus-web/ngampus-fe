@@ -88,6 +88,21 @@ export function absoluteUrl(path = "/"): string {
   return `${SITE_URL}${normalized}`
 }
 
+export function buildAlternates(
+  path: string
+): NonNullable<Metadata["alternates"]> {
+  return {
+    canonical: path,
+    languages: {
+      "id-ID": path,
+      "x-default": path,
+    },
+    types: {
+      "text/plain": "/llms.txt",
+    },
+  }
+}
+
 export function buildOpenGraph(params: {
   title: string
   description: string
@@ -125,29 +140,80 @@ export function buildTwitterCard(params: {
   }
 }
 
-export function organizationJsonLd(contact?: {
-  email?: string | null
-  whatsapp?: string | null
-  instagram?: string | null
-  tiktok?: string | null
-}) {
+const ORG_ID = `${SITE_URL}/#organization`
+const WEBSITE_ID = `${SITE_URL}/#website`
+
+export function organizationJsonLd(
+  contact?: {
+    email?: string | null
+    whatsapp?: string | null
+    instagram?: string | null
+    tiktok?: string | null
+  },
+  addressText?: string
+) {
   const sameAs = [contact?.instagram, contact?.tiktok].filter(
     (url): url is string => Boolean(url && /^https?:\/\//i.test(url))
   )
   return {
     "@context": "https://schema.org",
     "@type": "Organization",
+    "@id": ORG_ID,
     name: SITE_NAME,
-    alternateName: SITE_BRAND,
+    alternateName: [SITE_BRAND, "Ngampus.id"],
     url: SITE_URL,
+    description:
+      "Platform kebutuhan kuliah all-in-one untuk mahasiswa Indonesia: cek Turnitin murah no repository, cek deteksi AI, jasa parafrase manual, marketplace akun AI & aplikasi premium bergaransi, dan file tools PDF gratis.",
     logo: absoluteUrl(SITE_LOGO_IMAGE),
     email: contact?.email || "support@ngampus.co.id",
     ...(sameAs.length > 0 ? { sameAs } : {}),
+    address: {
+      "@type": "PostalAddress",
+      streetAddress:
+        addressText ||
+        "Karangjoho 002/001, Jenar Wetan, Kec. Purwodadi, Kab. Purworejo",
+      addressLocality: "Purworejo",
+      addressRegion: "Jawa Tengah",
+      addressCountry: "ID",
+    },
+    areaServed: {
+      "@type": "Country",
+      name: "Indonesia",
+    },
+    knowsAbout: [
+      "Cek Plagiarisme Turnitin No Repository",
+      "Deteksi Tulisan AI Turnitin",
+      "Jasa Parafrase Manual Skripsi dan Tugas",
+      "Akun AI Premium Murah Mahasiswa (ChatGPT, Claude, Gemini, Perplexity)",
+      "Akun Canva Pro dan Aplikasi Produktivitas Mahasiswa",
+      "File Tools PDF Online Gratis",
+    ],
+    hasOfferCatalog: {
+      "@type": "OfferCatalog",
+      name: "Layanan & Produk Ngampus.co.id",
+      itemListElement: [
+        {
+          "@type": "OfferCatalog",
+          name: "Plagiarisme Checker, Turnitin & Cek AI",
+          url: absoluteUrl("/cek-plagiarisme"),
+        },
+        {
+          "@type": "OfferCatalog",
+          name: "Marketplace Akun AI & Aplikasi Premium Murah",
+          url: absoluteUrl("/marketplace"),
+        },
+        {
+          "@type": "OfferCatalog",
+          name: "File Tools PDF Online Gratis",
+          url: absoluteUrl("/file-tools"),
+        },
+      ],
+    },
     contactPoint: {
       "@type": "ContactPoint",
       contactType: "customer support",
       email: contact?.email || "support@ngampus.co.id",
-      ...(contact?.whatsapp ? { telephone: contact.whatsapp } : {}),
+      ...(contact?.whatsapp ? { telephone: `+${contact.whatsapp}` } : {}),
       availableLanguage: ["Indonesian"],
       areaServed: "ID",
     },
@@ -158,10 +224,55 @@ export function websiteJsonLd() {
   return {
     "@context": "https://schema.org",
     "@type": "WebSite",
+    "@id": WEBSITE_ID,
     name: SITE_NAME,
     alternateName: SITE_BRAND,
     url: SITE_URL,
+    description:
+      "Cek Turnitin murah no repository, cek AI, jasa parafrase manual, akun AI premium mahasiswa, dan file tools PDF gratis di Indonesia.",
     inLanguage: "id-ID",
+    publisher: { "@id": ORG_ID },
+  }
+}
+
+export function howToJsonLd(params: {
+  name: string
+  description: string
+  path: string
+  steps: { title: string; body: string }[]
+}) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    name: params.name,
+    description: params.description,
+    url: absoluteUrl(params.path),
+    inLanguage: "id-ID",
+    step: params.steps.map((step, index) => ({
+      "@type": "HowToStep",
+      position: index + 1,
+      name: step.title,
+      text: step.body,
+    })),
+  }
+}
+
+export function itemListJsonLd(params: {
+  name: string
+  items: { name: string; path: string; description?: string }[]
+}) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: params.name,
+    numberOfItems: params.items.length,
+    itemListElement: params.items.map((item, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: item.name,
+      url: absoluteUrl(item.path),
+      ...(item.description ? { description: item.description } : {}),
+    })),
   }
 }
 
@@ -298,6 +409,7 @@ export function articleJsonLd(params: {
   image?: string | null
   publishedAt: string
   categoryName?: string
+  readingMinutes?: number
 }) {
   return {
     "@context": "https://schema.org",
@@ -313,14 +425,24 @@ export function articleJsonLd(params: {
     datePublished: params.publishedAt,
     dateModified: params.publishedAt,
     inLanguage: "id-ID",
-    ...(params.categoryName ? { articleSection: params.categoryName } : {}),
+    ...(params.categoryName
+      ? {
+          articleSection: params.categoryName,
+          about: { "@type": "Thing", name: params.categoryName },
+        }
+      : {}),
+    ...(params.readingMinutes && params.readingMinutes > 0
+      ? { timeRequired: `PT${params.readingMinutes}M` }
+      : {}),
     author: {
       "@type": "Organization",
+      "@id": ORG_ID,
       name: "Tim Ngampus",
       url: SITE_URL,
     },
     publisher: {
       "@type": "Organization",
+      "@id": ORG_ID,
       name: SITE_NAME,
       url: SITE_URL,
       logo: {
