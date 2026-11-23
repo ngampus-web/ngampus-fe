@@ -60,9 +60,9 @@ export const plagiarismDefault = {
     },
   ],
   seo: {
-    title: "Plagiarisme Checker",
+    title: "Cek Turnitin Murah, Cek AI & Jasa Parafrase Manual",
     description:
-      "Cek similarity Turnitin, deteksi tulisan AI, atau parafrase manual.",
+      "Cek plagiasi Turnitin murah no repository mulai Rp 7.000/file, deteksi AI mulai Rp 6.000/file, dan jasa parafrase manual 24 jam di Ngampus.co.id.",
     imageFileId: null as string | null,
   },
 }

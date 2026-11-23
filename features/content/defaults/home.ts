@@ -1,4 +1,4 @@
-import { HOME_PAGE_TITLE } from "@/lib/site-metadata"
+import { HOME_PAGE_DESCRIPTION, HOME_PAGE_TITLE } from "@/lib/site-metadata"
 
 export const homeDefault = {
   hero: {
@@ -92,8 +92,7 @@ export const homeDefault = {
   },
   seo: {
     title: HOME_PAGE_TITLE,
-    description:
-      "Platform kuliah all-in-one: cek plagiasi, deteksi AI, akses AI premium, dan file tools untuk mahasiswa Indonesia.",
+    description: HOME_PAGE_DESCRIPTION,
     imageFileId: null as string | null,
   },
 }
