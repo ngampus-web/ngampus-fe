@@ -3,10 +3,12 @@ import type { Metadata } from "next"
 import { AuthShell } from "@/components/layout/auth-shell"
 import { FeatureGate } from "@/features/content/feature-gate"
 import { SubmitContentForm } from "@/features/creator/components/submit-content-form"
+import { NOINDEX_ROBOTS } from "@/lib/seo"
 
 export const metadata: Metadata = {
   title: "Submit Konten",
   description: "Kirim konten kampanye Ngampus Creator untuk diverifikasi.",
+  robots: NOINDEX_ROBOTS,
 }
 
 export default async function CreatorSubmitPage({

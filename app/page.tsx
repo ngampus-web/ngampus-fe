@@ -1,5 +1,6 @@
-import { HOME_PAGE_TITLE } from "@/lib/site-metadata"
+import { HOME_PAGE_DESCRIPTION, HOME_PAGE_TITLE } from "@/lib/site-metadata"
 import { AnnouncementBar } from "@/components/layout/announcement-bar"
+import { JsonLd } from "@/components/shared/json-ld"
 import { Cta } from "@/features/home/components/cta"
 import { Faq } from "@/features/home/components/faq"
 import { Hero } from "@/features/home/components/hero"
@@ -10,25 +11,50 @@ import { ToolCategories } from "@/features/home/components/tool-categories"
 import { WhyNgampus } from "@/features/home/components/why-ngampus"
 import { getHomeContent } from "@/features/home/content"
 import { getPageContent, pageMetadata } from "@/features/content/api"
-import { getFeatures } from "@/features/content/global"
+import { getFeatures, getGlobalContent } from "@/features/content/global"
+import {
+  buildOpenGraph,
+  buildTwitterCard,
+  faqJsonLd,
+  organizationJsonLd,
+  websiteJsonLd,
+} from "@/lib/seo"
 
 export async function generateMetadata() {
   const metadata = await pageMetadata("home")
+  const description =
+    typeof metadata.description === "string"
+      ? metadata.description
+      : HOME_PAGE_DESCRIPTION
   return {
     ...metadata,
     title: { absolute: HOME_PAGE_TITLE },
-    openGraph: { ...metadata.openGraph, title: HOME_PAGE_TITLE },
+    openGraph: buildOpenGraph({
+      title: HOME_PAGE_TITLE,
+      description,
+      path: "/",
+    }),
+    twitter: buildTwitterCard({
+      title: HOME_PAGE_TITLE,
+      description,
+    }),
   }
 }
 
 export default async function Home() {
-  const [content, page, features] = await Promise.all([
+  const [content, page, features, global] = await Promise.all([
     getHomeContent(),
     getPageContent("home"),
     getFeatures(),
+    getGlobalContent(),
   ])
   return (
     <>
+      <JsonLd data={organizationJsonLd(global.contacts)} />
+      <JsonLd data={websiteJsonLd()} />
+      {page.visible.faq && content.faqs.length > 0 && (
+        <JsonLd data={faqJsonLd(content.faqs)} />
+      )}
       <AnnouncementBar announcement={content.announcement} />
       <Hero content={page.hero} />
       {page.visible.tools && (

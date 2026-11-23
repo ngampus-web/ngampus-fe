@@ -43,9 +43,10 @@ export const marketplaceDefault = {
     href: "/klaim-garansi",
   },
   seo: {
-    title: "Marketplace",
+    title:
+      "Akun AI & Aplikasi Premium Murah Mahasiswa (ChatGPT, Claude, Canva)",
     description:
-      "Beli akses ChatGPT, Claude, Gemini, Canva, CapCut, dan Spotify.",
+      "Beli akun AI premium murah dan bergaransi untuk mahasiswa: ChatGPT Plus, Claude AI, Gemini, Perplexity, Canva Pro, CapCut, hingga Spotify di Ngampus.co.id.",
     imageFileId: null as string | null,
   },
 }

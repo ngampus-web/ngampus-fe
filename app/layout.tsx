@@ -1,5 +1,12 @@
 import type { Metadata } from "next"
-import { HOME_PAGE_TITLE } from "@/lib/site-metadata"
+import { HOME_PAGE_DESCRIPTION, HOME_PAGE_TITLE } from "@/lib/site-metadata"
+import {
+  buildOpenGraph,
+  buildTwitterCard,
+  CORE_SEO_KEYWORDS,
+  SITE_NAME,
+  SITE_URL,
+} from "@/lib/seo"
 import { Geist_Mono, Inter } from "next/font/google"
 import { SiteChrome } from "@/components/layout/site-chrome"
 import { WhatsAppShortcut } from "@/components/layout/whatsapp-shortcut"
@@ -20,13 +27,40 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 })
 
+const googleSiteVerification =
+  process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION?.trim()
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
+  applicationName: SITE_NAME,
   title: {
     default: HOME_PAGE_TITLE,
     template: "%s | Ngampus.co.id",
   },
-  description:
-    "Platform kuliah all-in-one: cek plagiasi, deteksi AI, akses AI premium, dan file tools untuk mahasiswa Indonesia.",
+  description: HOME_PAGE_DESCRIPTION,
+  keywords: CORE_SEO_KEYWORDS,
+  openGraph: buildOpenGraph({
+    title: HOME_PAGE_TITLE,
+    description: HOME_PAGE_DESCRIPTION,
+    path: "/",
+  }),
+  twitter: buildTwitterCard({
+    title: HOME_PAGE_TITLE,
+    description: HOME_PAGE_DESCRIPTION,
+  }),
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  ...(googleSiteVerification
+    ? { verification: { google: googleSiteVerification } }
+    : {}),
 }
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {

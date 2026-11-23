@@ -1,3 +1,4 @@
+import { JsonLd } from "@/components/shared/json-ld"
 import { bannersToSlides } from "@/components/shared/promo-slides"
 import { fallbackPlagiarismSlides } from "@/features/plagiarism/data/plagiarism"
 import { PlagiarismServices } from "@/features/plagiarism/components/plagiarism-services"
@@ -6,6 +7,7 @@ import { getDocumentConfig } from "@/features/plagiarism/services/document-servi
 import { contentApi } from "@/lib/api/endpoints/content"
 import { getPageContent, pageMetadata } from "@/features/content/api"
 import { getFeatures } from "@/features/content/global"
+import { breadcrumbJsonLd } from "@/lib/seo"
 
 export const generateMetadata = () => pageMetadata("plagiarism")
 
@@ -22,11 +24,19 @@ export default async function PlagiarismPage() {
       ? fallbackPlagiarismSlides(prices)
       : bannersToSlides(banners)
   return (
-    <PlagiarismServices
-      slides={slides}
-      content={content}
-      startPrices={prices}
-      features={features}
-    />
+    <>
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: "Beranda", path: "/" },
+          { name: "Cek Plagiarisme & Turnitin", path: "/cek-plagiarisme" },
+        ])}
+      />
+      <PlagiarismServices
+        slides={slides}
+        content={content}
+        startPrices={prices}
+        features={features}
+      />
+    </>
   )
 }
