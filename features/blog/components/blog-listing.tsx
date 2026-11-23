@@ -9,7 +9,10 @@ import {
   getBlogPosts,
 } from "@/features/blog/api"
 import { BlogCover } from "@/features/blog/components/blog-cover"
-import { blogHref } from "@/features/blog/services/posts"
+import {
+  blogHref,
+  postsPerPageForCategory,
+} from "@/features/blog/services/posts"
 import { cn } from "@/lib/utils"
 
 type BlogPageProps = {
@@ -36,12 +39,14 @@ export async function BlogListing({ searchParams }: BlogPageProps) {
     Number.isFinite(requestedPage) && requestedPage > 0
       ? Math.floor(requestedPage)
       : 1
+  const perPage = postsPerPageForCategory(category)
   const { posts: visible, meta } = await getBlogPosts({
     category: category === "semua" ? undefined : category,
     page,
+    perPage,
   }).catch(() => ({
     posts: [],
-    meta: { page, perPage: 3, total: 0, totalPages: 0 },
+    meta: { page, perPage, total: 0, totalPages: 0 },
   }))
   const pageCount = Math.max(1, meta.totalPages)
   const chips = [

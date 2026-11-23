@@ -69,6 +69,8 @@ const blog = load("features/blog/services/posts.ts")
 const { blogCategories } = load("features/blog/data/blog.ts")
 assert.equal(blogCategories[0].id, "semua")
 assert.equal(blog.blogHref("semua"), "/blog")
+assert.equal(blog.postsPerPageForCategory("semua"), 9)
+assert.equal(blog.postsPerPageForCategory("tips-mahasiswa"), 3)
 assert.equal(
   blog.blogHref("tips-mahasiswa", 2),
   "/blog?kategori=tips-mahasiswa&halaman=2"

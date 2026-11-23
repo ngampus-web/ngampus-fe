@@ -2,6 +2,9 @@ import { ApiNotFoundError, serverGet } from "@/lib/api/server"
 import type { PaginationMeta } from "@/types/api"
 
 import { blogCategories } from "./data/blog"
+import { ALL_CATEGORY_POSTS_PER_PAGE, POSTS_PER_PAGE } from "./services/posts"
+
+export { ALL_CATEGORY_POSTS_PER_PAGE, POSTS_PER_PAGE }
 
 // docs/API-CONTRACT.md §4
 export interface BlogCategoryItem {
@@ -26,8 +29,6 @@ export interface BlogPostDetail extends BlogPostSummary {
   seoDescription: string | null
 }
 
-export const POSTS_PER_PAGE = 3
-
 /** Falls back to the static chip list when the API is unreachable. */
 export async function getBlogCategories(): Promise<BlogCategoryItem[]> {
   try {
@@ -42,12 +43,13 @@ export async function getBlogCategories(): Promise<BlogCategoryItem[]> {
 export async function getBlogPosts(params: {
   category?: string
   page: number
+  perPage?: number
 }) {
   const res = await serverGet<BlogPostSummary[]>("/blog/posts", {
     query: {
       category: params.category,
       page: params.page,
-      perPage: POSTS_PER_PAGE,
+      perPage: params.perPage ?? POSTS_PER_PAGE,
     },
   })
   return {
