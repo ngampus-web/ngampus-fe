@@ -1,13 +1,17 @@
 import { JsonLd } from "@/components/shared/json-ld"
 import { bannersToSlides } from "@/components/shared/promo-slides"
-import { fallbackPlagiarismSlides } from "@/features/plagiarism/data/plagiarism"
+import {
+  fallbackPlagiarismSlides,
+  plagiarismServices,
+} from "@/features/plagiarism/data/plagiarism"
 import { PlagiarismServices } from "@/features/plagiarism/components/plagiarism-services"
 import { startPrices } from "@/features/plagiarism/services/document-config"
 import { getDocumentConfig } from "@/features/plagiarism/services/document-services"
 import { contentApi } from "@/lib/api/endpoints/content"
 import { getPageContent, pageMetadata } from "@/features/content/api"
 import { getFeatures } from "@/features/content/global"
-import { breadcrumbJsonLd } from "@/lib/seo"
+import { PLAGIARISM_SLUG_FEATURE } from "@/lib/features"
+import { breadcrumbJsonLd, howToJsonLd, itemListJsonLd } from "@/lib/seo"
 
 export const generateMetadata = () => pageMetadata("plagiarism")
 
@@ -23,6 +27,9 @@ export default async function PlagiarismPage() {
     banners === null
       ? fallbackPlagiarismSlides(prices)
       : bannersToSlides(banners)
+  const activeServices = plagiarismServices
+    .map((service, index) => ({ ...service, ...content.services[index] }))
+    .filter((service) => features[PLAGIARISM_SLUG_FEATURE[service.slug]])
   return (
     <>
       <JsonLd
@@ -31,6 +38,26 @@ export default async function PlagiarismPage() {
           { name: "Cek Plagiarisme & Turnitin", path: "/cek-plagiarisme" },
         ])}
       />
+      <JsonLd
+        data={itemListJsonLd({
+          name: "Layanan Cek Plagiarisme Turnitin, Cek AI & Parafrase Manual",
+          items: activeServices.map((service) => ({
+            name: service.title,
+            path: `/cek-plagiarisme/${service.slug}`,
+            description: service.description,
+          })),
+        })}
+      />
+      {content.steps.length > 0 && (
+        <JsonLd
+          data={howToJsonLd({
+            name: content.stepsTitle,
+            description: content.description,
+            path: "/cek-plagiarisme",
+            steps: content.steps,
+          })}
+        />
+      )}
       <PlagiarismServices
         slides={slides}
         content={content}

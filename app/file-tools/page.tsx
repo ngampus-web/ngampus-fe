@@ -16,6 +16,7 @@ import {
 import {
   absoluteUrl,
   breadcrumbJsonLd,
+  buildAlternates,
   buildOpenGraph,
   buildTwitterCard,
   FILE_TOOLS_SEO_KEYWORDS,
@@ -30,7 +31,7 @@ export const metadata: Metadata = {
   title: FILE_TOOLS_TITLE,
   description: FILE_TOOLS_DESCRIPTION,
   keywords: FILE_TOOLS_SEO_KEYWORDS,
-  alternates: { canonical: "/file-tools" },
+  alternates: buildAlternates("/file-tools"),
   openGraph: buildOpenGraph({
     title: FILE_TOOLS_TITLE,
     description: FILE_TOOLS_DESCRIPTION,

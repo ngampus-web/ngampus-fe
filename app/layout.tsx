@@ -33,6 +33,12 @@ const googleSiteVerification =
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   applicationName: SITE_NAME,
+  category: "education",
+  alternates: {
+    types: {
+      "text/plain": "/llms.txt",
+    },
+  },
   title: {
     default: HOME_PAGE_TITLE,
     template: "%s | Ngampus.co.id",
