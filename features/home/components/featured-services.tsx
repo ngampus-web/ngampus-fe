@@ -1,3 +1,4 @@
+import { Flame } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 
@@ -49,8 +50,8 @@ export async function FeaturedServices({
       className="mx-auto flex w-full max-w-[1280px] flex-col gap-8 px-5 py-16 md:px-10 lg:p-20"
     >
       <SectionHeading
-        title="Yu, cek tugasmu di kami"
-        description="Cek plagiasi dan deteksi tulisan AI untuk bantu kamu merapikan tugas sebelum dikumpulkan."
+        title="Yuk, cek tugasmu di Ngampus"
+        description="Pastikan tugas, makalah, dan skripsimu aman dari plagiasi serta deteksi AI sebelum dikumpulkan."
       />
       <div className="grid gap-6 md:grid-cols-2">
         {services.map((service) => {
@@ -70,7 +71,11 @@ export async function FeaturedServices({
                 className="mx-auto h-44 w-auto shrink-0 object-contain lg:h-48"
               />
               <div className="flex min-w-0 flex-1 flex-col items-start gap-5">
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col items-start gap-3">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-semibold tracking-[-0.02em] text-primary">
+                    <Flame className="size-3.5" aria-hidden />
+                    Best Seller
+                  </span>
                   <h3 className="text-[22px] leading-7 font-semibold tracking-[-0.02em]">
                     {service.title}
                   </h3>
