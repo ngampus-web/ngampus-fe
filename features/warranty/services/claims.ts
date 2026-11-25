@@ -17,6 +17,8 @@ export const claimCategories = [
   { value: "logged_out", label: "Akun Ter-logout Otomatis" },
   { value: "password_changed", label: "Password Berubah" },
   { value: "quota_limit", label: "Limit Tercapai" },
+  { value: "not_premium", label: "Akun berubah tidak premium" },
+  { value: "account_disabled", label: "Akun Disable" },
 ] as const
 
 export function categoryLabel(value: string) {

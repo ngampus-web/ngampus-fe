@@ -300,6 +300,8 @@ export type ClaimCategory =
   | "quota_limit"
   | "suspended"
   | "invalid_license"
+  | "not_premium"
+  | "account_disabled"
   | "other"
 
 export type ClaimStatus =
