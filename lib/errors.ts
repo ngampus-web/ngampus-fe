@@ -52,6 +52,8 @@ export function errorMessage(error: unknown, fallback?: string): string {
     return "Akunmu tidak memiliki izin untuk melakukan tindakan ini."
   if (info.code === "SERVICE_UNAVAILABLE")
     return "Cek Turnitin sedang dalam pemeliharaan. Silakan coba lagi nanti."
+  if (info.code === "RATE_LIMITED" && info.details?.reason === "provider_budget")
+    return "Pembayaran QRIS sedang tidak tersedia sementara. Coba lagi nanti atau hubungi admin."
   if (info.code === "RATE_LIMITED" || info.status === 429)
     return "Terlalu banyak percobaan. Tunggu sebentar lalu coba lagi."
   if (info.code === "NETWORK_ERROR" || info.status === 0)
